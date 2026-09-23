@@ -29,6 +29,11 @@
     --c-voor:#4a3aa7;
     --c-na:#1baf7a;
     --grid:#e6ebf2;
+    --good:#1f7a52;
+    --bad:#b0463c;
+    --k-vrij:#1baf7a;
+    --k-verw:#eb6834;
+    --k-koel:#2a78d6;
   }
   html[data-mode="dark"]{
     --ink:#0f1622;
@@ -50,6 +55,11 @@
     --c-voor:#9085e9;
     --c-na:#199e70;
     --grid:rgba(255,255,255,.07);
+    --good:#5fbf94;
+    --bad:#e2897a;
+    --k-vrij:#199e70;
+    --k-verw:#d95926;
+    --k-koel:#3987e5;
   }
   *{box-sizing:border-box;}
   html,body{margin:0;padding:0;}
@@ -308,6 +318,55 @@
   .chart-tooltip .tt-key{width:9px; height:9px; border-radius:50%;}
   .chart-tooltip .tt-val{font-family:"Courier New",monospace; font-weight:700;}
   .chart-empty{font-size:13px; color:var(--text-soft); padding:22px 0; text-align:center;}
+
+  /* Klimaat */
+  .klimaat-box{border:1px solid var(--rule); border-radius:6px; padding:10px 12px; display:flex; flex-direction:column; gap:8px; background:var(--paper-2);}
+  .klimaat-title{font-size:11.5px; color:var(--text-soft); letter-spacing:.02em;}
+  .klimaat-row{display:flex; align-items:center; gap:10px; flex-wrap:wrap;}
+  .klimaat-sys{width:44px; font-size:12px; font-weight:600; color:var(--deep);}
+  .sp-field{display:inline-flex !important; flex-direction:row !important; align-items:center; gap:6px !important; font-size:12px !important;}
+  .sp-field[hidden]{display:none !important;}
+  .sp-field input{width:64px !important; padding:5px 7px !important; font-size:13px !important;}
+  .klimaat-hint{font-size:11px; color:var(--text-soft); margin:0;}
+  .kcell{min-width:170px;}
+  .krow{display:flex; align-items:center; gap:4px;}
+  .krow .ksys{width:34px; font-size:10.5px; color:var(--text-soft);}
+  .krow select{width:auto !important; font-size:12px !important; padding:3px 4px !important;}
+  .rtable input.t-sp{width:48px; font-size:12px; padding:3px 5px; text-align:right;}
+  .reg-tag{display:inline-block; margin-top:3px; font-size:10px; padding:1px 7px; border-radius:20px; color:var(--text-soft); background:color-mix(in srgb, var(--text-soft) 14%, transparent); cursor:help; white-space:nowrap;}
+  .reg-tag.gehaald{color:var(--accent); background:color-mix(in srgb, var(--accent) 12%, transparent);}
+  .reg-tag.niet{color:var(--warm); background:color-mix(in srgb, var(--warm) 13%, transparent);}
+  .chart-legend .sw.hollow{background:transparent; border:2px solid var(--text-soft); width:9px; height:9px; box-sizing:border-box;}
+  .ktable{min-width:0;}
+  .summary-grid{display:grid; grid-template-columns:repeat(3,1fr); gap:10px;}
+  .summary-grid > div{display:flex; flex-direction:column; gap:2px; border:1px solid var(--rule); border-radius:4px; padding:8px 10px;}
+  .summary-grid .l{font-size:11px; color:var(--text-soft);}
+  .summary-grid .v{font-size:16px; font-weight:700;}
+  .stamp.k-verw{border-color:var(--k-verw);} .stamp.k-verw .stamp-label, .stamp.k-verw .stamp-value{color:var(--k-verw);}
+  .stamp.k-koel{border-color:var(--k-koel);} .stamp.k-koel .stamp-label, .stamp.k-koel .stamp-value{color:var(--k-koel);}
+  .summary-line .l .sw{display:inline-block; width:8px; height:8px; border-radius:50%; margin-right:7px;}
+
+  /* Conclusie */
+  .conclusion{border:1px solid var(--rule); border-left:4px solid var(--text-onink-soft); border-radius:4px; padding:12px 14px; margin:4px 0 10px; background:color-mix(in srgb, var(--text-onink) 3%, transparent);}
+  .conclusion.good{border-left-color:var(--good); background:color-mix(in srgb, var(--good) 8%, transparent);}
+  .conclusion.bad{border-left-color:var(--bad); background:color-mix(in srgb, var(--bad) 8%, transparent);}
+  .conclusion.neutral{border-left-color:var(--accent);}
+  .con-head{display:flex; align-items:center; gap:8px; font-weight:700; font-size:14px; color:var(--text-onink);}
+  .con-icon{display:inline-flex; width:20px; height:20px; border-radius:50%; align-items:center; justify-content:center; font-size:12px; font-weight:700; flex-shrink:0; color:#fff; background:var(--text-onink-soft);}
+  .good .con-icon{background:var(--good);} .bad .con-icon{background:var(--bad);} .neutral .con-icon{background:var(--accent);}
+  html[data-mode="dark"] .con-icon{color:#0c121c;}
+  .conclusion p{margin:6px 0 0; font-size:12.5px; line-height:1.55; color:var(--text-onink-soft);}
+  .con-conf{margin-top:8px; font-size:11.5px; color:var(--text-onink-soft);}
+  .con-conf strong{color:var(--text-onink);}
+  .pm{font-size:11px; color:var(--text-onink-soft);}
+  .dp-con-list{display:flex; flex-direction:column; gap:2px;}
+  .dp-con{display:flex; align-items:center; gap:8px; width:100%; text-align:left; font-family:inherit; font-size:12.5px; padding:6px 8px; border:1px solid transparent; border-radius:4px; background:transparent; color:var(--text-onink); cursor:pointer;}
+  .dp-con:hover{border-color:var(--rule);}
+  .dp-con.on{border-color:var(--accent); background:color-mix(in srgb, var(--accent) 8%, transparent);}
+  .dp-con .con-icon{width:16px; height:16px; font-size:10px;}
+  .dp-con .l{flex:0 0 70px;}
+  .dp-con .v{flex:1; text-align:right; color:var(--text-onink-soft); font-family:"Courier New",monospace; font-size:11.5px;}
+  .dp-con.insufficient .con-icon{background:var(--rule); color:var(--text-onink-soft);}
 
   /* Dagdeel-filter & segmentknoppen */
   .filter-row{display:flex; align-items:center; gap:10px; flex-wrap:wrap; margin:0 0 16px;}
@@ -652,6 +711,77 @@ const I18N = {
     coolCaveat: "Ook bewoners, koelkast, zoninstraling en ventilatie leveren of kosten warmte. Vergelijk tests onder vergelijkbare omstandigheden (zelfde ruimte, deuren dicht, geen zon, ongeveer even lang).",
     hours: h => `${h} u`,
     coolTau: "τ",
+    conTitle: "Conclusie",
+    conAllDay: "over de hele dag",
+    con_good: "Isolatie biedt meerwaarde",
+    con_bad: "Geen meerwaarde zichtbaar — na isolatie juist koeler",
+    con_neutral: "Nog geen duidelijk verschil",
+    conInsufficient: "Nog onvoldoende data voor een conclusie",
+    conBody_good: (ref, d, m, dp) => `Bij ${ref} buiten is het binnen na isolatie ${d} warmer dan ervoor (${dp}). Dat is meer dan de meetonzekerheid van ± ${m}, dus de isolatie houdt aantoonbaar warmte binnen.`,
+    conBody_bad: (ref, d, m, dp) => `Bij ${ref} buiten is het binnen na isolatie ${d} kouder dan ervoor (${dp}), meer dan de meetonzekerheid van ± ${m}. Dat komt zelden door de isolatie zelf; kijk of er na isolatie minder gestookt, meer geventileerd of op een ander moment/in een andere ruimte gemeten is.`,
+    conBody_neutral: (ref, d, m, dp) => `Bij ${ref} buiten verschilt de binnentemperatuur vóór en na isolatie ${d} (${dp}). Dat valt binnen de meetonzekerheid van ± ${m}, dus er is (nog) geen verschil aan te tonen. Meer metingen — vooral bij koud weer — maken dit duidelijker.`,
+    conInsufficientBody: (nv, nn) => `Nodig: minimaal 3 metingen vóór én 3 na isolatie in deze selectie, met minstens 1 °C spreiding in buitentemperatuur. Nu: ${nv} vóór, ${nn} na.`,
+    conRefMoved: r => `(Vergeleken bij ${r}, midden van het bereik dat in beide periodes gemeten is.)`,
+    conExtrap: "Let op: de buitentemperaturen van vóór en na overlappen niet — de vergelijking is een doortrekking van de lijn en dus onzeker.",
+    conHeatWarn: (hv, hn) => `Let op: de verwarming/airco stond vóór bij ${hv}% en na bij ${hn}% van de metingen aan — dat vertekent het beeld.`,
+    conConfidence: "Zekerheid",
+    conf_high: "hoog", conf_medium: "redelijk", conf_low: "voorlopig",
+    conCounts: (nv, nn) => `${nv} vóór / ${nn} na`,
+    conPerDp: "Per dagdeel",
+    conShort_good: "meerwaarde", conShort_bad: "koeler", conShort_neutral: "geen duidelijk verschil",
+    conShortInsufficient: (nv, nn) => `te weinig data (${nv}/${nn})`,
+    coolConInsufficient: (nv, nn) => `Nodig: minimaal 1 afgeronde afkoeltest vóór én 1 na isolatie. Nu: ${nv} vóór, ${nn} na. Zonder tests van vóór de isolatie worden je eerste tests de nulmeting voor later.`,
+    coolConBody_good: (tv, tn, p) => `Het huis koelt na isolatie ${p}% trager af (τ ${tv} → ${tn} uur). De warmte blijft dus langer binnen.`,
+    coolConBody_bad: (tv, tn, p) => `Het huis koelt na isolatie ${p}% sneller af (τ ${tv} → ${tn} uur). Controleer of de tests onder vergelijkbare omstandigheden zijn gedaan (wind, ventilatie, deuren, ruimte).`,
+    coolConBody_neutral: (tv, tn, p) => `τ verschilt ${p}% (${tv} → ${tn} uur). Dat valt binnen de normale schommeling van afkoeltests (±15%), dus nog geen duidelijk verschil.`,
+    coolConCounts: (nv, nn) => `${nv} test${nv===1?"":"s"} vóór / ${nn} na`,
+    fKlimaat: "Verwarming & koeling",
+    kCv: "CV", kAirco: "Airco",
+    kOptNone: "—", kOptUit: "Uit", kOptAan: "Aan", kOptVerw: "Verwarmen", kOptKoel: "Koelen",
+    kOptVerwShort: "Verw.", kOptKoelShort: "Koel.",
+    kSetpoint: "ingesteld op",
+    kFormHint: "Vul in wat er aan stond, met de ingestelde temperatuur. Tembo onthoudt je vorige keuze.",
+    kStatus_vrij: "Alles uit", kStatus_verwarmen: "Verwarmd", kStatus_koelen: "Gekoeld", kStatus_onbekend: "Onbekend", kStatus_gemengd: "Gemengd",
+    kFilterLabel: "Klimaat",
+    kReg_gehaald: "thermostaat", kReg_niet: "niet gehaald", kReg_boven: "boven instelling", kReg_onder: "onder instelling",
+    kRegTip_gehaald: "Binnen ≈ ingestelde temperatuur: de thermostaat bepaalde de binnentemperatuur. Deze meting telt niet mee in het isolatievergelijk.",
+    kRegTip_niet: "De ingestelde temperatuur werd niet gehaald — het systeem kon het niet bijhouden.",
+    kRegTip_boven: "Warmer dan ingesteld: de verwarming hoefde (even) niet te werken.",
+    kRegTip_onder: "Koeler dan ingesteld: de airco hoefde (even) niet te koelen.",
+    kLegacy: "oud: verwarming/airco aan",
+    thKlimaat: "Klimaat",
+    conVrijOnly: "Gebaseerd op metingen met cv én airco uit — het zuiverste vergelijk.",
+    conExcluded: n => `${n} meting${n===1?"":"en"} weggelaten omdat de thermostaat de binnentemperatuur bepaalde.`,
+    conHeatWarn2: (hv, hn) => `Let op: vóór werd bij ${hv}% en na bij ${hn}% van de metingen verwarmd of gekoeld — dat vertekent het beeld. Filter op 'Alles uit' voor het zuiverste vergelijk.`,
+    scatterHollow: "open stip = thermostaat bepaalde binnen (niet in conclusie)",
+    navKlimaat: "Klimaat & comfort",
+    kpTitle: "Klimaat & comfort",
+    kpVrijTitle: "Zonder verwarming of koeling",
+    kpVrijNote: "Metingen waarbij cv én airco uit stonden laten zien hoe je huis zélf presteert. Hoe groter het verschil binnen − buiten bij kou, hoe beter de warmte binnen blijft.",
+    kpVrijAvg: "Gem. verschil binnen − buiten",
+    kpVrijNone: "Nog geen metingen met cv én airco uit.",
+    kpMonth: "Maand", kpN: "Metingen", kpAvgOut: "Gem. buiten", kpAvgDelta: "Gem. verschil",
+    kpHeatMax: (bi, bu) => `Warmste binnen zonder koelen: ${bi} bij ${bu} buiten.`,
+    kpVerwTitle: "Verwarmen",
+    kpVerwNote: "Wordt de ingestelde temperatuur gehaald? Lukt dat bij kou niet meer, dan verliest het huis meer warmte dan de verwarming kan bijhouden. Goede isolatie schuift dat punt op naar koudere dagen.",
+    kpSys: "Systeem", kpGehaald: "Gehaald", kpTekort: "Gem. tekort", kpColdestOk: "Koudst gehaald", kpWarmestNot: "Warmst niet gehaald",
+    kpVerwCols: "Gehaald = binnen kwam op (of boven) de ingestelde temperatuur. Tekort = hoeveel graden het onder de instelling bleef. Koudst gehaald / warmst niet gehaald = bij welke buitentemperatuur het systeem het nog wel of al niet meer redde.",
+    kpSysCv: "CV", kpSysAirco: "Airco (verwarmen)", kpSysBeide: "CV + airco",
+    kpNoVerw: "Nog geen metingen met verwarming aan.",
+    kpKoelTitle: "Koelen",
+    kpKoelNote: "Isolatie houdt 's zomers ook hitte buiten. Hoe hoger de buitentemperatuur waarbij je gaat koelen, hoe beter.",
+    kpKoelDays: n => `Gekoeld op ${n} dag${n===1?"":"en"}.`,
+    kpNoKoel: "Nog geen metingen met koelen.",
+    kpChart: "Binnen t.o.v. buiten per klimaat",
+    kpChartNote: "Gevulde stip = binnen werd niet door de thermostaat bepaald; open stip = binnen ≈ ingestelde temperatuur. De stippellijnen zijn de geschatte stook- en koelgrens.",
+    kpStook: "Stookgrens", kpKoel: "Koelgrens",
+    kpStookSub: t => `verwarming meestal aan onder ~${t} buiten`,
+    kpKoelSub: t => `koelen meestal aan boven ~${t} buiten`,
+    kpGrensNeed: "nog te weinig data (min. 3 metingen 'alles uit' én 3 met het systeem aan)",
+    kpCounts: "Aantal metingen per klimaat",
+    kpRegPct: "Instelling gehaald",
+    kpHint: "Deze pagina blijft nuttig als het vóór/na-vergelijk er niet meer toe doet: volg over de seizoenen of je minder hoeft te stoken en te koelen. Voor het energieverbruik zelf zijn meterstanden nodig.",
+    pct: v => `${v}%`,
     srcBadge: "online opgehaald",
     srcOptOnline: "Online", srcOptOwn: "Eigen meting",
     srcOwnHint: v => v === null ? "Vul je eigen buitentemperatuur in." : `Eigen meting (online was ${v}).`,
@@ -790,6 +920,77 @@ const I18N = {
     coolCaveat: "Occupants, fridge, sun and ventilation also add or remove heat. Compare tests under similar conditions (same room, doors closed, no sun, similar duration).",
     hours: h => `${h} h`,
     coolTau: "τ",
+    conTitle: "Conclusion",
+    conAllDay: "across the whole day",
+    con_good: "Insulation adds value",
+    con_bad: "No added value visible — colder after insulation",
+    con_neutral: "No clear difference yet",
+    conInsufficient: "Not enough data for a conclusion yet",
+    conBody_good: (ref, d, m, dp) => `At ${ref} outdoor it is ${d} warmer indoors after insulation than before (${dp}). That exceeds the measurement uncertainty of ± ${m}, so the insulation demonstrably keeps heat in.`,
+    conBody_bad: (ref, d, m, dp) => `At ${ref} outdoor it is ${d} colder indoors after insulation than before (${dp}), more than the uncertainty of ± ${m}. This is rarely caused by the insulation itself; check whether you heated less, ventilated more, or measured at another time/room afterwards.`,
+    conBody_neutral: (ref, d, m, dp) => `At ${ref} outdoor, indoor temperature before and after insulation differs by ${d} (${dp}). That is within the uncertainty of ± ${m}, so no difference can be shown (yet). More readings — especially in cold weather — will make this clearer.`,
+    conInsufficientBody: (nv, nn) => `Needed: at least 3 readings before and 3 after insulation in this selection, with at least 1 °C spread in outdoor temperature. Now: ${nv} before, ${nn} after.`,
+    conRefMoved: r => `(Compared at ${r}, the middle of the range measured in both periods.)`,
+    conExtrap: "Note: outdoor temperatures before and after do not overlap — the comparison extends the line and is therefore uncertain.",
+    conHeatWarn: (hv, hn) => `Note: heating/AC was on in ${hv}% of readings before and ${hn}% after — that skews the picture.`,
+    conConfidence: "Confidence",
+    conf_high: "high", conf_medium: "fair", conf_low: "preliminary",
+    conCounts: (nv, nn) => `${nv} before / ${nn} after`,
+    conPerDp: "Per time of day",
+    conShort_good: "adds value", conShort_bad: "colder", conShort_neutral: "no clear difference",
+    conShortInsufficient: (nv, nn) => `not enough data (${nv}/${nn})`,
+    coolConInsufficient: (nv, nn) => `Needed: at least 1 completed cool-down test before and 1 after insulation. Now: ${nv} before, ${nn} after. Without tests from before insulation, your first tests become the baseline for later.`,
+    coolConBody_good: (tv, tn, p) => `The house cools down ${p}% slower after insulation (τ ${tv} → ${tn} h). The warmth stays in longer.`,
+    coolConBody_bad: (tv, tn, p) => `The house cools down ${p}% faster after insulation (τ ${tv} → ${tn} h). Check whether the tests were done under comparable conditions (wind, ventilation, doors, room).`,
+    coolConBody_neutral: (tv, tn, p) => `τ differs by ${p}% (${tv} → ${tn} h). That is within the normal variation of cool-down tests (±15%), so no clear difference yet.`,
+    coolConCounts: (nv, nn) => `${nv} test${nv===1?"":"s"} before / ${nn} after`,
+    fKlimaat: "Heating & cooling",
+    kCv: "CH boiler", kAirco: "AC",
+    kOptNone: "—", kOptUit: "Off", kOptAan: "On", kOptVerw: "Heating", kOptKoel: "Cooling",
+    kOptVerwShort: "Heat", kOptKoelShort: "Cool",
+    kSetpoint: "set to",
+    kFormHint: "Enter what was on, with the set temperature. Tembo remembers your previous choice.",
+    kStatus_vrij: "All off", kStatus_verwarmen: "Heated", kStatus_koelen: "Cooled", kStatus_onbekend: "Unknown", kStatus_gemengd: "Mixed",
+    kFilterLabel: "Climate",
+    kReg_gehaald: "thermostat", kReg_niet: "not reached", kReg_boven: "above setting", kReg_onder: "below setting",
+    kRegTip_gehaald: "Indoor ≈ set temperature: the thermostat determined the indoor temperature. This reading is left out of the insulation comparison.",
+    kRegTip_niet: "The set temperature was not reached — the system could not keep up.",
+    kRegTip_boven: "Warmer than set: the heating did not need to run (for a while).",
+    kRegTip_onder: "Cooler than set: the AC did not need to cool (for a while).",
+    kLegacy: "old: heating/AC on",
+    thKlimaat: "Climate",
+    conVrijOnly: "Based on readings with boiler and AC off — the cleanest comparison.",
+    conExcluded: n => `${n} reading${n===1?"":"s"} left out because the thermostat determined the indoor temperature.`,
+    conHeatWarn2: (hv, hn) => `Note: heating or cooling was on in ${hv}% of readings before and ${hn}% after — that skews the picture. Filter on 'All off' for the cleanest comparison.`,
+    scatterHollow: "open dot = thermostat determined indoor (not in conclusion)",
+    navKlimaat: "Climate & comfort",
+    kpTitle: "Climate & comfort",
+    kpVrijTitle: "Without heating or cooling",
+    kpVrijNote: "Readings with both boiler and AC off show how your house itself performs. The larger the indoor − outdoor difference in cold weather, the better the warmth stays in.",
+    kpVrijAvg: "Avg. difference indoor − outdoor",
+    kpVrijNone: "No readings with boiler and AC off yet.",
+    kpMonth: "Month", kpN: "Readings", kpAvgOut: "Avg. outdoor", kpAvgDelta: "Avg. difference",
+    kpHeatMax: (bi, bu) => `Warmest indoor without cooling: ${bi} at ${bu} outdoor.`,
+    kpVerwTitle: "Heating",
+    kpVerwNote: "Is the set temperature reached? If it no longer is in cold weather, the house loses more heat than the heating can supply. Good insulation pushes that point to colder days.",
+    kpSys: "System", kpGehaald: "Reached", kpTekort: "Avg. shortfall", kpColdestOk: "Coldest reached", kpWarmestNot: "Warmest not reached",
+    kpVerwCols: "Reached = indoor got to (or above) the set temperature. Shortfall = how many degrees it stayed below. Coldest reached / warmest not reached = at which outdoor temperature the system still coped, or no longer did.",
+    kpSysCv: "Boiler", kpSysAirco: "AC (heating)", kpSysBeide: "Boiler + AC",
+    kpNoVerw: "No readings with heating on yet.",
+    kpKoelTitle: "Cooling",
+    kpKoelNote: "Insulation also keeps heat out in summer. The higher the outdoor temperature at which you start cooling, the better.",
+    kpKoelDays: n => `Cooled on ${n} day${n===1?"":"s"}.`,
+    kpNoKoel: "No readings with cooling yet.",
+    kpChart: "Indoor vs. outdoor by climate",
+    kpChartNote: "Filled dot = indoor not set by the thermostat; open dot = indoor ≈ set temperature. Dashed lines are the estimated heating and cooling thresholds.",
+    kpStook: "Heating threshold", kpKoel: "Cooling threshold",
+    kpStookSub: t => `heating usually on below ~${t} outdoor`,
+    kpKoelSub: t => `cooling usually on above ~${t} outdoor`,
+    kpGrensNeed: "not enough data yet (min. 3 readings 'all off' and 3 with the system on)",
+    kpCounts: "Readings per climate",
+    kpRegPct: "Setting reached",
+    kpHint: "This page stays useful once the before/after comparison no longer matters: follow across seasons whether you need to heat and cool less. Energy use itself needs meter readings.",
+    pct: v => `${v}%`,
     srcBadge: "fetched online",
     srcOptOnline: "Online", srcOptOwn: "Own reading",
     srcOwnHint: v => v === null ? "Enter your own outdoor temperature." : `Own reading (online was ${v}).`,
@@ -816,7 +1017,7 @@ function newId(){ return "m" + Date.now().toString(36) + Math.random().toString(
 function emptyState(){
   return {
     version: 1, lang: "nl", darkMode: false,
-    settings: { isolatieDatum: "", defaultRuimte: "Woonkamer", refBuiten: 10, locatie: null, autoBuiten: true },
+    settings: { isolatieDatum: "", defaultRuimte: "Woonkamer", refBuiten: 10, locatie: null, autoBuiten: true, lastKlimaat: { cv:"", cvTemp:20, airco:"", aircoTemp:21 } },
     metingen: [],
     afkoeltests: [],
     activeView: { type: "overview" },
@@ -838,7 +1039,7 @@ function migrateState(){
   if(!state.lang) state.lang = "nl";
   if(typeof state.darkMode !== "boolean") state.darkMode = false;
   if(!state.activeView) state.activeView = { type:"overview" };
-  state.metingen.forEach(m => { if(!m.id) m.id = newId(); if(m.ruimte === undefined) m.ruimte = state.settings.defaultRuimte; if(m.verwarming === undefined) m.verwarming = ""; if(m.notitie === undefined) m.notitie = ""; if(!m.buitenBron) m.buitenBron = "handmatig"; });
+  state.metingen.forEach(m => { if(!m.id) m.id = newId(); if(m.ruimte === undefined) m.ruimte = state.settings.defaultRuimte; if(m.verwarming === undefined) m.verwarming = ""; if(m.notitie === undefined) m.notitie = ""; if(!m.buitenBron) m.buitenBron = "handmatig"; if(m.cv === undefined){ m.cv = m.verwarming === "uit" ? "uit" : ""; m.airco = m.verwarming === "uit" ? "uit" : ""; m.cvTemp = null; m.aircoTemp = null; } });
 }
 
 /* ================= HULPFUNCTIES ================= */
@@ -878,8 +1079,10 @@ function linReg(points){
   let sxx = 0, sxy = 0;
   points.forEach(p => { sxx += (p.x-mx)**2; sxy += (p.x-mx)*(p.y-my); });
   if(sxx < 1e-9) return null;
-  const b = sxy / sxx;
-  return { a: my - b*mx, b, minX: Math.min(...points.map(p=>p.x)), maxX: Math.max(...points.map(p=>p.x)), spread: Math.sqrt(sxx/points.length) };
+  const b = sxy / sxx, a = my - b*mx, n = points.length;
+  const sse = points.reduce((acc,p) => acc + (p.y - (a + b*p.x))**2, 0);
+  const sres = n > 2 ? Math.sqrt(sse / (n - 2)) : 0;
+  return { a, b, n, mx, sxx, sres, minX: Math.min(...points.map(p=>p.x)), maxX: Math.max(...points.map(p=>p.x)), spread: Math.sqrt(sxx/n) };
 }
 /* Dagdeel op basis van de tijd: nacht 0–6, ochtend 6–12, middag 12–18, avond 18–24. */
 function dagdeelOf(tijd){ if(!tijd) return null; const h = Number(tijd.split(":")[0]); return h < 6 ? "nacht" : h < 12 ? "ochtend" : h < 18 ? "middag" : "avond"; }
@@ -892,7 +1095,43 @@ function visibleMetingen(){
   const v = state.activeView || {};
   let list = state.metingen;
   if(v.type === "month") list = list.filter(m => monthKey(m.datum) === v.key);
-  return sortedMetingen(applyDagdeel(list));
+  return sortedMetingen(applyKlimaat(applyDagdeel(list)));
+}
+/* ---- Klimaat per meting ----
+   cv: "" | "uit" | "aan" (+ cvTemp)   airco: "" | "uit" | "verwarmen" | "koelen" (+ aircoTemp)
+   Oude metingen hebben alleen `verwarming` ("aan"/"uit"); "aan" telt dan als verwarmd zonder instelling. */
+const REG_TOL = 0.7;   // binnen deze afstand van de ingestelde temperatuur bepaalt de thermostaat binnen
+function klimaatOf(m){
+  const heatCv = m.cv === "aan", heatAir = m.airco === "verwarmen", cool = m.airco === "koelen";
+  let mode, sp = null;
+  if((heatCv || heatAir) && cool) mode = "gemengd";
+  else if(heatCv || heatAir){ mode = "verwarmen"; const sps = [heatCv ? m.cvTemp : null, heatAir ? m.aircoTemp : null].filter(v => typeof v === "number"); sp = sps.length ? Math.max(...sps) : null; }
+  else if(cool){ mode = "koelen"; sp = typeof m.aircoTemp === "number" ? m.aircoTemp : null; }
+  else if(m.cv === "uit" && m.airco === "uit") mode = "vrij";
+  else if(!m.cv && !m.airco && m.verwarming === "aan") mode = "verwarmen";
+  else if(!m.cv && !m.airco && m.verwarming === "uit") mode = "vrij";
+  else mode = "onbekend";
+  let reg = null;
+  if(sp !== null && (mode === "verwarmen" || mode === "koelen")){
+    const d = m.binnen - sp;
+    if(Math.abs(d) <= REG_TOL) reg = "gehaald";
+    else if(mode === "verwarmen") reg = d < 0 ? "niet" : "boven";
+    else reg = d > 0 ? "niet" : "onder";
+  }
+  const sys = mode === "verwarmen" ? (heatCv && heatAir ? "beide" : heatCv ? "cv" : heatAir ? "airco" : null) : null;
+  return { mode, sp, reg, sys };
+}
+function isRegulated(m){ return klimaatOf(m).reg === "gehaald"; }
+let klimaatFilter = "all";   // schermvoorkeur: all | vrij | verwarmen | koelen | onbekend
+function applyKlimaat(list){ return klimaatFilter === "all" ? list : list.filter(m => { const k = klimaatOf(m).mode; return klimaatFilter === "onbekend" ? (k === "onbekend" || k === "gemengd") : k === klimaatFilter; }); }
+function klimaatTag(m){
+  const k = klimaatOf(m);
+  const parts = [];
+  if(m.cv === "aan") parts.push(`${t("kCv")}${typeof m.cvTemp === "number" ? " " + fmtT(m.cvTemp).replace(" °C","°") : ""}`);
+  if(m.airco === "verwarmen" || m.airco === "koelen") parts.push(`${t("kAirco")} ${m.airco === "koelen" ? t("kOptKoelShort").toLowerCase() : t("kOptVerwShort").toLowerCase()}${typeof m.aircoTemp === "number" ? " " + fmtT(m.aircoTemp).replace(" °C","°") : ""}`);
+  let txt = parts.length ? parts.join(" + ") : t("kStatus_" + k.mode);
+  if(!parts.length && k.mode === "verwarmen") txt = t("kLegacy");
+  return { txt, k };
 }
 function has24(m){ return typeof m.buiten24 === "number" && isFinite(m.buiten24); }
 function scatterBasis(){
@@ -1203,6 +1442,7 @@ function renderTabs(){
     <div class="tab-group">
       <div class="tab-group-head"><span class="tab-group-label">${t("navOverview")}</span></div>
       <button class="tab ${v.type==="overview"?"active":""}" data-go="overview"><span>${t("navAll")}</span><span class="tab-count">${state.metingen.length}</span></button>
+      <button class="tab ${v.type==="klimaat"?"active":""}" data-go="klimaat"><span>${t("navKlimaat")}</span><span class="tab-count"></span></button>
       <button class="tab ${v.type==="afkoel"?"active":""}" data-go="afkoel"><span>${t("navCool")}</span><span class="tab-count">${state.afkoeltests.length}</span></button>
     </div>
     <div class="tab-group">
@@ -1243,6 +1483,7 @@ function renderMain(){
   const v = state.activeView || {};
   if(v.type === "import"){ main.innerHTML = renderImportView(); wireImportView(); return; }
   if(v.type === "afkoel"){ renderCoolView(main); return; }
+  if(v.type === "klimaat"){ renderKlimaatView(main); return; }
   const list = visibleMetingen();
   let html = filterRowHTML();
   if(v.type === "overview"){
@@ -1261,6 +1502,7 @@ function renderMain(){
 function redrawCharts(){
   const v = state.activeView || {};
   if(v.type === "afkoel"){ drawCoolChart(document.getElementById("coolChart")); return; }
+  if(v.type === "klimaat"){ drawKlimaatChart(document.getElementById("klimaatChart")); return; }
   if(v.type === "import") return;
   const list = visibleMetingen();
   drawTimeChart(document.getElementById("timeChart"), list);
@@ -1269,10 +1511,13 @@ function redrawCharts(){
 function filterRowHTML(){
   return `<div class="filter-row"><span class="filter-label">${t("dpLabel")}</span>
     <span class="seg" role="radiogroup">${["all"].concat(DAGDELEN).map(k => `<button type="button" data-dp="${k}" class="${dagdeelFilter===k?"on":""}">${k==="all"?t("dpAll"):dpLabel(k)}</button>`).join("")}</span>
-    <span class="filter-hint">${t("dpHint")}</span></div>`;
+    <span class="filter-hint">${t("dpHint")}</span></div>
+    <div class="filter-row"><span class="filter-label">${t("kFilterLabel")}</span>
+    <span class="seg" role="radiogroup">${["all","vrij","verwarmen","koelen","onbekend"].map(k => `<button type="button" data-kf="${k}" class="${klimaatFilter===k?"on":""}">${k==="all"?t("dpAll"):t("kStatus_"+k)}</button>`).join("")}</span></div>`;
 }
 function wireFilterRow(){
   document.querySelectorAll("[data-dp]").forEach(b => b.onclick = () => { dagdeelFilter = b.dataset.dp; renderAll({ skipProfile:true }); });
+  document.querySelectorAll("[data-kf]").forEach(b => b.onclick = () => { klimaatFilter = b.dataset.kf; renderAll({ skipProfile:true }); });
   document.querySelectorAll("[data-basis]").forEach(b => b.onclick = () => { if(b.disabled) return; scatterBasisUser = b.dataset.basis; renderAll({ skipProfile:true }); });
 }
 function basisToggleHTML(){
@@ -1280,7 +1525,9 @@ function basisToggleHTML(){
   return `<span class="seg small"><button type="button" data-basis="nu" class="${b==="nu"?"on":""}">${t("basisNu")}</button><button type="button" data-basis="24" class="${b==="24"?"on":""}" ${can?"":"disabled title=\""+escapeHtml(t("basis24Need"))+"\""}>${t("basis24")}</button></span>`;
 }
 
+let formKlimaat = null;
 function entryFormHTML(){
+  if(!formKlimaat) formKlimaat = Object.assign({ cv:"", cvTemp:20, airco:"", aircoTemp:21 }, state.settings.lastKlimaat || {});
   return `<div class="entry-grid" data-submit-block>
       <label>${t("fDatum")}<input type="date" min="2000-01-01" max="2100-12-31" id="fDatum" value="${todayISO()}" /></label>
       <label>${t("fTijd")}<input type="time" id="fTijd" value="${nowHM()}" /></label>
@@ -1291,7 +1538,18 @@ function entryFormHTML(){
           <button type="button" data-src="eigen" class="${formBuitenMode==="eigen"?"on":""}">${t("srcOptOwn")}</button>
         </span>` : ""}<span class="src-hint" id="fBuitenSrc"></span></label>
       <label>${t("fRuimte")}<input type="text" id="fRuimte" value="${escapeHtml(state.settings.defaultRuimte)}" list="ruimteList" /></label>
-      <label>${t("fVerwarming")}<select id="fVerw"><option value="">${t("verwUnknown")}</option><option value="aan">${t("verwAan")}</option><option value="uit">${t("verwUit")}</option></select></label>
+      <div class="klimaat-box wide">
+        <div class="klimaat-title">${t("fKlimaat")}</div>
+        <div class="klimaat-row"><span class="klimaat-sys">${t("kCv")}</span>
+          <span class="seg" data-kgroup="cv">${[["", "kOptNone"],["uit","kOptUit"],["aan","kOptAan"]].map(([v,k]) => `<button type="button" data-kv="${v}" class="${formKlimaat.cv===v?"on":""}">${t(k)}</button>`).join("")}</span>
+          <label class="sp-field" id="cvSpWrap" ${formKlimaat.cv==="aan"?"":"hidden"}>${t("kSetpoint")}<input type="text" inputmode="decimal" id="fCvTemp" value="${escapeHtml(String(formKlimaat.cvTemp ?? "").replace(".", state.lang==="en"?".":","))}" /> °C</label>
+        </div>
+        <div class="klimaat-row"><span class="klimaat-sys">${t("kAirco")}</span>
+          <span class="seg" data-kgroup="airco">${[["", "kOptNone"],["uit","kOptUit"],["verwarmen","kOptVerw"],["koelen","kOptKoel"]].map(([v,k]) => `<button type="button" data-kv="${v}" class="${formKlimaat.airco===v?"on":""}">${t(k)}</button>`).join("")}</span>
+          <label class="sp-field" id="airSpWrap" ${formKlimaat.airco==="verwarmen"||formKlimaat.airco==="koelen"?"":"hidden"}>${t("kSetpoint")}<input type="text" inputmode="decimal" id="fAirTemp" value="${escapeHtml(String(formKlimaat.aircoTemp ?? "").replace(".", state.lang==="en"?".":","))}" /> °C</label>
+        </div>
+        <p class="klimaat-hint">${escapeHtml(t("kFormHint"))}</p>
+      </div>
       <label class="wide">${t("fNotitie")}<input type="text" id="fNotitie" maxlength="200" /></label>
       <datalist id="ruimteList">${[...new Set(state.metingen.map(m=>m.ruimte).filter(Boolean))].map(r=>`<option value="${escapeHtml(r)}">`).join("")}</datalist>
     </div>
@@ -1309,6 +1567,12 @@ function wireEntryForm(){
   document.getElementById("fDatum").addEventListener("change", autoFillBuiten);
   document.getElementById("fTijd").addEventListener("change", autoFillBuiten);
   setBuitenMode(formBuitenMode, false);
+  document.querySelectorAll("[data-kgroup]").forEach(g => g.querySelectorAll("button").forEach(b => b.onclick = () => {
+    formKlimaat[g.dataset.kgroup] = b.dataset.kv;
+    g.querySelectorAll("button").forEach(x => x.classList.toggle("on", x === b));
+    document.getElementById("cvSpWrap").hidden = formKlimaat.cv !== "aan";
+    document.getElementById("airSpWrap").hidden = !(formKlimaat.airco === "verwarmen" || formKlimaat.airco === "koelen");
+  }));
   document.getElementById("addBtn").onclick = () => {
     const datum = document.getElementById("fDatum").value;
     const binnen = parseNum(document.getElementById("fBinnen").value);
@@ -1322,8 +1586,16 @@ function wireEntryForm(){
       buitenBron: (formBuitenMode === "online" && formBuitenFetched !== null && buiten === formBuitenFetched) ? "online" : "handmatig",
       buitenOnline: formBuitenFetched,
       ruimte: document.getElementById("fRuimte").value.trim() || state.settings.defaultRuimte,
-      verwarming: document.getElementById("fVerw").value, notitie: document.getElementById("fNotitie").value.trim(),
+      cv: formKlimaat.cv, airco: formKlimaat.airco,
+      cvTemp: formKlimaat.cv === "aan" ? parseNum(document.getElementById("fCvTemp").value) : null,
+      aircoTemp: (formKlimaat.airco === "verwarmen" || formKlimaat.airco === "koelen") ? parseNum(document.getElementById("fAirTemp").value) : null,
+      notitie: document.getElementById("fNotitie").value.trim(),
     });
+    // Keuze onthouden voor de volgende meting (instellingen blijven staan, ook als het systeem uit is).
+    const last = state.metingen[state.metingen.length - 1];
+    state.settings.lastKlimaat = { cv: last.cv, airco: last.airco,
+      cvTemp: last.cvTemp ?? formKlimaat.cvTemp ?? 20, aircoTemp: last.aircoTemp ?? formKlimaat.aircoTemp ?? 21 };
+    formKlimaat = null;
     lastFormMsg = { cls:"ok", text:t("addedMsg") };
     formModeTouched = false;
     scheduleAutoSave();
@@ -1333,6 +1605,14 @@ function wireEntryForm(){
   };
 }
 
+function klimaatCellHTML(m){
+  const num = v => typeof v === "number" ? String(v).replace(".", state.lang==="en"?".":",") : "";
+  const opt = (v, k, cur) => `<option value="${v}" ${cur===v?"selected":""}>${t(k)}</option>`;
+  const k = klimaatOf(m);
+  const reg = k.reg ? `<span class="reg-tag ${k.reg}" title="${escapeHtml(t("kRegTip_" + k.reg))}">${t("kReg_" + k.reg)}</span>` : (k.mode === "verwarmen" && !m.cv && !m.airco ? `<span class="reg-tag">${t("kLegacy")}</span>` : "");
+  return `<div class="krow"><span class="ksys">${t("kCv")}</span><select data-f="cv">${opt("", "kOptNone", m.cv||"")}${opt("uit","kOptUit",m.cv)}${opt("aan","kOptAan",m.cv)}</select>${m.cv==="aan" ? `<input class="t-sp" type="text" inputmode="decimal" data-f="cvTemp" value="${escapeHtml(num(m.cvTemp))}" placeholder="°C" />` : ""}</div>
+    <div class="krow"><span class="ksys">${t("kAirco")}</span><select data-f="airco">${opt("", "kOptNone", m.airco||"")}${opt("uit","kOptUit",m.airco)}${opt("verwarmen","kOptVerwShort",m.airco)}${opt("koelen","kOptKoelShort",m.airco)}</select>${(m.airco==="verwarmen"||m.airco==="koelen") ? `<input class="t-sp" type="text" inputmode="decimal" data-f="aircoTemp" value="${escapeHtml(num(m.aircoTemp))}" placeholder="°C" />` : ""}</div>${reg}`;
+}
 function tableHTML(list){
   if(!list.length) return `<p class="card-note">${escapeHtml(t("noRows"))}</p>`;
   const iso = !!state.settings.isolatieDatum;
@@ -1349,14 +1629,14 @@ function tableHTML(list){
       <td><span class="dp-tag">${m.tijd ? escapeHtml(dpLabel(dagdeelOf(m.tijd))) : "—"}</span></td>
       ${iso ? `<td><span class="phase ${ph}">${t(ph==="voor"?"phaseVoor":"phaseNa")}</span></td>` : ""}
       <td><input type="text" data-f="ruimte" value="${escapeHtml(m.ruimte)}" style="width:110px" /></td>
-      <td><select data-f="verwarming" style="width:70px"><option value="" ${!m.verwarming?"selected":""}>${t("verwUnknown")}</option><option value="aan" ${m.verwarming==="aan"?"selected":""}>${t("verwAan")}</option><option value="uit" ${m.verwarming==="uit"?"selected":""}>${t("verwUit")}</option></select></td>
+      <td class="kcell">${klimaatCellHTML(m)}</td>
       <td><input type="text" data-f="notitie" value="${escapeHtml(m.notitie)}" /></td>
       <td><button class="row-del" title="×" aria-label="delete">${ICONS.trash}</button></td>
     </tr>`;
   }).join("");
   return `<div class="table-scroll"><table class="rtable"><thead><tr>
     <th>${t("thDatum")}</th><th>${t("thTijd")}</th><th class="num">${t("thBinnen")}</th><th class="num">${t("thBuiten")}</th><th class="num">${t("th24")}</th><th class="num">${t("thVerschil")}</th><th>${t("dpLabel")}</th>
-    ${iso ? `<th>${t("thFase")}</th>` : ""}<th>${t("thRuimte")}</th><th>${t("thVerw")}</th><th>${t("thNotitie")}</th><th></th>
+    ${iso ? `<th>${t("thFase")}</th>` : ""}<th>${t("thRuimte")}</th><th>${t("thKlimaat")}</th><th>${t("thNotitie")}</th><th></th>
   </tr></thead><tbody>${rows}</tbody></table></div>`;
 }
 function wireTable(){
@@ -1372,6 +1652,15 @@ function wireTable(){
           if(n === null){ inp.value = String(m[f]); return; }
           m[f] = n;
           if(f === "buiten") m.buitenBron = "handmatig";
+        } else if(f === "cvTemp" || f === "aircoTemp"){
+          const n = parseNum(inp.value);
+          if(inp.value.trim() !== "" && n === null){ inp.value = m[f] ?? ""; return; }
+          m[f] = n;
+        } else if(f === "cv" || f === "airco"){
+          m[f] = inp.value;
+          if(f === "cv" && m.cv === "aan" && typeof m.cvTemp !== "number") m.cvTemp = (state.settings.lastKlimaat || {}).cvTemp ?? 20;
+          if(f === "airco" && (m.airco === "verwarmen" || m.airco === "koelen") && typeof m.aircoTemp !== "number") m.aircoTemp = (state.settings.lastKlimaat || {}).aircoTemp ?? 21;
+          delete m.verwarming;
         } else if(f === "datum"){
           if(!inp.value){ inp.value = m.datum; return; }
           if(!validISODate(inp.value)) return;          // jaartal nog niet compleet
@@ -1510,11 +1799,14 @@ function drawScatterChart(el, listAll){
   grid += `<text x="${m.l+iw}" y="${H-2}" text-anchor="end">${escapeHtml(basis==="24" ? t("basis24") : t("lBuiten"))} →</text><text x="${m.l-34}" y="${m.t-16}">${escapeHtml(t("lBinnen"))} ↑</text>`;
   let lines = "", dots = "";
   groups.forEach(g => {
-    const reg = linReg(g.pts.map(p => ({ x:xOf(p,basis), y:p.binnen })));
-    if(reg && g.pts.length >= 3) lines += `<line x1="${X(reg.minX)}" y1="${Y(reg.a+reg.b*reg.minX)}" x2="${X(reg.maxX)}" y2="${Y(reg.a+reg.b*reg.maxX)}" stroke="${g.color}" stroke-width="2" stroke-dasharray="6 4" opacity=".85"/>`;
-    dots += g.pts.map(p => `<circle cx="${X(xOf(p,basis))}" cy="${Y(p.binnen)}" r="5" fill="${g.color}" stroke="var(--paper)" stroke-width="2" data-id="${p.id}" data-g="${g.key}"/>`).join("");
+    const free = g.pts.filter(p => !isRegulated(p));
+    const reg = linReg(free.map(p => ({ x:xOf(p,basis), y:p.binnen })));
+    if(reg && free.length >= 3) lines += `<line x1="${X(reg.minX)}" y1="${Y(reg.a+reg.b*reg.minX)}" x2="${X(reg.maxX)}" y2="${Y(reg.a+reg.b*reg.maxX)}" stroke="${g.color}" stroke-width="2" stroke-dasharray="6 4" opacity=".85"/>`;
+    dots += g.pts.map(p => isRegulated(p)
+      ? `<circle cx="${X(xOf(p,basis))}" cy="${Y(p.binnen)}" r="4.5" fill="var(--paper)" stroke="${g.color}" stroke-width="2" data-id="${p.id}"/>`
+      : `<circle cx="${X(xOf(p,basis))}" cy="${Y(p.binnen)}" r="5" fill="${g.color}" stroke="var(--paper)" stroke-width="2" data-id="${p.id}" data-g="${g.key}"/>`).join("");
   });
-  el.innerHTML = `<div class="chart-legend">${groups.map(g => `<span class="key"><i class="sw dot" style="background:${g.color}"></i>${escapeHtml(g.label)} (${g.pts.length})</span>`).join("")}</div>
+  el.innerHTML = `<div class="chart-legend">${groups.map(g => `<span class="key"><i class="sw dot" style="background:${g.color}"></i>${escapeHtml(g.label)} (${g.pts.length})</span>`).join("")}${list.some(isRegulated) ? `<span class="key"><i class="sw dot hollow"></i>${escapeHtml(t("scatterHollow"))}</span>` : ""}</div>
     <div class="chart-wrap"><svg viewBox="0 0 ${W} ${H}" role="img" aria-label="${escapeHtml(t("chartScatter"))}">${grid}${lines}${dots}</svg></div>${missing ? `<p class="card-note" style="margin-top:6px;">${escapeHtml(t("basis24Missing")(missing))}</p>` : ""}`;
   const wrap = el.querySelector(".chart-wrap"), svgEl = wrap.querySelector("svg"), tip = attachTooltip(wrap);
   svgEl.addEventListener("pointermove", ev => {
@@ -1530,13 +1822,96 @@ function drawScatterChart(el, listAll){
   svgEl.addEventListener("pointerleave", () => tip.hide());
 }
 
+
+/* ================= CONCLUSIE VÓÓR / NA =================
+   Vergelijkt bij dezelfde buitentemperatuur (referentie, of het midden van het bereik dat in
+   beide periodes gemeten is) de geschatte binnentemperatuur vóór en na isolatie. Onzekerheid:
+   de standaardfout van beide schattingen (regressie) gecombineerd, met een ondergrens van 0,3 °C
+   voor de nauwkeurigheid van een gewone thermometer. Het oordeel:
+   - verschil > +marge  → isolatie biedt meerwaarde
+   - verschil < −marge  → na isolatie juist koeler (geen meerwaarde zichtbaar)
+   - daartussen         → nog geen duidelijk verschil
+   waarbij marge = max(0,3 °C, 2 × standaardfout). */
+const MEAS_UNCERTAINTY = 0.3;
+function predSE(r, x0){
+  // Kleine steekproef zonder spreiding rond de lijn → sres 0; gebruik dan de meetonzekerheid.
+  const s = Math.max(r.sres, MEAS_UNCERTAINTY / 2);
+  return s * Math.sqrt(1 / r.n + (x0 - r.mx) ** 2 / r.sxx);
+}
+function analyzeVoorNa(listIn, basis){
+  const excluded = listIn.filter(isRegulated).length;
+  const list = listIn.filter(p => !isRegulated(p));
+  const voor = list.filter(p => phaseOf(p) === "voor" && xOf(p, basis) !== null);
+  const na = list.filter(p => phaseOf(p) === "na" && xOf(p, basis) !== null);
+  const res = { nv: voor.length, nn: na.length, status: "insufficient", excluded };
+  const rv = linReg(voor.map(p => ({ x:xOf(p,basis), y:p.binnen })));
+  const rn = linReg(na.map(p => ({ x:xOf(p,basis), y:p.binnen })));
+  const ok = r => r && r.n >= 3 && r.spread >= 1;
+  if(!ok(rv) || !ok(rn)) return res;
+  let ref = Number(state.settings.refBuiten), extrap = false, refMoved = false;
+  const lo = Math.max(rv.minX, rn.minX), hi = Math.min(rv.maxX, rn.maxX);
+  if(!isFinite(ref)) ref = 10;
+  if(lo <= hi){
+    if(ref < lo || ref > hi){ ref = Math.round((lo + hi) / 2); refMoved = true; }
+  } else extrap = true;
+  const ev = rv.a + rv.b*ref, en = rn.a + rn.b*ref, diff = en - ev;
+  const se = Math.sqrt(predSE(rv, ref) ** 2 + predSE(rn, ref) ** 2);
+  const margin = Math.max(MEAS_UNCERTAINTY, 2 * se);
+  Object.assign(res, { ref, ev, en, diff, se, margin, extrap, refMoved });
+  res.status = diff > margin ? "good" : diff < -margin ? "bad" : "neutral";
+  const minN = Math.min(voor.length, na.length), z = Math.abs(diff) / Math.max(se, 1e-6);
+  res.confidence = extrap ? "low" : (minN >= 8 && z >= 3) ? "high" : (minN >= 5 && z >= 2) ? "medium" : "low";
+  // Verwarming/airco-gebruik vergelijken: een groot verschil vertekent het beeld.
+  const share = arr => { const k = arr.filter(p => { const md = klimaatOf(p).mode; return md !== "onbekend"; }); return k.length ? k.filter(p => { const md = klimaatOf(p).mode; return md === "verwarmen" || md === "koelen" || md === "gemengd"; }).length / k.length : null; };
+  const hv = share(voor), hn = share(na);
+  if(hv !== null && hn !== null && Math.abs(hv - hn) >= 0.5) res.heatWarn = { hv, hn };
+  return res;
+}
+/* Bij klimaatfilter "Alle": als er genoeg "alles uit"-metingen zijn, is dát het eerlijkste vergelijk
+   (verwarmen/koelen vermengen anders het beeld). Anders alle metingen minus thermostaat-metingen. */
+function analyzeBest(list, basis){
+  if(klimaatFilter === "all"){
+    const v = analyzeVoorNa(list.filter(m => klimaatOf(m).mode === "vrij"), basis);
+    if(v.status !== "insufficient"){ v.vrijOnly = true; return v; }
+  }
+  return analyzeVoorNa(list, basis);
+}
+function conclusionHTML(r, dpName){
+  const icon = { good:"✓", bad:"✗", neutral:"≈", insufficient:"…" }[r.status];
+  let head, body = "";
+  if(r.status === "insufficient"){
+    head = t("conInsufficient");
+    body = t("conInsufficientBody")(r.nv, r.nn);
+  } else {
+    head = t("con_" + r.status);
+    body = t("conBody_" + r.status)(fmtT(r.ref, 0), fmtT(Math.abs(r.diff)), fmtT(r.margin), dpName);
+    if(r.refMoved) body += " " + t("conRefMoved")(fmtT(r.ref, 0));
+    if(r.extrap) body += " " + t("conExtrap");
+    if(r.heatWarn) body += " " + t("conHeatWarn2")(Math.round(r.heatWarn.hv*100), Math.round(r.heatWarn.hn*100));
+  }
+  if(r.excluded) body += " " + t("conExcluded")(r.excluded);
+  if(r.vrijOnly) body += " " + t("conVrijOnly");
+  const conf = r.confidence ? `<div class="con-conf">${t("conConfidence")}: <strong>${t("conf_" + r.confidence)}</strong> · ${escapeHtml(t("conCounts")(r.nv, r.nn))}</div>` : "";
+  return `<div class="conclusion ${r.status}"><div class="con-head"><span class="con-icon" aria-hidden="true">${icon}</span>${escapeHtml(head)}</div><p>${escapeHtml(body)}</p>${conf}</div>`;
+}
+function perDagdeelHTML(basis){
+  const rows = DAGDELEN.map(k => {
+    const r = analyzeBest(applyKlimaat(state.metingen).filter(m => dagdeelOf(m.tijd) === k), basis);
+    const icon = { good:"✓", bad:"✗", neutral:"≈", insufficient:"…" }[r.status];
+    const val = r.status === "insufficient" ? t("conShortInsufficient")(r.nv, r.nn) : `${fmtDelta(r.diff)} · ${t("conShort_" + r.status)}`;
+    return `<button type="button" class="dp-con ${r.status} ${dagdeelFilter===k?"on":""}" data-dp="${k}"><span class="con-icon" aria-hidden="true">${icon}</span><span class="l">${escapeHtml(dpLabel(k))}</span><span class="v">${escapeHtml(val)}</span></button>`;
+  }).join("");
+  return `<h3>${t("conPerDp")}</h3><div class="dp-con-list">${rows}</div>`;
+}
+
 /* ================= SAMENVATTING ================= */
 function renderSummary(){
   const el = document.getElementById("summary");
   const v = state.activeView || {};
   if(v.type === "afkoel"){ renderCoolSummary(el); return; }
+  if(v.type === "klimaat"){ renderKlimaatSummary(el); return; }
   const list = v.type === "import" ? sortedMetingen(state.metingen) : visibleMetingen();
-  const title = (v.type === "month" ? monthLabel(v.key) : t("navAll")) + (dagdeelFilter !== "all" && v.type !== "import" ? " · " + dpLabel(dagdeelFilter) : "");
+  const title = (v.type === "month" ? monthLabel(v.key) : t("navAll")) + (dagdeelFilter !== "all" && v.type !== "import" ? " · " + dpLabel(dagdeelFilter) : "") + (klimaatFilter !== "all" && v.type !== "import" ? " · " + t("kStatus_" + klimaatFilter) : "");
   const deltas = list.map(p => p.binnen - p.buiten);
   const aD = avg(deltas);
   const last = list[list.length-1];
@@ -1558,7 +1933,7 @@ function renderSummary(){
   if(!state.settings.isolatieDatum){
     html += `<p class="summary-hint">${escapeHtml(t("sumNoIso"))}</p>`;
   } else {
-    const allS = sortedMetingen(v.type === "import" ? state.metingen : applyDagdeel(state.metingen));
+    const allS = sortedMetingen(v.type === "import" ? state.metingen : applyKlimaat(applyDagdeel(state.metingen)));
     const basis = scatterBasis();
     const voor = allS.filter(p => phaseOf(p) === "voor"), na = allS.filter(p => phaseOf(p) === "na");
     const dv = avg(voor.map(p=>p.binnen-p.buiten)), dn = avg(na.map(p=>p.binnen-p.buiten));
@@ -1566,19 +1941,16 @@ function renderSummary(){
       <div class="stamp voor"><div class="stamp-label">${t("lVoor")}</div><div class="stamp-value">${fmtDelta(dv)}</div><div class="stamp-sub">${escapeHtml(t("sumOver")(voor.length))}</div></div>
       <div class="stamp na"><div class="stamp-label">${t("lNa")}</div><div class="stamp-value">${fmtDelta(dn)}</div><div class="stamp-sub">${escapeHtml(t("sumOver")(na.length))}</div></div>
     </div>`;
-    const ref = Number(state.settings.refBuiten);
-    const voorX = voor.filter(p => xOf(p,basis) !== null), naX = na.filter(p => xOf(p,basis) !== null);
-    const rv = linReg(voorX.map(p=>({x:xOf(p,basis),y:p.binnen}))), rn = linReg(naX.map(p=>({x:xOf(p,basis),y:p.binnen})));
-    const ok = r => r && r.spread >= 1;
-    if(voorX.length >= 3 && naX.length >= 3 && ok(rv) && ok(rn) && isFinite(ref)){
-      const ev = rv.a + rv.b*ref, en = rn.a + rn.b*ref;
-      html += `<div class="summary-line"><span class="l">${escapeHtml(t("sumAtBasis")(fmtT(ref,0), basis==="24" ? t("basis24").toLowerCase() : t("basisNu").toLowerCase()))}</span><span class="v"></span></div>
-        <div class="summary-line"><span class="l">&nbsp;&nbsp;${t("lVoor")}</span><span class="v"><i class="sw" style="background:var(--c-voor)"></i>${fmtT(ev)}</span></div>
-        <div class="summary-line"><span class="l">&nbsp;&nbsp;${t("lNa")}</span><span class="v"><i class="sw" style="background:var(--c-na)"></i>${fmtT(en)}</span></div>
-        <div class="summary-line"><span class="l">&nbsp;&nbsp;${t("thVerschil")}</span><span class="v">${fmtDelta(en - ev)}</span></div>`;
-    } else {
-      html += `<p class="summary-hint">${escapeHtml(t("sumNeedMore"))}</p>`;
+    const an = analyzeBest(allS, basis);
+    if(an.status !== "insufficient"){
+      html += `<div class="summary-line"><span class="l">${escapeHtml(t("sumAtBasis")(fmtT(an.ref,0), basis==="24" ? t("basis24").toLowerCase() : t("basisNu").toLowerCase()))}</span><span class="v"></span></div>
+        <div class="summary-line"><span class="l">&nbsp;&nbsp;${t("lVoor")}</span><span class="v"><i class="sw" style="background:var(--c-voor)"></i>${fmtT(an.ev)}</span></div>
+        <div class="summary-line"><span class="l">&nbsp;&nbsp;${t("lNa")}</span><span class="v"><i class="sw" style="background:var(--c-na)"></i>${fmtT(an.en)}</span></div>
+        <div class="summary-line"><span class="l">&nbsp;&nbsp;${t("thVerschil")}</span><span class="v">${fmtDelta(an.diff)} <span class="pm">± ${fmtT(an.margin)}</span></span></div>`;
     }
+    html += `<h3>${t("conTitle")}${dagdeelFilter !== "all" && v.type !== "import" ? " · " + escapeHtml(dpLabel(dagdeelFilter)) : ""}</h3>`;
+    html += conclusionHTML(an, dagdeelFilter === "all" || v.type === "import" ? t("conAllDay") : dpLabel(dagdeelFilter).toLowerCase());
+    if(v.type !== "import") html += perDagdeelHTML(basis);
     html += `<p class="summary-hint">${escapeHtml(t("sumCaveat"))}</p>`;
   }
   html += actionsHTML();
@@ -1596,12 +1968,151 @@ function actionsHTML(){
     <div class="save-status"></div>`;
 }
 function wireActions(){
+  document.querySelectorAll(".dp-con[data-dp]").forEach(b => b.onclick = () => { dagdeelFilter = dagdeelFilter === b.dataset.dp ? "all" : b.dataset.dp; renderAll({ skipProfile:true }); });
   document.getElementById("saveNowBtn").onclick = saveNow;
   document.getElementById("logoutBtn").onclick = signOutCloud;
   document.getElementById("exportXlsxBtn").onclick = exportXlsx;
   document.getElementById("exportBackupBtn").onclick = exportBackup;
   document.getElementById("importBtn").onclick = () => document.getElementById("importFileInput").click();
   updateSaveStatus();
+}
+
+
+/* ================= KLIMAAT & COMFORT =================
+   Blijft nuttig als vóór/na er niet meer toe doet. Drie invalshoeken:
+   1. "Alles uit"-metingen: hoe het huis zélf presteert (verschil binnen − buiten), per maand.
+   2. Verwarmen: wordt de ingestelde temperatuur gehaald (per systeem), en vanaf welke buitentemp
+      wordt er gestookt (stookgrens).
+   3. Koelen: vanaf welke buitentemp wordt er gekoeld (koelgrens), hoe vaak.
+   De grens is de buitentemperatuur die "alles uit"-metingen en "systeem aan"-metingen het best
+   van elkaar scheidt (minste verkeerd ingedeelde metingen). */
+function kBasis(){ return scatterBasis(); }
+function kx(m){ const v = xOf(m, kBasis()); return v === null ? m.buiten : v; }
+function findGrens(offVals, onVals, onBelow){
+  if(offVals.length < 3 || onVals.length < 3) return null;
+  const all = offVals.concat(onVals).sort((a,b) => a-b);
+  let best = null;
+  for(let i = 0; i < all.length - 1; i++){
+    const T = (all[i] + all[i+1]) / 2;
+    const err = onBelow ? offVals.filter(v => v < T).length + onVals.filter(v => v >= T).length
+                        : offVals.filter(v => v > T).length + onVals.filter(v => v <= T).length;
+    if(!best || err < best.err) best = { T, err, from:T, to:T };
+    else if(err === best.err){ best.to = T; }
+  }
+  const T = Math.round(((best.from + best.to) / 2) * 2) / 2;
+  return { T, err: best.err, n: all.length };
+}
+function klimaatStats(){
+  const all = sortedMetingen(state.metingen);
+  const withK = all.map(m => ({ m, k: klimaatOf(m) }));
+  const vrij = withK.filter(x => x.k.mode === "vrij");
+  const verw = withK.filter(x => x.k.mode === "verwarmen");
+  const koel = withK.filter(x => x.k.mode === "koelen");
+  const counts = {}; withK.forEach(x => { const key = x.k.mode === "gemengd" ? "onbekend" : x.k.mode; counts[key] = (counts[key]||0) + 1; });
+  const stook = findGrens(vrij.map(x => kx(x.m)), verw.map(x => kx(x.m)), true);
+  const koelG = findGrens(vrij.map(x => kx(x.m)), koel.map(x => kx(x.m)), false);
+  const regPct = arr => { const k = arr.filter(x => x.k.reg); return k.length ? Math.round(k.filter(x => x.k.reg !== "niet").length / k.length * 100) : null; };
+  return { all, withK, vrij, verw, koel, counts, stook, koelG, verwPct: regPct(verw), koelPct: regPct(koel) };
+}
+function renderKlimaatView(main){
+  const S = klimaatStats();
+  const nf = v => fmtT(v);
+  // 1. vrij
+  let vrijBody;
+  if(!S.vrij.length) vrijBody = `<p class="card-note">${escapeHtml(t("kpVrijNone"))}</p>`;
+  else {
+    const byMonth = {};
+    S.vrij.forEach(x => { const k = monthKey(x.m.datum); (byMonth[k] = byMonth[k] || []).push(x.m); });
+    const rows = Object.keys(byMonth).sort().reverse().map(k => { const a = byMonth[k]; return `<tr><td>${escapeHtml(monthLabel(k))}</td><td class="num">${a.length}</td><td class="num mono">${nf(avg(a.map(kx)))}</td><td class="num mono">${fmtDelta(avg(a.map(m => m.binnen - kx(m))))}</td></tr>`; }).join("");
+    const warm = S.vrij.filter(x => kx(x.m) >= 22);
+    let heat = "";
+    if(warm.length){ const mx = warm.reduce((a,b) => b.m.binnen > a.m.binnen ? b : a); heat = `<p class="card-note" style="margin-top:10px;">${escapeHtml(t("kpHeatMax")(nf(mx.m.binnen), nf(kx(mx.m))))}</p>`; }
+    vrijBody = `<div class="table-scroll"><table class="rtable ktable"><thead><tr><th>${t("kpMonth")}</th><th class="num">${t("kpN")}</th><th class="num">${t("kpAvgOut")}</th><th class="num">${t("kpAvgDelta")}</th></tr></thead><tbody>${rows}</tbody></table></div>${heat}`;
+  }
+  // 2. verwarmen per systeem
+  let verwBody;
+  if(!S.verw.length) verwBody = `<p class="card-note">${escapeHtml(t("kpNoVerw"))}</p>`;
+  else {
+    const rows = ["cv","airco","beide"].map(sys => {
+      const a = S.verw.filter(x => x.k.sys === sys); if(!a.length) return "";
+      const withReg = a.filter(x => x.k.reg), ok = withReg.filter(x => x.k.reg !== "niet"), not = withReg.filter(x => x.k.reg === "niet");
+      const pct = withReg.length ? Math.round(ok.length / withReg.length * 100) + "%" : "—";
+      const tekort = not.length ? fmtT(avg(not.map(x => x.k.sp - x.m.binnen))) : "—";
+      const coldOk = ok.length ? fmtT(Math.min(...ok.map(x => kx(x.m)))) : "—";
+      const warmNot = not.length ? fmtT(Math.max(...not.map(x => kx(x.m)))) : "—";
+      return `<tr><td>${t(sys==="cv"?"kpSysCv":sys==="airco"?"kpSysAirco":"kpSysBeide")}</td><td class="num">${a.length}</td><td class="num">${pct}</td><td class="num mono">${tekort}</td><td class="num mono">${coldOk}</td><td class="num mono">${warmNot}</td></tr>`;
+    }).join("");
+    verwBody = `<p class="card-note" style="margin-bottom:8px;">${escapeHtml(t("kpVerwCols"))}</p><div class="table-scroll"><table class="rtable ktable"><thead><tr><th>${t("kpSys")}</th><th class="num">${t("kpN")}</th><th class="num">${t("kpGehaald")}</th><th class="num">${t("kpTekort")}</th><th class="num">${t("kpColdestOk")}</th><th class="num">${t("kpWarmestNot")}</th></tr></thead><tbody>${rows}</tbody></table></div>`;
+  }
+  // 3. koelen
+  let koelBody;
+  if(!S.koel.length) koelBody = `<p class="card-note">${escapeHtml(t("kpNoKoel"))}</p>`;
+  else {
+    const days = new Set(S.koel.map(x => x.m.datum)).size;
+    const withReg = S.koel.filter(x => x.k.reg), ok = withReg.filter(x => x.k.reg !== "niet");
+    koelBody = `<div class="summary-grid">
+      <div><span class="l">${t("kpN")}</span><span class="v">${S.koel.length}</span></div>
+      <div><span class="l">${t("kpGehaald")}</span><span class="v">${withReg.length ? Math.round(ok.length/withReg.length*100) + "%" : "—"}</span></div>
+      <div><span class="l">${t("kpAvgOut")}</span><span class="v mono">${fmtT(avg(S.koel.map(x => kx(x.m))))}</span></div></div>
+      <p class="card-note" style="margin-top:10px;">${escapeHtml(t("kpKoelDays")(days))}</p>`;
+  }
+  main.innerHTML =
+    cardHTML(ICONS.scatter, t("kpChart"), `<div id="klimaatChart"></div><p class="card-note" style="margin-top:8px;">${escapeHtml(t("kpChartNote"))}</p>`, basisToggleHTML()) +
+    cardHTML(ICONS.therm, t("kpVrijTitle"), `<p class="card-note" style="margin-bottom:10px;">${escapeHtml(t("kpVrijNote"))}</p>${vrijBody}`, String(S.vrij.length)) +
+    cardHTML(ICONS.plus, t("kpVerwTitle"), `<p class="card-note" style="margin-bottom:10px;">${escapeHtml(t("kpVerwNote"))}</p>${verwBody}`, String(S.verw.length)) +
+    cardHTML(ICONS.moon, t("kpKoelTitle"), `<p class="card-note" style="margin-bottom:10px;">${escapeHtml(t("kpKoelNote"))}</p>${koelBody}`, String(S.koel.length));
+  wireFilterRow();
+  drawKlimaatChart(document.getElementById("klimaatChart"));
+}
+function drawKlimaatChart(el){
+  if(!el) return;
+  const S = klimaatStats();
+  const pts = S.withK.filter(x => x.k.mode !== "onbekend" && x.k.mode !== "gemengd");
+  if(pts.length < 2){ el.innerHTML = `<div class="chart-empty">${escapeHtml(t("chartNeed"))}</div>`; return; }
+  const col = { vrij:"var(--k-vrij)", verwarmen:"var(--k-verw)", koelen:"var(--k-koel)" };
+  const W = chartWidth(el), H = Math.round(Math.min(320, Math.max(220, W*0.42)));
+  const m = { l:42, r:16, t:28, b:36 }, iw = W - m.l - m.r, ih = H - m.t - m.b;
+  const xs = pts.map(x => kx(x.m)), ys = pts.map(x => x.m.binnen).concat(pts.filter(x => x.k.sp !== null).map(x => x.k.sp));
+  const xt = niceTicks(Math.min(...xs), Math.max(...xs), 6), yt = niceTicks(Math.min(...ys), Math.max(...ys), 5);
+  const X = v => m.l + (v - xt.lo) / (xt.hi - xt.lo) * iw, Y = v => m.t + ih - (v - yt.lo) / (yt.hi - yt.lo) * ih;
+  const nfv = v => v.toLocaleString(state.lang==="en"?"en-GB":"nl-NL");
+  let g = yt.ticks.map(v => `<line x1="${m.l}" x2="${m.l+iw}" y1="${Y(v)}" y2="${Y(v)}" stroke="var(--grid)"/><text x="${m.l-8}" y="${Y(v)+4}" text-anchor="end">${nfv(v)}°</text>`).join("");
+  g += xt.ticks.map(v => `<line x1="${X(v)}" x2="${X(v)}" y1="${m.t}" y2="${m.t+ih}" stroke="var(--grid)"/><text x="${X(v)}" y="${m.t+ih+16}" text-anchor="middle">${nfv(v)}°</text>`).join("");
+  g += `<text x="${m.l+iw}" y="${H-2}" text-anchor="end">${escapeHtml(kBasis()==="24" ? t("basis24") : t("lBuiten"))} →</text><text x="${m.l-34}" y="${m.t-16}">${escapeHtml(t("lBinnen"))} ↑</text>`;
+  const grens = (G, label, c) => (G && G.T >= xt.lo && G.T <= xt.hi) ? `<line x1="${X(G.T)}" x2="${X(G.T)}" y1="${m.t}" y2="${m.t+ih}" stroke="${c}" stroke-width="1.5" stroke-dasharray="5 4"/><text x="${X(G.T)+5}" y="${m.t+11}" class="lbl-strong">${escapeHtml(label)} ~${nfv(G.T)}°</text>` : "";
+  g += grens(S.stook, t("kpStook"), "var(--k-verw)") + grens(S.koelG, t("kpKoel"), "var(--k-koel)");
+  const dots = pts.map(x => { const c = col[x.k.mode]; return x.k.reg === "gehaald"
+    ? `<circle cx="${X(kx(x.m))}" cy="${Y(x.m.binnen)}" r="4.5" fill="var(--paper)" stroke="${c}" stroke-width="2"/>`
+    : `<circle cx="${X(kx(x.m))}" cy="${Y(x.m.binnen)}" r="5" fill="${c}" stroke="var(--paper)" stroke-width="2"/>`; }).join("");
+  const present = ["vrij","verwarmen","koelen"].filter(k => pts.some(x => x.k.mode === k));
+  el.innerHTML = `<div class="chart-legend">${present.map(k => `<span class="key"><i class="sw dot" style="background:${col[k]}"></i>${t("kStatus_"+k)} (${pts.filter(x => x.k.mode===k).length})</span>`).join("")}${pts.some(x => x.k.reg==="gehaald") ? `<span class="key"><i class="sw dot hollow"></i>${escapeHtml(t("kReg_gehaald"))}</span>` : ""}</div>
+    <div class="chart-wrap"><svg viewBox="0 0 ${W} ${H}" role="img" aria-label="${escapeHtml(t("kpChart"))}">${g}${dots}</svg></div>`;
+  const wrap = el.querySelector(".chart-wrap"), svgEl = wrap.querySelector("svg"), tip = attachTooltip(wrap);
+  svgEl.addEventListener("pointermove", ev => {
+    const r = svgEl.getBoundingClientRect(), sc = W / r.width, px = (ev.clientX - r.left) * sc, py = (ev.clientY - r.top) * sc;
+    let best = null, bd = 18;
+    pts.forEach(x => { const d = Math.hypot(X(kx(x.m)) - px, Y(x.m.binnen) - py); if(d < bd){ bd = d; best = x; } });
+    if(!best){ tip.hide(); return; }
+    const c = col[best.k.mode], tag = klimaatTag(best.m);
+    tip.show(`<div class="tt-head">${escapeHtml(fmtDate(best.m.datum, true))}${best.m.tijd ? " · " + escapeHtml(best.m.tijd) : ""}</div>
+      ${ttRow(c, tag.txt, best.k.reg ? escapeHtml(t("kReg_" + best.k.reg)) : "")}${ttRow(c, t("lBinnen"), fmtT(best.m.binnen))}${ttRow(c, kBasis()==="24" ? t("basis24") : t("lBuiten"), fmtT(kx(best.m)))}`, X(kx(best.m))/sc, Y(best.m.binnen)/sc);
+  });
+  svgEl.addEventListener("pointerleave", () => tip.hide());
+}
+function renderKlimaatSummary(el){
+  const S = klimaatStats();
+  const stamp = (G, label, sub, cls) => `<div class="stamp ${cls}"><div class="stamp-label">${label}</div><div class="stamp-value">${G ? "~" + escapeHtml(fmtT(G.T)) : "—"}</div><div class="stamp-sub">${escapeHtml(G ? sub(fmtT(G.T)) : t("kpGrensNeed"))}</div></div>`;
+  let html = `<h2>${t("kpTitle")}</h2><div class="stamp-row">${stamp(S.stook, t("kpStook"), t("kpStookSub"), "k-verw")}${stamp(S.koelG, t("kpKoel"), t("kpKoelSub"), "k-koel")}</div>`;
+  const vrijAvg = S.vrij.length ? avg(S.vrij.map(x => x.m.binnen - kx(x.m))) : null;
+  html += `<div class="summary-line"><span class="l">${t("kpVrijAvg")} (${t("kStatus_vrij").toLowerCase()})</span><span class="v">${fmtDelta(vrijAvg)}</span></div>`;
+  html += `<h3>${t("kpCounts")}</h3>` + ["vrij","verwarmen","koelen","onbekend"].map(k => `<div class="summary-line"><span class="l"><i class="sw" style="background:${k==="vrij"?"var(--k-vrij)":k==="verwarmen"?"var(--k-verw)":k==="koelen"?"var(--k-koel)":"var(--rule)"}"></i>${t("kStatus_"+k)}</span><span class="v">${S.counts[k]||0}</span></div>`).join("");
+  html += `<h3>${t("kpRegPct")}</h3>
+    <div class="summary-line"><span class="l">${t("kpVerwTitle")}</span><span class="v">${S.verwPct === null ? "—" : S.verwPct + "%"}</span></div>
+    <div class="summary-line"><span class="l">${t("kpKoelTitle")}</span><span class="v">${S.koelPct === null ? "—" : S.koelPct + "%"}</span></div>
+    <p class="summary-hint">${escapeHtml(t("kpHint"))}</p>`;
+  html += actionsHTML();
+  el.innerHTML = html;
+  wireActions();
 }
 
 /* ================= IMPORT / EXPORT ================= */
@@ -1646,7 +2157,9 @@ function detectColumns(header){
     binnen: (() => { const i = find(/binnen|indoor|inside|woonkamer|kamer|living/); return i >= 0 ? i : h.findIndex((x,idx) => /temp/.test(x) && !/buiten|outdoor|outside/.test(x) && idx !== find(/buiten|outdoor|outside/)); })(),
     ruimte: find(/ruimte|room|locatie/),
     notitie: find(/notitie|note|opmerking/),
-    verwarming: find(/verwarming|heating|airco/),
+    verwarming: find(/verwarming|heating/),
+    cv: find(/^cv|ketel|boiler/),
+    airco: find(/airco|\bac\b|warmtepomp/),
   };
 }
 function ruimteFromHeader(label){ const m = String(label||"").match(/temp(?:eratuur)?\s+(.+)/i); if(m && !/binnen|indoor|inside/i.test(m[1])) return m[1].trim().charAt(0).toUpperCase() + m[1].trim().slice(1); return null; }
@@ -1671,6 +2184,9 @@ function importRows(rows){
     const vw = cols.verwarming >= 0 ? String(r[cols.verwarming]||"").toLowerCase() : "";
     state.metingen.push({ id:newId(), datum, tijd, binnen, buiten, ruimte,
       verwarming: /aan|on|ja|yes|1/.test(vw) ? "aan" : /uit|off|nee|no|0/.test(vw) ? "uit" : "",
+      cv: (() => { if(cols.cv < 0) return ""; const x = String(r[cols.cv]||"").toLowerCase(); return /aan|on|ja|yes|1/.test(x) ? "aan" : /uit|off|nee|no|0/.test(x) ? "uit" : ""; })(),
+      airco: (() => { if(cols.airco < 0) return ""; const x = String(r[cols.airco]||"").toLowerCase(); return /koel|cool/.test(x) ? "koelen" : /verw|heat|warm/.test(x) ? "verwarmen" : /uit|off|nee|no|0/.test(x) ? "uit" : ""; })(),
+      cvTemp: null, aircoTemp: null,
       notitie: cols.notitie >= 0 ? String(r[cols.notitie]||"").trim() : "" });
     added++;
   });
@@ -1726,7 +2242,9 @@ function exportRows(){
     [state.lang==="en" ? "Outdoor online (°C)" : "Buiten online (°C)"]: (m.buitenOnline ?? ""), [state.lang==="en" ? "Outdoor source" : "Bron buiten"]: m.buitenBron,
     [t("th24") + " (°C)"]: has24(m) ? m.buiten24 : "", [t("dpLabel")]: m.tijd ? dpLabel(dagdeelOf(m.tijd)) : "",
     [t("fRuimte")]: m.ruimte,
-    [t("fVerwarming")]: m.verwarming, [t("fNotitie")]: m.notitie,
+    [t("kCv")]: m.cv || "", [t("kCv") + " °C"]: m.cvTemp ?? "", [t("kAirco")]: m.airco || "", [t("kAirco") + " °C"]: m.aircoTemp ?? "",
+    [t("thKlimaat")]: t("kStatus_" + klimaatOf(m).mode), [state.lang==="en" ? "Thermostat" : "Thermostaat"]: klimaatOf(m).reg ? t("kReg_" + klimaatOf(m).reg) : "",
+    [t("fNotitie")]: m.notitie,
     ...(state.settings.isolatieDatum ? { [t("thFase")]: t(phaseOf(m)==="voor"?"phaseVoor":"phaseNa") } : {}),
   }));
 }
@@ -2155,10 +2673,29 @@ function renderCoolSummary(el){
       <div class="stamp voor"><div class="stamp-label">${t("lVoor")}</div><div class="stamp-value">${tv ? escapeHtml(t("hours")(fmtH(tv))) : "—"}</div><div class="stamp-sub">${escapeHtml(t("coolOver")(v.length))}</div></div>
       <div class="stamp na"><div class="stamp-label">${t("lNa")}</div><div class="stamp-value">${tn ? escapeHtml(t("hours")(fmtH(tn))) : "—"}</div><div class="stamp-sub">${escapeHtml(t("coolOver")(n.length))}</div></div></div>`;
   }
+  if(state.settings.isolatieDatum) html += `<h3>${t("conTitle")}</h3>` + coolConclusionHTML(done);
   html += `<p class="summary-hint">${escapeHtml(t("coolCaveat"))}</p>`;
   html += actionsHTML();
   el.innerHTML = html;
   wireActions();
+}
+/* Conclusie afkoeltests: gemiddelde τ na t.o.v. vóór. Onder ±15 % (of met 1 test per kant) noemen we
+   het geen duidelijk verschil / voorlopig — dagelijkse omstandigheden (wind, zon, bewoning) laten τ
+   makkelijk zo veel schommelen. */
+function coolConclusionHTML(done){
+  const v = done.filter(p => coolPhase(p.a) === "voor").map(p => p.c.tau), n = done.filter(p => coolPhase(p.a) === "na").map(p => p.c.tau);
+  let status = "insufficient", head, body;
+  if(!v.length || !n.length){
+    head = t("conInsufficient"); body = t("coolConInsufficient")(v.length, n.length);
+  } else {
+    const tv = avg(v), tn = avg(n), pct = (tn - tv) / tv * 100;
+    status = pct > 15 ? "good" : pct < -15 ? "bad" : "neutral";
+    head = t("con_" + status);
+    body = t("coolConBody_" + status)(fmtH(tv), fmtH(tn), Math.abs(Math.round(pct)));
+  }
+  const conf = status === "insufficient" ? "" : (Math.min(v.length, n.length) >= 4 ? "medium" : "low");
+  const icon = { good:"✓", bad:"✗", neutral:"≈", insufficient:"…" }[status];
+  return `<div class="conclusion ${status}"><div class="con-head"><span class="con-icon" aria-hidden="true">${icon}</span>${escapeHtml(head)}</div><p>${escapeHtml(body)}</p>${conf ? `<div class="con-conf">${t("conConfidence")}: <strong>${t("conf_" + conf)}</strong> · ${escapeHtml(t("coolConCounts")(v.length, n.length))}</div>` : ""}</div>`;
 }
 function coolExportRows(){
   const en = state.lang === "en";
