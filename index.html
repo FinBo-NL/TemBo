@@ -215,6 +215,7 @@
   .loc-results{display:flex; flex-direction:column; gap:4px; margin-top:8px;}
   .loc-results button{margin-top:0 !important; text-align:left; font-size:13px;}
   .loc-results button:hover{border-color:var(--accent); color:var(--accent);}
+  .loc-src{display:inline-block; font-size:9.5px; text-transform:uppercase; letter-spacing:.06em; color:var(--accent); background:color-mix(in srgb, var(--accent) 12%, transparent); border-radius:3px; padding:1px 5px; margin-right:7px; vertical-align:1px;}
   .loc-results .none{font-size:12px; color:var(--text-soft);}
   .loc-btn-row{display:flex; gap:8px; flex-wrap:wrap;}
   .profile-check{display:flex; gap:8px; align-items:flex-start; font-size:13px; color:var(--text); margin-top:12px; line-height:1.4;}
@@ -582,7 +583,8 @@ const I18N = {
     setIsoHint: "Metingen vóór deze datum tellen als 'vóór isolatie', vanaf deze datum als 'na isolatie'. Leeg laten = geen vergelijk.",
     setRuimte: "Standaard ruimte",
     setLoc: "Locatie voor buitentemperatuur",
-    setLocHint: "Plaatsnaam of postcode. Tembo haalt dan bij elke nieuwe meting de buitentemperatuur voor dat uur online op (Open-Meteo, gratis weermodel). Alleen de gekozen locatie, datum en tijd worden naar Open-Meteo gestuurd.",
+    setLocHint: "Adres, postcode (met huisnummer), straat, wijk of plaats. Nederlandse adressen via PDOK (overheid), plaatsen elders via Open-Meteo. Tembo haalt dan bij elke nieuwe meting de buitentemperatuur voor dat uur online op (Open-Meteo, gratis weermodel). Naar Open-Meteo gaan alleen datum, tijd en de locatie afgerond op ~1 km, nooit je exacte adres.",
+    locSrcPlace: "Plaats",
     setLocSearch: "Zoeken", setLocGps: "Gebruik mijn huidige locatie", setLocClear: "Locatie wissen",
     setLocNone: "Geen locatie ingesteld", setLocNoResults: "Niets gevonden.", setLocGpsName: "Huidige locatie",
     setLocCurrent: "Ingesteld:",
@@ -688,7 +690,8 @@ const I18N = {
     setIsoHint: "Readings before this date count as 'before insulation', from this date as 'after'. Leave empty = no comparison.",
     setRuimte: "Default room",
     setLoc: "Location for outdoor temperature",
-    setLocHint: "Town or postcode. Tembo then fetches the outdoor temperature for that hour online with every new reading (Open-Meteo, free weather model). Only the chosen location, date and time are sent to Open-Meteo.",
+    setLocHint: "Address, postcode (with house number), street, district or town. Dutch addresses via PDOK (government), places elsewhere via Open-Meteo. Tembo then fetches the outdoor temperature for that hour online with every new reading (Open-Meteo, free weather model). Open-Meteo only receives the date, time and your location rounded to ~1 km, never your exact address.",
+    locSrcPlace: "Place",
     setLocSearch: "Search", setLocGps: "Use my current location", setLocClear: "Clear location",
     setLocNone: "No location set", setLocNoResults: "Nothing found.", setLocGpsName: "Current location",
     setLocCurrent: "Set:",
@@ -769,6 +772,9 @@ function fmtDate(iso, withYear){
   const mn = t("monthNames")[m-1] || "";
   return `${d} ${mn.slice(0,3)}${withYear ? " " + y : ""}`;
 }
+/* Een <input type="date" min="2000-01-01" max="2100-12-31"> vuurt al "change" af terwijl je het jaartal nog aan het typen bent
+   (2 → 0002, 20 → 0020 …). Alleen een volledig, plausibel jaar telt als echte invoer. */
+function validISODate(v){ const m = /^(\d{4})-(\d{2})-(\d{2})$/.exec(v || ""); return !!m && Number(m[1]) >= 2000 && Number(m[1]) <= 2100; }
 function monthKey(iso){ return iso ? iso.slice(0,7) : ""; }
 function monthLabel(key){ const [y,m] = key.split("-").map(Number); const n = t("monthNames")[m-1]; return n.charAt(0).toUpperCase() + n.slice(1) + " " + y; }
 function sortedMetingen(list){ return list.slice().sort((a,b) => tsOf(a) - tsOf(b)); }
@@ -1148,7 +1154,7 @@ function renderMain(){
 
 function entryFormHTML(){
   return `<div class="entry-grid" data-submit-block>
-      <label>${t("fDatum")}<input type="date" id="fDatum" value="${todayISO()}" /></label>
+      <label>${t("fDatum")}<input type="date" min="2000-01-01" max="2100-12-31" id="fDatum" value="${todayISO()}" /></label>
       <label>${t("fTijd")}<input type="time" id="fTijd" value="${nowHM()}" /></label>
       <label>${t("fBinnen")}<input type="text" inputmode="decimal" id="fBinnen" placeholder="21,5" /></label>
       <label>${t("fBuiten")}<input type="text" inputmode="decimal" id="fBuiten" placeholder="12" />
@@ -1180,7 +1186,7 @@ function wireEntryForm(){
     const binnen = parseNum(document.getElementById("fBinnen").value);
     const buiten = parseNum(document.getElementById("fBuiten").value);
     const msg = document.getElementById("formMsg");
-    if(!datum){ msg.textContent = t("errDate"); msg.className = "form-msg err"; return; }
+    if(!validISODate(datum)){ msg.textContent = t("errDate"); msg.className = "form-msg err"; return; }
     if(binnen === null || buiten === null){ msg.textContent = t("errTemps"); msg.className = "form-msg err"; return; }
     state.metingen.push({
       id:newId(), datum, tijd: document.getElementById("fTijd").value || "",
@@ -1205,7 +1211,7 @@ function tableHTML(list){
     const d = m.binnen - m.buiten;
     const ph = phaseOf(m);
     return `<tr data-id="${m.id}">
-      <td><input class="t-date" type="date" data-f="datum" value="${escapeHtml(m.datum)}" /></td>
+      <td><input class="t-date" type="date" min="2000-01-01" max="2100-12-31" data-f="datum" value="${escapeHtml(m.datum)}" /></td>
       <td><input class="t-time" type="time" data-f="tijd" value="${escapeHtml(m.tijd)}" /></td>
       <td class="num"><input class="t-num" type="text" inputmode="decimal" data-f="binnen" value="${escapeHtml(String(m.binnen).replace(".", state.lang==="en"?".":","))}" /></td>
       <td class="num"><span class="buiten-cell"><input class="t-num" type="text" inputmode="decimal" data-f="buiten" value="${escapeHtml(String(m.buiten).replace(".", state.lang==="en"?".":","))}" />${m.buitenBron==="online" ? `<i class="online-dot" title="${escapeHtml(t("srcBadge"))}"></i>` : (m.buitenOnline !== null && m.buitenOnline !== undefined ? `<span class="online-was" title="${escapeHtml(t("srcOnlineWas")(fmtT(m.buitenOnline)))}">${escapeHtml(fmtT(m.buitenOnline).replace(" °C","°"))}</span>` : "")}</span></td>
@@ -1227,6 +1233,7 @@ function wireTable(){
     const m = state.metingen.find(x => x.id === tr.dataset.id);
     if(!m) return;
     tr.querySelectorAll("[data-f]").forEach(inp => {
+      if(inp.dataset.f === "datum") inp.addEventListener("blur", () => { if(!validISODate(inp.value)) inp.value = m.datum; else if(inp.value !== m.datum) inp.dispatchEvent(new Event("change")); });
       inp.addEventListener("change", () => {
         const f = inp.dataset.f;
         if(f === "binnen" || f === "buiten"){
@@ -1236,6 +1243,8 @@ function wireTable(){
           if(f === "buiten") m.buitenBron = "handmatig";
         } else if(f === "datum"){
           if(!inp.value){ inp.value = m.datum; return; }
+          if(!validISODate(inp.value)) return;          // jaartal nog niet compleet
+          if(inp.value === m.datum) return;
           m.datum = inp.value;
         } else m[f] = inp.value.trim ? inp.value.trim() : inp.value;
         scheduleAutoSave();
@@ -1612,7 +1621,9 @@ async function fetchHourlyUncached(loc, datum){
   const ago = daysBetween(datum, todayISO());
   if(ago < -14) throw new Error("te ver in de toekomst");
   const base = ago > 60 ? "https://archive-api.open-meteo.com/v1/archive" : "https://api.open-meteo.com/v1/forecast";
-  const url = `${base}?latitude=${loc.lat}&longitude=${loc.lon}&hourly=temperature_2m&timezone=auto&start_date=${datum}&end_date=${addDaysISO(datum, 1)}`;
+  // Afgerond op 2 decimalen (~1 km): ruim nauwkeurig voor een weermodel met ~2 km-raster, en je
+  // exacte adres gaat zo nooit naar Open-Meteo.
+  const url = `${base}?latitude=${loc.lat.toFixed(2)}&longitude=${loc.lon.toFixed(2)}&hourly=temperature_2m&timezone=auto&start_date=${datum}&end_date=${addDaysISO(datum, 1)}`;
   const res = await fetch(url);
   if(!res.ok) throw new Error("HTTP " + res.status);
   const data = await res.json();
@@ -1653,7 +1664,7 @@ async function autoFillBuiten(){
   const loc = state.settings.locatie;
   if(!fB || !loc) return;
   const datum = document.getElementById("fDatum").value, tijd = document.getElementById("fTijd").value;
-  if(!datum) return;
+  if(!validISODate(datum)) return;
   const seq = ++fetchSeq;
   // Ook bij "Eigen meting" halen we de online waarde op (en bewaren die mee), zodat je later je
   // eigen thermometer met het weermodel kunt vergelijken.
@@ -1676,6 +1687,32 @@ async function autoFillBuiten(){
     if(formBuitenMode === "online"){ setSrcHint(t("srcFail"), "err"); setBuitenMode("eigen", true); setSrcHint(t("srcFail"), "err"); }
   }
 }
+/* Locatie zoeken: PDOK Locatieserver (Nederlandse overheid: adressen, postcodes met huisnummer,
+   straten, wijken, buurten, plaatsen) en Open-Meteo/GeoNames (plaatsen wereldwijd) tegelijk.
+   PDOK-resultaten eerst. Faalt één van de twee, dan tonen we gewoon de andere. */
+async function searchLocations(q){
+  const pdok = fetch(`https://api.pdok.nl/bzk/locatieserver/search/v3_1/free?q=${encodeURIComponent(q)}&rows=6&fl=weergavenaam,centroide_ll,type`)
+    .then(r => r.json())
+    .then(d => ((d && d.response && d.response.docs) || []).map(doc => {
+      const m = /POINT\(([-\d.]+) ([-\d.]+)\)/.exec(doc.centroide_ll || "");
+      if(!m) return null;
+      return { bron: pdokTypeLabel(doc.type), label: doc.weergavenaam, naam: doc.weergavenaam, lat: Number(m[2]), lon: Number(m[1]) };
+    }).filter(Boolean))
+    .catch(() => []);
+  const om = fetch(`https://geocoding-api.open-meteo.com/v1/search?name=${encodeURIComponent(q)}&count=4&language=${state.lang}&format=json`)
+    .then(r => r.json())
+    .then(d => ((d && d.results) || []).map(r => ({ bron: t("locSrcPlace"), label: [r.name, r.admin2 && r.admin2 !== r.name ? r.admin2 : null, r.admin1, r.country_code].filter(Boolean).join(", "), naam: r.name, lat: r.latitude, lon: r.longitude })))
+    .catch(() => []);
+  const [a, b] = await Promise.all([pdok, om]);
+  // Dubbele plaatsen (zelfde naam, binnen ~2 km) uit Open-Meteo weglaten als PDOK ze al heeft.
+  const extra = b.filter(x => !a.some(y => Math.abs(y.lat - x.lat) < 0.02 && Math.abs(y.lon - x.lon) < 0.03 && y.label.toLowerCase().includes(x.naam.toLowerCase())));
+  return a.concat(extra);
+}
+function pdokTypeLabel(type){
+  const nl = { adres:"Adres", postcode:"Postcode", weg:"Straat", woonplaats:"Plaats", buurt:"Buurt", wijk:"Wijk", gemeente:"Gemeente", provincie:"Provincie" };
+  const en = { adres:"Address", postcode:"Postcode", weg:"Street", woonplaats:"Town", buurt:"Neighbourhood", wijk:"District", gemeente:"Municipality", provincie:"Province" };
+  return ((state.lang === "en" ? en : nl)[type]) || type || "";
+}
 function wireLocationSettings(){
   const setLoc = loc => { state.settings.locatie = loc; formModeTouched = false; scheduleAutoSave(); renderAll(); };
   const results = document.getElementById("locResults");
@@ -1683,14 +1720,10 @@ function wireLocationSettings(){
     const q = document.getElementById("locQuery").value.trim();
     if(q.length < 2) return;
     results.innerHTML = `<span class="none">${t("checking")}</span>`;
-    try{
-      const res = await fetch(`https://geocoding-api.open-meteo.com/v1/search?name=${encodeURIComponent(q)}&count=6&language=${state.lang}&format=json`);
-      const data = await res.json();
-      const list = (data && data.results) || [];
-      if(!list.length){ results.innerHTML = `<span class="none">${escapeHtml(t("setLocNoResults"))}</span>`; return; }
-      results.innerHTML = list.map((r, i) => `<button data-i="${i}">${escapeHtml([r.name, r.admin2 && r.admin2 !== r.name ? r.admin2 : null, r.admin1, r.country_code].filter(Boolean).join(", "))}</button>`).join("");
-      results.querySelectorAll("button").forEach(b => b.onclick = () => { const r = list[Number(b.dataset.i)]; setLoc({ naam: r.name, lat: r.latitude, lon: r.longitude }); });
-    }catch(err){ results.innerHTML = `<span class="none">${escapeHtml(err.message || String(err))}</span>`; }
+    const list = await searchLocations(q);
+    if(!list.length){ results.innerHTML = `<span class="none">${escapeHtml(t("setLocNoResults"))}</span>`; return; }
+    results.innerHTML = list.map((r, i) => `<button data-i="${i}"><span class="loc-src">${escapeHtml(r.bron)}</span>${escapeHtml(r.label)}</button>`).join("");
+    results.querySelectorAll("button").forEach(b => b.onclick = () => { const r = list[Number(b.dataset.i)]; setLoc({ naam: r.naam, lat: r.lat, lon: r.lon }); });
   };
   document.getElementById("locGpsBtn").onclick = () => {
     if(!navigator.geolocation){ results.innerHTML = `<span class="none">—</span>`; return; }
@@ -1715,7 +1748,7 @@ function renderProfilePanel(){
   if(profileTab === "settings"){
     body.innerHTML = `
       <div>
-        <label class="profile-field">${t("setIso")}<input type="date" id="setIso" value="${escapeHtml(state.settings.isolatieDatum)}" /></label>
+        <label class="profile-field">${t("setIso")}<input type="date" min="2000-01-01" max="2100-12-31" id="setIso" value="${escapeHtml(state.settings.isolatieDatum)}" /></label>
         <p class="profile-hint">${escapeHtml(t("setIsoHint"))}</p>
       </div>
       <div>
@@ -1727,14 +1760,22 @@ function renderProfilePanel(){
       <div data-submit-block>
         <div class="profile-section-title">${t("setLoc")}</div>
         <div class="profile-current-email" id="locCurrent">${state.settings.locatie ? `${t("setLocCurrent")} ${escapeHtml(state.settings.locatie.naam)} <span class="profile-hint">(${state.settings.locatie.lat.toFixed(3)}, ${state.settings.locatie.lon.toFixed(3)})</span>` : escapeHtml(t("setLocNone"))}</div>
-        <div class="loc-search-row"><input type="text" id="locQuery" placeholder="Heerlen / 6411" /><button class="primary" id="locSearchBtn">${t("setLocSearch")}</button></div>
+        <div class="loc-search-row"><input type="text" id="locQuery" placeholder="6411 AB 12 / Heerlen" /><button class="primary" id="locSearchBtn">${t("setLocSearch")}</button></div>
         <div class="loc-results" id="locResults"></div>
         <div class="loc-btn-row"><button id="locGpsBtn">${t("setLocGps")}</button>${state.settings.locatie ? `<button id="locClearBtn">${t("setLocClear")}</button>` : ""}</div>
         <p class="profile-hint">${escapeHtml(t("setLocHint"))}</p>
         <label class="profile-check"><input type="checkbox" id="setAuto" ${state.settings.autoBuiten ? "checked" : ""} /> ${escapeHtml(t("setAuto"))}</label>
       </div>`;
     wireLocationSettings();
-    document.getElementById("setIso").onchange = e => { state.settings.isolatieDatum = e.target.value; scheduleAutoSave(); renderAll(); };
+    const isoInp = document.getElementById("setIso");
+    const commitIso = () => {
+      const v = isoInp.value;
+      if(v !== "" && !validISODate(v)) return;          // nog bezig met typen
+      if(v === state.settings.isolatieDatum) return;
+      state.settings.isolatieDatum = v; scheduleAutoSave(); renderAll({ skipProfile: true });
+    };
+    isoInp.addEventListener("change", commitIso);
+    isoInp.addEventListener("blur", commitIso);
     document.getElementById("setRef").onchange = e => { const n = parseNum(e.target.value); if(n !== null){ state.settings.refBuiten = n; scheduleAutoSave(); renderAll(); } };
     document.getElementById("setRuimte").onchange = e => { state.settings.defaultRuimte = e.target.value.trim() || "Woonkamer"; scheduleAutoSave(); renderAll(); };
   } else {
@@ -1782,7 +1823,7 @@ function renderAll(opts){
   renderTabs();
   renderMain();
   renderSummary();
-  if(document.getElementById("profilePanel").classList.contains("open")) renderProfilePanel();
+  if(document.getElementById("profilePanel").classList.contains("open") && !(opts && opts.skipProfile)) renderProfilePanel();
   if(opts && opts.keepFocus){
     const inp = document.querySelector(`tr[data-id="${opts.keepFocus.id}"] [data-f="${opts.keepFocus.f}"]`);
     if(inp) inp.focus();
