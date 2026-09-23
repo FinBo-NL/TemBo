@@ -1,0 +1,1629 @@
+<!DOCTYPE html>
+<html lang="nl">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Tembo</title>
+<style>
+  /* Tembo — zelfde opbouw als FinBo (chrome = --ink, kaarten = --paper, --text-onink hoort bij --ink),
+     maar met blauw als accent/belettering in plaats van groen. */
+  :root{
+    --ink:#fbfcfe;
+    --ink-2:#f4f7fb;
+    --paper:#ffffff;
+    --paper-2:#eff3f9;
+    --rule:#dfe5ee;
+    --accent:#1f5fa8;
+    --accent-bright:#2b7bd4;
+    --deep:#1a4e8a;
+    --warm:#b4532a;
+    --debit:#b0463c;
+    --text:#16202e;
+    --text-soft:#5b6778;
+    --text-onink:#16202e;
+    --text-onink-soft:#5b6778;
+    /* Grafiekkleuren (gevalideerd met de dataviz-validator): binnen = warm oranje, buiten = blauw;
+       voor/na isolatie = violet/aqua. */
+    --c-binnen:#eb6834;
+    --c-buiten:#2a78d6;
+    --c-voor:#4a3aa7;
+    --c-na:#1baf7a;
+    --grid:#e6ebf2;
+  }
+  html[data-mode="dark"]{
+    --ink:#0f1622;
+    --ink-2:#0c121c;
+    --paper:#151e2b;
+    --paper-2:#1a2433;
+    --rule:rgba(255,255,255,.09);
+    --accent:#4f8fd9;
+    --accent-bright:#6ea8ea;
+    --deep:#6aa6e8;
+    --warm:#f0906a;
+    --debit:#e2897a;
+    --text:#e6edf6;
+    --text-soft:#9aa9bc;
+    --text-onink:#e8eef7;
+    --text-onink-soft:#9aa9bc;
+    --c-binnen:#d95926;
+    --c-buiten:#3987e5;
+    --c-voor:#9085e9;
+    --c-na:#199e70;
+    --grid:rgba(255,255,255,.07);
+  }
+  *{box-sizing:border-box;}
+  html,body{margin:0;padding:0;}
+  body{
+    background:var(--ink);
+    font-family:"Segoe UI",system-ui,-apple-system,sans-serif;
+    color:var(--text);
+    min-height:100vh;
+    transition:background .2s ease, color .2s ease;
+  }
+  h1,h2,h3{font-family:Georgia,"Iowan Old Style","Palatino Linotype",serif; font-weight:600; margin:0;}
+  .mono{font-family:"Courier New",Consolas,monospace; font-variant-numeric:tabular-nums;}
+
+  /* Header */
+  header{
+    position:sticky; top:0; z-index:60;
+    background:linear-gradient(180deg,var(--ink) 0%,var(--ink-2) 100%);
+    padding:12px 22px;
+    border-bottom:3px solid var(--accent);
+  }
+  .header-top{display:flex; justify-content:space-between; align-items:center; gap:14px;}
+  .header-main{text-align:center; flex:1; min-width:0;}
+  header .eyebrow{color:var(--accent); font-weight:700; font-size:28px; margin-bottom:2px; letter-spacing:.01em;}
+  header h1{color:var(--text-onink-soft); font-size:16px; font-weight:400; letter-spacing:.01em;}
+  .icon-btn, .profile-btn, .mode-btn{
+    width:34px; height:34px; flex-shrink:0;
+    display:flex; align-items:center; justify-content:center;
+    border-radius:50%;
+    border:1px solid color-mix(in srgb, var(--text-onink) 20%, transparent);
+    background:transparent; color:var(--text-onink-soft); cursor:pointer;
+    transition:color .15s ease, border-color .15s ease;
+  }
+  .icon-btn:hover, .profile-btn:hover, .mode-btn:hover{color:var(--accent-bright); border-color:var(--accent-bright);}
+  .icon-btn:focus-visible, .profile-btn:focus-visible{outline:2px solid var(--accent-bright); outline-offset:2px;}
+  .icon-btn svg{width:18px; height:18px;}
+  .profile-btn svg{width:17px; height:17px;}
+  .mode-btn svg{width:16px; height:16px;}
+  .profile-btn.active{border-color:var(--accent); color:var(--accent-bright); background:color-mix(in srgb, var(--accent) 14%, transparent);}
+
+  /* Navigatielade (links) */
+  .nav-backdrop, .profile-backdrop{
+    position:fixed; inset:0; background:rgba(10,18,32,.42);
+    opacity:0; pointer-events:none; transition:opacity .22s ease;
+  }
+  .nav-backdrop{z-index:70;}
+  .profile-backdrop{z-index:940;}
+  html[data-mode="dark"] .nav-backdrop, html[data-mode="dark"] .profile-backdrop{background:rgba(0,0,0,.55);}
+  .nav-backdrop.open, .profile-backdrop.open{opacity:1; pointer-events:auto;}
+  .nav-drawer{
+    position:fixed; top:0; left:0; bottom:0; z-index:80;
+    width:290px; max-width:82vw;
+    display:flex; flex-direction:column;
+    background:var(--paper-2); border-right:1px solid var(--rule);
+    box-shadow:0 18px 40px rgba(16,25,40,.18);
+    transform:translateX(-100%); visibility:hidden;
+    transition:transform .24s cubic-bezier(.4,0,.2,1), visibility 0s linear .24s;
+  }
+  .nav-drawer.open{transform:translateX(0); visibility:visible; transition-delay:0s;}
+  .nav-drawer-head, .profile-panel-head{
+    display:flex; align-items:center; justify-content:space-between; gap:8px; flex-shrink:0;
+  }
+  .nav-drawer-head{padding:12px 14px; border-bottom:1px solid var(--rule);}
+  .nav-drawer-title{font-size:10px; letter-spacing:.14em; text-transform:uppercase; color:var(--text-soft); font-weight:600;}
+  .nav-drawer .icon-btn{width:28px; height:28px;}
+  .nav-drawer .icon-btn svg{width:15px; height:15px;}
+  .tabs{display:flex; flex-direction:column; gap:18px; flex:1 1 auto; overflow-y:auto; padding:14px 12px 18px;}
+  .tab-group{display:flex; flex-direction:column; gap:2px;}
+  .tab-group-head{display:flex; align-items:center; justify-content:space-between; gap:6px; margin-bottom:4px; padding:0 14px;}
+  .tab-group-label{color:var(--text-onink-soft); font-size:10.5px; text-transform:uppercase; letter-spacing:.12em; flex:1;}
+  .tab-group-head.collapsible{cursor:pointer;}
+  .tab-group-head.collapsible:hover .tab-group-label{color:var(--accent-bright);}
+  .group-collapse-btn{
+    width:20px; height:20px; border-radius:50%; padding:0;
+    border:1px solid color-mix(in srgb, var(--text-onink) 25%, transparent);
+    background:transparent; color:var(--text-onink-soft); cursor:pointer;
+    display:flex; align-items:center; justify-content:center; flex-shrink:0;
+  }
+  .group-collapse-btn:hover{border-color:var(--accent); color:var(--accent-bright);}
+  .group-collapse-btn svg{width:12px; height:12px; transition:transform .15s ease;}
+  .group-collapse-btn.collapsed svg{transform:rotate(-90deg);}
+  .tab{
+    display:flex; align-items:center; justify-content:space-between; text-align:left;
+    background:transparent; border:none; border-left:3px solid transparent;
+    color:var(--text-onink-soft); font-family:Georgia,serif; font-size:14px;
+    padding:10px 14px; cursor:pointer; white-space:nowrap;
+    transition:color .15s ease, border-color .15s ease, background .15s ease;
+  }
+  .tab:hover{color:var(--text-onink); background:color-mix(in srgb, var(--text-onink) 4%, transparent);}
+  .tab.active{color:var(--accent-bright); border-left-color:var(--accent); background:color-mix(in srgb, var(--accent) 8%, transparent);}
+  .tab .tab-count{font-family:"Segoe UI",sans-serif; font-size:11px; opacity:.6;}
+  .tab-upload{
+    border:1px dashed color-mix(in srgb, var(--text-onink) 30%, transparent); border-radius:3px;
+    color:var(--accent-bright); font-family:"Segoe UI",sans-serif; font-size:12.5px; justify-content:center; gap:8px;
+  }
+  .tab-upload svg{width:14px; height:14px;}
+  .tab-upload:hover, .tab-upload.active{background:color-mix(in srgb, var(--accent) 8%, transparent); border-color:var(--accent);}
+
+  /* Profielpaneel (rechts) */
+  .profile-panel{
+    position:fixed; top:0; right:0; height:100vh;
+    width:30vw; min-width:min(320px, 92vw); max-width:460px;
+    background:var(--paper); border-left:1px solid var(--rule);
+    box-shadow:-2px 0 28px rgba(0,0,0,.18); z-index:950;
+    display:flex; flex-direction:column;
+    transform:translateX(100%); visibility:hidden;
+    transition:transform .3s cubic-bezier(.4,0,.2,1), visibility 0s linear .3s;
+  }
+  .profile-panel.open{transform:translateX(0); visibility:visible; transition-delay:0s;}
+  @media (prefers-reduced-motion: reduce){ .nav-drawer,.nav-backdrop,.profile-panel,.profile-backdrop{transition:none;} }
+  .profile-panel-head{
+    background:linear-gradient(180deg,var(--ink) 0%,var(--ink-2) 100%);
+    border-bottom:3px solid var(--accent); padding:16px 16px 14px 20px; flex-wrap:wrap;
+  }
+  .profile-panel-title{font-family:Georgia,serif; font-weight:600; font-size:18px; color:var(--text-onink); flex:1 1 auto;}
+  .profile-panel-head-controls{display:flex; align-items:center; gap:8px;}
+  .lang-toggle{display:flex; gap:4px;}
+  .lang-btn{
+    background:transparent; border:1px solid color-mix(in srgb, var(--text-onink) 25%, transparent);
+    color:var(--text-onink-soft); padding:5px 11px; font-size:11px; letter-spacing:.06em; border-radius:3px; cursor:pointer;
+  }
+  .lang-btn:hover{border-color:var(--accent); color:var(--accent-bright);}
+  .lang-btn.active{border-color:var(--accent); color:var(--accent-bright); background:color-mix(in srgb, var(--accent) 12%, transparent);}
+  .profile-close-btn{
+    width:30px; height:30px; border-radius:50%;
+    border:1px solid color-mix(in srgb, var(--text-onink) 25%, transparent);
+    background:transparent; color:var(--text-onink-soft); cursor:pointer;
+    display:flex; align-items:center; justify-content:center;
+  }
+  .profile-close-btn:hover{border-color:var(--debit); color:var(--debit);}
+  .profile-close-btn svg{width:15px; height:15px;}
+  .profile-panel-tabs{display:flex; gap:4px; padding:14px 20px 0; border-bottom:1px solid var(--rule);}
+  .profile-tab-btn{
+    background:transparent; border:none; border-bottom:2px solid transparent; color:var(--text-soft);
+    padding:8px 4px 10px; margin-right:18px; font-size:13px; cursor:pointer; font-family:inherit;
+  }
+  .profile-tab-btn:hover{color:var(--text);}
+  .profile-tab-btn.active{color:var(--accent); border-bottom-color:var(--accent); font-weight:600;}
+  .profile-panel-body{flex:1 1 auto; overflow-y:auto; padding:22px 20px 28px; display:flex; flex-direction:column; gap:26px;}
+  .profile-section-title{font-size:12px; font-weight:700; letter-spacing:.04em; text-transform:uppercase; color:var(--text-soft); margin:0 0 4px;}
+  .profile-current-email{font-size:14px; background:var(--paper-2); border:1px solid var(--rule); border-radius:5px; padding:9px 11px; word-break:break-all;}
+  .profile-field{display:flex; flex-direction:column; gap:4px; font-size:12px; color:var(--text-soft); margin-top:10px;}
+  .profile-field input, .profile-field select{
+    font-family:inherit; font-size:14px; padding:8px 10px;
+    border:1px solid var(--rule); border-radius:4px; background:var(--paper); color:var(--text);
+  }
+  .profile-field input:focus, .profile-field select:focus{outline:none; border-color:var(--accent);}
+  .profile-panel-body button{
+    font-family:inherit; font-size:13px; padding:8px 12px; border-radius:4px;
+    border:1px solid var(--rule); background:transparent; color:var(--text); cursor:pointer; margin-top:12px;
+  }
+  .profile-panel-body button.primary{background:var(--deep); border-color:var(--deep); color:#fff;}
+  html[data-mode="dark"] .profile-panel-body button.primary{color:#0c121c;}
+  .profile-panel-body button:disabled{opacity:.6; cursor:default;}
+  .profile-msg{font-size:12px; border-radius:4px; padding:8px 10px; margin-top:10px;}
+  .profile-msg.error{color:var(--debit); background:color-mix(in srgb, var(--debit) 12%, transparent);}
+  .profile-msg.notice{color:var(--deep); background:color-mix(in srgb, var(--deep) 12%, transparent);}
+  .profile-hint{font-size:11.5px; color:var(--text-soft); line-height:1.5; margin:4px 0 0;}
+  .profile-divider{border:none; border-top:1px solid var(--rule); margin:0;}
+
+  /* Layout */
+  .layout{display:grid; grid-template-columns:minmax(0,1fr) 380px; align-items:start;}
+  main.categories, aside.summary{min-width:0;}
+  main.categories{padding:28px 24px 60px 32px;}
+  @media (max-width:980px){
+    .layout{grid-template-columns:minmax(0,1fr);}
+    aside.summary{position:static !important; min-height:0 !important; border-left:none !important; border-top:1px solid color-mix(in srgb, var(--text-onink) 8%, transparent);}
+  }
+  @media (max-width:640px){
+    header{padding:12px 14px;}
+    header .eyebrow{font-size:24px;}
+    header h1{font-size:14px;}
+    main.categories{padding:18px 14px 36px;}
+    aside.summary{padding:20px 16px 32px !important;}
+    .card-head{padding:9px 14px 7px !important;}
+    .card-body{padding:12px 14px !important;}
+  }
+
+  .card{background:var(--paper); border:1px solid var(--rule); border-left:3px solid var(--accent); border-radius:2px; margin-bottom:20px; box-shadow:0 1px 0 rgba(0,0,0,.04);}
+  .card-head{
+    display:flex; align-items:center; justify-content:space-between; gap:10px;
+    padding:10px 18px 8px; border-bottom:1px solid color-mix(in srgb, var(--accent) 30%, var(--rule));
+    background:color-mix(in srgb, var(--accent) 9%, var(--paper-2));
+  }
+  .card-head .htitle{display:flex; align-items:center; gap:9px; color:var(--deep); min-width:0;}
+  .card-head h2{font-size:15px; color:inherit;}
+  .card-head .head-extra{font-size:12px; color:var(--text-soft);}
+  .cat-icon{width:17px; height:17px; flex-shrink:0;}
+  .card-body{padding:14px 18px 16px;}
+  .card-note{font-size:12px; color:var(--text-soft); line-height:1.55; margin:0;}
+
+  /* Invoerformulier */
+  .entry-grid{display:grid; grid-template-columns:repeat(auto-fit,minmax(130px,1fr)); gap:12px;}
+  .entry-grid label, .import-box label{display:flex; flex-direction:column; gap:4px; font-size:11.5px; color:var(--text-soft); letter-spacing:.02em;}
+  .entry-grid input, .entry-grid select, .rtable input, .rtable select{
+    font-family:inherit; font-size:14px; padding:7px 9px;
+    border:1px solid var(--rule); border-radius:4px; background:var(--paper); color:var(--text); min-width:0; width:100%;
+  }
+  .entry-grid input:focus, .entry-grid select:focus, .rtable input:focus, .rtable select:focus{outline:none; border-color:var(--accent);}
+  .entry-grid .wide{grid-column:1 / -1;}
+  .entry-actions{display:flex; align-items:center; gap:12px; margin-top:14px; flex-wrap:wrap;}
+  .btn{
+    font-family:inherit; font-size:13px; padding:8px 14px; border-radius:4px; cursor:pointer;
+    border:1px solid var(--rule); background:transparent; color:var(--text);
+  }
+  .btn:hover{border-color:var(--accent); color:var(--accent);}
+  .btn.primary{background:var(--deep); border-color:var(--deep); color:#fff;}
+  html[data-mode="dark"] .btn.primary{color:#0c121c;}
+  .btn.primary:hover{opacity:.9; color:#fff;}
+  html[data-mode="dark"] .btn.primary:hover{color:#0c121c;}
+  .form-msg{font-size:12px;}
+  .form-msg.ok{color:var(--deep);}
+  .form-msg.err{color:var(--debit);}
+
+  /* Grafieken */
+  .chart-legend{display:flex; gap:16px; flex-wrap:wrap; font-size:12px; color:var(--text-soft); margin:0 0 8px;}
+  .chart-legend .key{display:inline-flex; align-items:center; gap:6px;}
+  .chart-legend .sw{width:14px; height:3px; border-radius:2px;}
+  .chart-legend .sw.dot{width:9px; height:9px; border-radius:50%;}
+  .chart-legend .sw.dash{height:0; border-top:2px dashed var(--text-soft); background:none;}
+  .chart-wrap{position:relative; width:100%;}
+  .chart-wrap svg{display:block; width:100%; height:auto; overflow:visible;}
+  .chart-wrap text{font-family:"Segoe UI",system-ui,sans-serif; font-size:11px; fill:var(--text-soft);}
+  .chart-wrap .lbl-strong{fill:var(--text); font-weight:600;}
+  .chart-tooltip{
+    position:absolute; pointer-events:none; z-index:5;
+    background:var(--paper); border:1px solid var(--rule); border-radius:6px;
+    box-shadow:0 6px 18px rgba(0,0,0,.12); padding:8px 10px; font-size:12px; color:var(--text);
+    min-width:150px; opacity:0; transition:opacity .1s;
+  }
+  .chart-tooltip .tt-head{font-weight:600; margin-bottom:4px;}
+  .chart-tooltip .tt-row{display:flex; align-items:center; gap:7px; justify-content:space-between;}
+  .chart-tooltip .tt-row span:first-child{display:inline-flex; align-items:center; gap:6px; color:var(--text-soft);}
+  .chart-tooltip .tt-key{width:9px; height:9px; border-radius:50%;}
+  .chart-tooltip .tt-val{font-family:"Courier New",monospace; font-weight:700;}
+  .chart-empty{font-size:13px; color:var(--text-soft); padding:22px 0; text-align:center;}
+
+  /* Metingentabel */
+  .table-scroll{overflow-x:auto; margin:0 -4px;}
+  .rtable{width:100%; border-collapse:collapse; font-size:13px; min-width:640px;}
+  .rtable th{
+    text-align:left; font-weight:600; font-size:10.5px; letter-spacing:.08em; text-transform:uppercase;
+    color:var(--text-soft); padding:6px 4px; border-bottom:1px solid var(--rule); white-space:nowrap;
+  }
+  .rtable th.num, .rtable td.num{text-align:right;}
+  .rtable td{padding:4px; border-bottom:1px solid var(--rule); vertical-align:middle;}
+  .rtable tr:last-child td{border-bottom:none;}
+  .rtable input, .rtable select{font-size:13px; padding:5px 6px; border-color:transparent; background:transparent;}
+  .rtable input:hover, .rtable select:hover{border-color:var(--rule);}
+  .rtable input.t-num{width:70px; text-align:right; font-family:"Courier New",monospace;}
+  .rtable input.t-date{width:150px;}
+  .rtable input.t-time{width:118px;}
+  .rtable .delta{font-family:"Courier New",monospace; font-weight:700; white-space:nowrap;}
+  .rtable .phase{font-size:10px; padding:2px 7px; border-radius:20px; white-space:nowrap; font-weight:600;}
+  .phase.voor{color:var(--c-voor); background:color-mix(in srgb, var(--c-voor) 13%, transparent);}
+  .phase.na{color:var(--c-na); background:color-mix(in srgb, var(--c-na) 14%, transparent);}
+  .row-del{
+    width:24px; height:24px; border-radius:50%; padding:0; cursor:pointer;
+    border:1px solid transparent; background:transparent; color:var(--text-soft);
+    display:flex; align-items:center; justify-content:center;
+  }
+  .row-del:hover{border-color:var(--debit); color:var(--debit); background:color-mix(in srgb, var(--debit) 10%, transparent);}
+  .row-del svg{width:13px; height:13px;}
+
+  /* Import */
+  .import-drop{
+    border:1.5px dashed color-mix(in srgb, var(--accent) 50%, var(--rule)); border-radius:6px;
+    padding:26px 18px; text-align:center; color:var(--text-soft); font-size:13px; cursor:pointer;
+    background:color-mix(in srgb, var(--accent) 4%, transparent);
+  }
+  .import-drop:hover, .import-drop.drag{border-color:var(--accent); color:var(--accent);}
+  .import-drop strong{color:var(--accent); display:block; font-size:14px; margin-bottom:4px;}
+  .import-result{margin-top:14px; font-size:13px; line-height:1.6;}
+
+  /* Samenvatting rechts */
+  aside.summary{
+    position:sticky; top:62px; background:var(--ink); color:var(--text-onink);
+    padding:28px 24px 40px; min-height:calc(100vh - 62px);
+    border-left:1px solid color-mix(in srgb, var(--text-onink) 8%, transparent);
+  }
+  aside.summary h2{font-size:13px; text-transform:uppercase; letter-spacing:.12em; color:var(--text-onink-soft); margin-bottom:16px; font-family:"Segoe UI",sans-serif;}
+  aside.summary h3{font-size:12px; text-transform:uppercase; letter-spacing:.12em; color:var(--text-onink-soft); margin:26px 0 8px; font-family:"Segoe UI",sans-serif;}
+  .stamp{border:2px solid var(--accent); border-radius:4px; padding:16px 18px; margin-bottom:22px; transform:rotate(-0.4deg);}
+  .stamp-row{display:flex; flex-wrap:wrap; gap:12px; margin-bottom:22px;}
+  .stamp-row .stamp{flex:1 1 140px; min-width:140px; margin-bottom:0; padding:12px 14px;}
+  .stamp.voor{border-color:var(--c-voor);}
+  .stamp.na{border-color:var(--c-na);}
+  .stamp .stamp-label{font-size:11px; letter-spacing:.14em; text-transform:uppercase; color:var(--accent-bright); margin-bottom:4px;}
+  .stamp .stamp-value{font-size:clamp(24px, 7vw, 32px); font-family:"Courier New",Consolas,monospace; font-weight:700; color:var(--accent-bright);}
+  .stamp-row .stamp-value{font-size:22px;}
+  .stamp.voor .stamp-label, .stamp.voor .stamp-value{color:var(--c-voor);}
+  .stamp.na .stamp-label, .stamp.na .stamp-value{color:var(--c-na);}
+  .stamp .stamp-sub{font-size:11.5px; color:var(--text-onink-soft); margin-top:4px; line-height:1.45;}
+  .summary-line{
+    display:flex; justify-content:space-between; align-items:baseline; gap:10px;
+    padding:6px 0; border-bottom:1px solid color-mix(in srgb, var(--text-onink) 8%, transparent); font-size:13.5px;
+  }
+  .summary-line .l{color:var(--text-onink-soft);}
+  .summary-line .v{font-family:"Courier New",Consolas,monospace; text-align:right;}
+  .summary-line .v .sw{display:inline-block; width:8px; height:8px; border-radius:50%; margin-right:6px; vertical-align:middle;}
+  .summary-hint{font-size:11.5px; color:var(--text-onink-soft); line-height:1.5; margin:8px 0 0;}
+  .actions{display:flex; flex-wrap:wrap; gap:10px; margin-top:26px;}
+  .actions button{
+    flex:1 1 100px; background:transparent;
+    border:1px solid color-mix(in srgb, var(--text-onink) 25%, transparent);
+    color:var(--text-onink-soft); padding:8px 10px; font-size:12px; border-radius:3px; cursor:pointer; font-family:inherit;
+  }
+  .actions button:hover{border-color:var(--accent); color:var(--accent-bright);}
+  .actions button.primary{background:var(--accent); border-color:var(--accent); color:var(--ink);}
+  html:not([data-mode="dark"]) .actions button.primary{color:#fff;}
+  .actions button.primary:hover{background:var(--accent-bright); border-color:var(--accent-bright);}
+  .actions button:disabled{opacity:.6; cursor:default;}
+  .save-status{margin-top:10px; font-size:11px; color:var(--text-onink-soft); display:flex; align-items:center; gap:6px;}
+  .save-status .dot{display:inline-block; width:7px; height:7px; border-radius:50%; background:var(--text-onink-soft);}
+  .save-status.on .dot{background:var(--accent-bright);}
+  .save-status.error{color:var(--debit);}
+  .save-status.error .dot{background:var(--debit);}
+
+  /* Login/versleutelings-overlay */
+  .auth-gate{position:fixed; inset:0; z-index:1000; display:flex; align-items:center; justify-content:center; background:var(--paper-2); padding:20px;}
+  .auth-gate-box{
+    width:100%; max-width:370px; background:var(--paper); border:1px solid var(--rule); border-top:3px solid var(--accent);
+    border-radius:8px; padding:28px 26px; box-shadow:0 8px 30px rgba(0,0,0,.12);
+    display:flex; flex-direction:column; gap:12px;
+  }
+  .auth-gate-title{font-size:24px; font-weight:700; color:var(--accent); margin-bottom:-6px;}
+  .auth-gate-tagline{font-family:Georgia,serif; font-size:14px; color:var(--text-soft); margin-bottom:4px;}
+  .auth-gate-title2{font-size:15px; font-weight:700; color:var(--text);}
+  .auth-gate-subtitle{font-size:12.5px; color:var(--text-soft); line-height:1.5; margin:0 0 6px;}
+  .auth-gate-box label{display:flex; flex-direction:column; gap:4px; font-size:12px; color:var(--text-soft);}
+  .auth-gate-box label.radio{flex-direction:row; align-items:flex-start; gap:8px; font-size:13px; color:var(--text); line-height:1.4;}
+  .auth-gate-box input:not([type="radio"]){font-family:inherit; font-size:14px; padding:8px 10px; border:1px solid var(--rule); border-radius:4px; background:var(--paper); color:var(--text);}
+  .auth-gate-box input:focus{outline:none; border-color:var(--accent);}
+  .auth-gate-box button{font-family:inherit; font-size:13.5px; padding:9px 12px; border-radius:4px; border:1px solid var(--rule); background:transparent; color:var(--text); cursor:pointer;}
+  .auth-gate-box button.primary{background:var(--deep); border-color:var(--deep); color:#fff;}
+  html[data-mode="dark"] .auth-gate-box button.primary{color:#0c121c;}
+  .auth-gate-box button.primary:hover{opacity:.9;}
+  .auth-gate-box button.ghost{background:transparent; color:var(--text-soft); border-color:transparent; font-size:12px;}
+  .auth-gate-box button.ghost:hover{text-decoration:underline;}
+  .auth-gate-box button:disabled{opacity:.6; cursor:default;}
+  .auth-gate-error{font-size:12px; color:var(--debit); background:color-mix(in srgb, var(--debit) 12%, transparent); border-radius:4px; padding:8px 10px;}
+  .auth-gate-notice{font-size:12px; color:var(--deep); background:color-mix(in srgb, var(--deep) 12%, transparent); border-radius:4px; padding:8px 10px;}
+  .auth-gate-warn{font-size:11.5px; color:var(--text-soft); line-height:1.5; border-left:3px solid var(--warm); padding:4px 0 4px 10px;}
+</style>
+</head>
+<body>
+
+<div id="authGate" class="auth-gate" style="display:none;"></div>
+
+<header id="appHeader">
+  <div class="header-top">
+    <button class="icon-btn" id="navToggleBtn" aria-label="Menu" aria-expanded="false" aria-controls="navDrawer">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M4 7h16M4 12h16M4 17h16"/></svg>
+    </button>
+    <div class="header-main">
+      <div class="eyebrow">Tembo</div>
+      <h1 id="mainTitle"></h1>
+    </div>
+    <button class="profile-btn" id="profileBtn" aria-label="Profiel">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="8.2" r="3.4"/><path d="M5.3 19.4c1.2-3.3 3.7-5 6.7-5s5.5 1.7 6.7 5"/></svg>
+    </button>
+  </div>
+</header>
+
+<div class="nav-backdrop" id="navBackdrop"></div>
+<nav class="nav-drawer" id="navDrawer" aria-label="Hoofdnavigatie" aria-hidden="true" inert>
+  <div class="nav-drawer-head">
+    <span class="nav-drawer-title" id="navDrawerTitle"></span>
+    <button class="icon-btn" id="navCloseBtn" aria-label="Sluiten">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M6 6l12 12M18 6L6 18"/></svg>
+    </button>
+  </div>
+  <div class="tabs" id="tabs"></div>
+</nav>
+
+<div class="profile-backdrop" id="profileBackdrop"></div>
+<aside class="profile-panel" id="profilePanel" aria-hidden="true" inert>
+  <div class="profile-panel-head">
+    <span class="profile-panel-title" id="profilePanelTitle"></span>
+    <div class="profile-panel-head-controls">
+      <div class="lang-toggle">
+        <button class="lang-btn" data-lang="nl">NL</button>
+        <button class="lang-btn" data-lang="en">EN</button>
+      </div>
+      <button class="mode-btn" id="modeBtn">
+        <svg id="modeIconMoon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><path d="M20 14.5A8.5 8.5 0 1 1 9.5 4a6.7 6.7 0 0 0 10.5 10.5z"/></svg>
+        <svg id="modeIconSun" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" style="display:none;"><circle cx="12" cy="12" r="4.2"/><path d="M12 2.5v2.4M12 19.1v2.4M4.2 4.2l1.7 1.7M18.1 18.1l1.7 1.7M2.5 12h2.4M19.1 12h2.4M4.2 19.8l1.7-1.7M18.1 5.9l1.7-1.7"/></svg>
+      </button>
+      <button class="profile-close-btn" id="profileCloseBtn">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M5 5l14 14M19 5L5 19"/></svg>
+      </button>
+    </div>
+  </div>
+  <div class="profile-panel-tabs" id="profilePanelTabs"></div>
+  <div class="profile-panel-body" id="profilePanelBody"></div>
+</aside>
+
+<input type="file" id="importFileInput" accept=".xlsx,.xls,.csv,.json" style="display:none"/>
+
+<div class="layout" id="appLayout">
+  <main class="categories" id="categories"></main>
+  <aside class="summary" id="summary"></aside>
+</div>
+
+<!-- Supabase-client (cloud-database + inloggen) en SheetJS (Excel lezen/schrijven). -->
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
+
+<script>
+"use strict";
+
+/* ================= CONFIGURATIE =================
+   Zelfde Supabase-project als FinBo (zelfde inlogaccount werkt), maar een eigen tabel
+   `tembo_state` — zie tembo_supabase_setup.sql. Met window.TEMBO_CONFIG = { supabaseUrl,
+   supabaseAnonKey } vóór dit script kan naar een ander project gewezen worden. */
+const TEMBO_DEFAULT_SUPABASE_URL = "https://qlsnjlnzvbgwvyjnswvd.supabase.co";
+const TEMBO_DEFAULT_SUPABASE_ANON_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InFsc25qbG56dmJnd3Z5am5zd3ZkIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODczOTIwNjQsImV4cCI6MjEwMjk2ODA2NH0.5kByeZpQjtB7DPeQtFidOUSrdGst1Ox5_wyUZ9g9wKo";
+const SUPABASE_URL = (window.TEMBO_CONFIG && window.TEMBO_CONFIG.supabaseUrl) || TEMBO_DEFAULT_SUPABASE_URL;
+const SUPABASE_ANON_KEY = (window.TEMBO_CONFIG && window.TEMBO_CONFIG.supabaseAnonKey) || TEMBO_DEFAULT_SUPABASE_ANON_KEY;
+const TABLE = "tembo_state";
+const AUTOSAVE_DEBOUNCE_MS = 500;
+const SAVE_BUTTON_RESET_MS = 1600;
+
+/* Baseline uit "Temp metingen woonkamer.xlsx" (22–23 september 2026). */
+const BASELINE_METINGEN = [
+  { datum:"2026-09-22", tijd:"13:10", binnen:22.5, buiten:18 },
+  { datum:"2026-09-22", tijd:"17:00", binnen:22.5, buiten:19 },
+  { datum:"2026-09-23", tijd:"12:00", binnen:22.1, buiten:21 },
+  { datum:"2026-09-23", tijd:"18:23", binnen:22.6, buiten:23 },
+];
+
+/* ================= VERTALINGEN ================= */
+const I18N = {
+  nl: {
+    tagline: "Houdt de warmte binnen?",
+    navTitle: "Navigatie",
+    navOverview: "Overzicht",
+    navAll: "Alle metingen",
+    navMonths: "Maanden",
+    navImport: "Importeer Excel / CSV",
+    newEntry: "Nieuwe meting",
+    fDatum: "Datum", fTijd: "Tijd", fBinnen: "Binnen (°C)", fBuiten: "Buiten (°C)",
+    fRuimte: "Ruimte", fVerwarming: "Verwarming / airco", fNotitie: "Notitie",
+    verwUnknown: "—", verwAan: "Aan", verwUit: "Uit",
+    addBtn: "Meting toevoegen",
+    addedMsg: "Meting toegevoegd ✓",
+    errTemps: "Vul zowel binnen- als buitentemperatuur in.",
+    errDate: "Vul een datum in.",
+    chartTime: "Temperatuurverloop",
+    chartScatter: "Binnen t.o.v. buiten",
+    chartScatterNote: "Elke stip is één meting. Ligt de lijn ná isolatie hoger dan ervóór, dan blijft het bij dezelfde buitentemperatuur warmer binnen.",
+    chartNeed: "Nog te weinig metingen voor deze grafiek.",
+    lBinnen: "Binnen", lBuiten: "Buiten", lVoor: "Vóór isolatie", lNa: "Na isolatie", lAlle: "Metingen", lIsolatie: "Isolatie",
+    tableTitle: "Metingen",
+    thDatum: "Datum", thTijd: "Tijd", thBinnen: "Binnen", thBuiten: "Buiten", thVerschil: "Verschil", thFase: "Fase", thRuimte: "Ruimte", thVerw: "Verw.", thNotitie: "Notitie",
+    noRows: "Nog geen metingen. Voeg er hierboven één toe of importeer een Excel-bestand.",
+    deleteConfirm: "Deze meting verwijderen?",
+    sumAvgDelta: "Gem. verschil binnen − buiten",
+    sumOver: n => `Over ${n} meting${n===1?"":"en"}`,
+    sumLatest: "Laatste meting",
+    sumLatestIn: "Binnen (laatst)",
+    sumLatestOut: "Buiten (laatst)",
+    sumAvgIn: "Gem. binnen",
+    sumAvgOut: "Gem. buiten",
+    sumRangeIn: "Min – max binnen",
+    sumRangeOut: "Min – max buiten",
+    sumCount: "Aantal metingen",
+    sumCompare: "Vóór vs. na isolatie",
+    sumAt: t => `Geschat binnen bij ${t} buiten`,
+    sumNoIso: "Stel in Profiel → Instellingen de datum in waarop de spouwmuurisolatie is aangebracht; dan vergelijkt Tembo metingen van vóór en na.",
+    sumNeedMore: "Nog te weinig metingen per periode voor een betrouwbare schatting (minimaal 3 per periode, met wat spreiding in buitentemperatuur).",
+    sumCaveat: "Let op: verwarming, airco, zon en ventilatie beïnvloeden de binnentemperatuur ook. Noteer ze bij de meting voor een eerlijker vergelijk.",
+    saveNowBtn: "Opslaan", saveNowSaving: "Bezig met opslaan…", saveNowSaved: "Opgeslagen ✓",
+    logoutBtn: "Uitloggen", exportXlsx: "Exporteer Excel", exportBackup: "Back-up (JSON)", importBtn: "Importeer bestand",
+    cloudSaveStatus: e => `Cloud-sync actief (${e})`,
+    cloudSaveOff: "Niet verbonden",
+    cloudSaveErrorStatus: "Opslaan mislukt — nieuwe poging volgt…",
+    cloudSaveConflictStatus: "Elders gewijzigd — klik Opslaan om te kiezen",
+    cloudSaveConflictPrompt: "De gegevens zijn sinds je laatste opslag op een ander apparaat of tabblad gewijzigd.\n\nOK = jouw versie hier opslaan (en die andere overschrijven)\nAnnuleren = niets doen (ververs de pagina om de andere versie te laden)",
+    signOutUnsavedWarn: "Je laatste wijzigingen zijn nog niet opgeslagen. Toch uitloggen? Dan gaan ze verloren.",
+    supabaseLibError: "Cloud-library kon niet geladen worden — check je internetverbinding.",
+    loginSubtitle: "Log in met je account. Hetzelfde account als FinBo werkt ook.",
+    loginEmailLabel: "E-mailadres", loginPasswordLabel: "Wachtwoord",
+    loginSignInBtn: "Inloggen", loginSignUpBtn: "Account aanmaken",
+    loginToggleToSignUp: "Nog geen account? Maak er een aan", loginToggleToSignIn: "Al een account? Inloggen",
+    loginErrorPrefix: "Inloggen mislukt: ",
+    loginConfirmEmailNotice: "Check je mailbox om je account te bevestigen en log daarna in.",
+    checking: "Bezig met controleren…",
+    encTitleExisting: "Versleutelingswachtwoord",
+    encSubExisting: "Je metingen staan versleuteld in de cloud. Voer je Tembo-versleutelingswachtwoord in om ze te openen.",
+    encTitleNew: "Kies een versleutelingswachtwoord",
+    encSubNew: "Je metingen worden in je browser versleuteld vóór ze naar de cloud gaan — ook de cloud-provider kan ze niet lezen.",
+    encWarn: "Dit wachtwoord wordt nergens opgeslagen. Vergeet je het, dan zijn je opgeslagen metingen blijvend onleesbaar. Er is geen herstelmogelijkheid.",
+    encPw: "Versleutelingswachtwoord", encPw2: "Herhaal wachtwoord",
+    encOpenBtn: "Openen", encCreateBtn: "Instellen en starten",
+    encWrong: "Onjuist wachtwoord — probeer het opnieuw.",
+    encMismatch: "De wachtwoorden komen niet overeen.",
+    encTooShort: "Kies minstens 8 tekens.",
+    startBaseline: "Start met de baseline (4 metingen woonkamer, 22–23 sep 2026)",
+    startEmpty: "Begin leeg",
+    retryBtn: "Opnieuw proberen",
+    profileTitle: "Profiel & instellingen",
+    tabAccount: "Account", tabSettings: "Instellingen",
+    accEmail: "Ingelogd als", accNewEmail: "Nieuw e-mailadres", accUpdateEmail: "E-mailadres bijwerken",
+    accNewPw: "Nieuw inlogwachtwoord", accUpdatePw: "Inlogwachtwoord bijwerken",
+    accPwHint: "Dit is je inlogwachtwoord, niet je versleutelingswachtwoord.",
+    accUpdated: "Bijgewerkt ✓",
+    setIso: "Datum spouwmuurisolatie",
+    setIsoHint: "Metingen vóór deze datum tellen als 'vóór isolatie', vanaf deze datum als 'na isolatie'. Leeg laten = geen vergelijk.",
+    setRuimte: "Standaard ruimte",
+    setRef: "Referentie-buitentemperatuur (°C)",
+    setRefHint: "Voor de schatting 'binnen bij X °C buiten' in het vergelijk vóór/na.",
+    importTitle: "Importeer metingen",
+    importNote: "Kies een Excel- (.xlsx) of CSV-bestand met kolommen zoals Datum, Tijd, Temp woonkamer/binnen en Temp buiten. Dubbele metingen (zelfde datum, tijd en ruimte) worden overgeslagen. Een Tembo-back-up (.json) vervangt alle huidige gegevens.",
+    importDrop: "Klik of sleep een bestand hierheen",
+    importResult: (a, d, e) => `${a} meting${a===1?"":"en"} toegevoegd, ${d} dubbel overgeslagen, ${e} lege/onleesbare rij${e===1?"":"en"} overgeslagen.`,
+    importNoCols: "Kon geen kolommen voor binnen- en buitentemperatuur herkennen.",
+    importFail: "Importeren mislukt: ",
+    importBackupConfirm: "Deze back-up vervangt al je huidige metingen en instellingen. Doorgaan?",
+    importBackupOk: "Back-up geladen ✓",
+    xlsxMissing: "Excel-library niet geladen — CSV wordt gebruikt.",
+    monthNames: ["januari","februari","maart","april","mei","juni","juli","augustus","september","oktober","november","december"],
+    phaseVoor: "vóór", phaseNa: "na",
+  },
+  en: {
+    tagline: "Is the warmth staying in?",
+    navTitle: "Navigation",
+    navOverview: "Overview",
+    navAll: "All readings",
+    navMonths: "Months",
+    navImport: "Import Excel / CSV",
+    newEntry: "New reading",
+    fDatum: "Date", fTijd: "Time", fBinnen: "Indoor (°C)", fBuiten: "Outdoor (°C)",
+    fRuimte: "Room", fVerwarming: "Heating / AC", fNotitie: "Note",
+    verwUnknown: "—", verwAan: "On", verwUit: "Off",
+    addBtn: "Add reading",
+    addedMsg: "Reading added ✓",
+    errTemps: "Enter both indoor and outdoor temperature.",
+    errDate: "Enter a date.",
+    chartTime: "Temperature over time",
+    chartScatter: "Indoor vs. outdoor",
+    chartScatterNote: "Each dot is one reading. If the line after insulation sits higher than before, it stays warmer inside at the same outdoor temperature.",
+    chartNeed: "Not enough readings for this chart yet.",
+    lBinnen: "Indoor", lBuiten: "Outdoor", lVoor: "Before insulation", lNa: "After insulation", lAlle: "Readings", lIsolatie: "Insulation",
+    tableTitle: "Readings",
+    thDatum: "Date", thTijd: "Time", thBinnen: "Indoor", thBuiten: "Outdoor", thVerschil: "Difference", thFase: "Phase", thRuimte: "Room", thVerw: "Heat", thNotitie: "Note",
+    noRows: "No readings yet. Add one above or import an Excel file.",
+    deleteConfirm: "Delete this reading?",
+    sumAvgDelta: "Avg. difference indoor − outdoor",
+    sumOver: n => `Across ${n} reading${n===1?"":"s"}`,
+    sumLatest: "Latest reading",
+    sumLatestIn: "Indoor (latest)",
+    sumLatestOut: "Outdoor (latest)",
+    sumAvgIn: "Avg. indoor",
+    sumAvgOut: "Avg. outdoor",
+    sumRangeIn: "Min – max indoor",
+    sumRangeOut: "Min – max outdoor",
+    sumCount: "Number of readings",
+    sumCompare: "Before vs. after insulation",
+    sumAt: t => `Estimated indoor at ${t} outdoor`,
+    sumNoIso: "Set the date the cavity wall insulation was installed in Profile → Settings; Tembo will then compare readings before and after.",
+    sumNeedMore: "Not enough readings per period for a reliable estimate yet (at least 3 per period, with some spread in outdoor temperature).",
+    sumCaveat: "Note: heating, AC, sun and ventilation also affect indoor temperature. Record them with the reading for a fairer comparison.",
+    saveNowBtn: "Save", saveNowSaving: "Saving…", saveNowSaved: "Saved ✓",
+    logoutBtn: "Sign out", exportXlsx: "Export Excel", exportBackup: "Backup (JSON)", importBtn: "Import file",
+    cloudSaveStatus: e => `Cloud sync active (${e})`,
+    cloudSaveOff: "Not connected",
+    cloudSaveErrorStatus: "Save failed — retrying…",
+    cloudSaveConflictStatus: "Changed elsewhere — click Save to choose",
+    cloudSaveConflictPrompt: "The data was changed on another device or tab since your last save.\n\nOK = save your version here (overwriting the other)\nCancel = do nothing (refresh to load the other version)",
+    signOutUnsavedWarn: "Your latest changes are not saved yet. Sign out anyway? They will be lost.",
+    supabaseLibError: "Cloud library could not be loaded — check your internet connection.",
+    loginSubtitle: "Sign in with your account. Your FinBo account works too.",
+    loginEmailLabel: "Email", loginPasswordLabel: "Password",
+    loginSignInBtn: "Sign in", loginSignUpBtn: "Create account",
+    loginToggleToSignUp: "No account yet? Create one", loginToggleToSignIn: "Already have an account? Sign in",
+    loginErrorPrefix: "Sign-in failed: ",
+    loginConfirmEmailNotice: "Check your inbox to confirm your account, then sign in.",
+    checking: "Checking…",
+    encTitleExisting: "Encryption password",
+    encSubExisting: "Your readings are stored encrypted in the cloud. Enter your Tembo encryption password to open them.",
+    encTitleNew: "Choose an encryption password",
+    encSubNew: "Your readings are encrypted in your browser before they go to the cloud — not even the cloud provider can read them.",
+    encWarn: "This password is not stored anywhere. If you forget it, your saved readings are permanently unreadable. There is no recovery.",
+    encPw: "Encryption password", encPw2: "Repeat password",
+    encOpenBtn: "Open", encCreateBtn: "Set up and start",
+    encWrong: "Wrong password — try again.",
+    encMismatch: "Passwords do not match.",
+    encTooShort: "Use at least 8 characters.",
+    startBaseline: "Start with the baseline (4 living-room readings, 22–23 Sep 2026)",
+    startEmpty: "Start empty",
+    retryBtn: "Retry",
+    profileTitle: "Profile & settings",
+    tabAccount: "Account", tabSettings: "Settings",
+    accEmail: "Signed in as", accNewEmail: "New email", accUpdateEmail: "Update email",
+    accNewPw: "New sign-in password", accUpdatePw: "Update sign-in password",
+    accPwHint: "This is your sign-in password, not your encryption password.",
+    accUpdated: "Updated ✓",
+    setIso: "Cavity wall insulation date",
+    setIsoHint: "Readings before this date count as 'before insulation', from this date as 'after'. Leave empty = no comparison.",
+    setRuimte: "Default room",
+    setRef: "Reference outdoor temperature (°C)",
+    setRefHint: "Used for the 'indoor at X °C outdoor' estimate in the before/after comparison.",
+    importTitle: "Import readings",
+    importNote: "Pick an Excel (.xlsx) or CSV file with columns like Date, Time, Indoor/living room temp and Outdoor temp. Duplicate readings (same date, time and room) are skipped. A Tembo backup (.json) replaces all current data.",
+    importDrop: "Click or drop a file here",
+    importResult: (a, d, e) => `${a} reading${a===1?"":"s"} added, ${d} duplicate${d===1?"":"s"} skipped, ${e} empty/unreadable row${e===1?"":"s"} skipped.`,
+    importNoCols: "Could not find columns for indoor and outdoor temperature.",
+    importFail: "Import failed: ",
+    importBackupConfirm: "This backup replaces all current readings and settings. Continue?",
+    importBackupOk: "Backup loaded ✓",
+    xlsxMissing: "Excel library not loaded — using CSV.",
+    monthNames: ["January","February","March","April","May","June","July","August","September","October","November","December"],
+    phaseVoor: "before", phaseNa: "after",
+  }
+};
+function t(key){ const l = (state && state.lang) || "nl"; return (I18N[l] && I18N[l][key] !== undefined) ? I18N[l][key] : I18N.nl[key]; }
+
+/* ================= STATE ================= */
+function newId(){ return "m" + Date.now().toString(36) + Math.random().toString(36).slice(2,8); }
+function emptyState(){
+  return {
+    version: 1, lang: "nl", darkMode: false,
+    settings: { isolatieDatum: "", defaultRuimte: "Woonkamer", refBuiten: 10 },
+    metingen: [],
+    activeView: { type: "overview" },
+  };
+}
+function baselineState(){
+  const s = emptyState();
+  s.metingen = BASELINE_METINGEN.map(m => ({ id:newId(), ...m, ruimte:"Woonkamer", verwarming:"", notitie:"", baseline:true }));
+  return s;
+}
+let state = emptyState();
+function migrateState(){
+  const d = emptyState();
+  if(!state || typeof state !== "object") state = d;
+  if(!state.settings) state.settings = d.settings;
+  for(const k of Object.keys(d.settings)) if(state.settings[k] === undefined) state.settings[k] = d.settings[k];
+  if(!Array.isArray(state.metingen)) state.metingen = [];
+  if(!state.lang) state.lang = "nl";
+  if(typeof state.darkMode !== "boolean") state.darkMode = false;
+  if(!state.activeView) state.activeView = { type:"overview" };
+  state.metingen.forEach(m => { if(!m.id) m.id = newId(); if(m.ruimte === undefined) m.ruimte = state.settings.defaultRuimte; if(m.verwarming === undefined) m.verwarming = ""; if(m.notitie === undefined) m.notitie = ""; });
+}
+
+/* ================= HULPFUNCTIES ================= */
+function escapeHtml(s){ return String(s == null ? "" : s).replace(/[&<>"']/g, c => ({ "&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;" }[c])); }
+function parseNum(v){
+  if(v === null || v === undefined) return null;
+  if(typeof v === "number") return isFinite(v) ? v : null;
+  const s = String(v).trim().replace(/\s|°|c$/gi,"").replace(",", ".");
+  if(s === "") return null;
+  const n = Number(s);
+  return isFinite(n) ? n : null;
+}
+function fmtT(n, digits){ if(n === null || n === undefined || !isFinite(n)) return "—"; return n.toLocaleString(state.lang === "en" ? "en-GB" : "nl-NL", { minimumFractionDigits: digits ?? 1, maximumFractionDigits: digits ?? 1 }) + " °C"; }
+function fmtDelta(n){ if(n === null || !isFinite(n)) return "—"; const s = n > 0 ? "+ " : n < 0 ? "− " : ""; return s + fmtT(Math.abs(n)); }
+function pad2(n){ return String(n).padStart(2,"0"); }
+function todayISO(){ const d = new Date(); return `${d.getFullYear()}-${pad2(d.getMonth()+1)}-${pad2(d.getDate())}`; }
+function nowHM(){ const d = new Date(); return `${pad2(d.getHours())}:${pad2(d.getMinutes())}`; }
+function tsOf(m){ const [y,mo,d] = m.datum.split("-").map(Number); const [h,mi] = (m.tijd || "12:00").split(":").map(Number); return new Date(y, mo-1, d, h||0, mi||0).getTime(); }
+function fmtDate(iso, withYear){
+  if(!iso) return "";
+  const [y,m,d] = iso.split("-").map(Number);
+  const mn = t("monthNames")[m-1] || "";
+  return `${d} ${mn.slice(0,3)}${withYear ? " " + y : ""}`;
+}
+function monthKey(iso){ return iso ? iso.slice(0,7) : ""; }
+function monthLabel(key){ const [y,m] = key.split("-").map(Number); const n = t("monthNames")[m-1]; return n.charAt(0).toUpperCase() + n.slice(1) + " " + y; }
+function sortedMetingen(list){ return list.slice().sort((a,b) => tsOf(a) - tsOf(b)); }
+function phaseOf(m){ const iso = state.settings.isolatieDatum; if(!iso) return null; return m.datum < iso ? "voor" : "na"; }
+function avg(arr){ return arr.length ? arr.reduce((a,b)=>a+b,0) / arr.length : null; }
+function linReg(points){
+  // Kleinste-kwadraten-lijn y = a + b·x; null als er te weinig punten/spreiding is.
+  if(points.length < 2) return null;
+  const mx = avg(points.map(p=>p.x)), my = avg(points.map(p=>p.y));
+  let sxx = 0, sxy = 0;
+  points.forEach(p => { sxx += (p.x-mx)**2; sxy += (p.x-mx)*(p.y-my); });
+  if(sxx < 1e-9) return null;
+  const b = sxy / sxx;
+  return { a: my - b*mx, b, minX: Math.min(...points.map(p=>p.x)), maxX: Math.max(...points.map(p=>p.x)), spread: Math.sqrt(sxx/points.length) };
+}
+function visibleMetingen(){
+  const v = state.activeView || {};
+  let list = state.metingen;
+  if(v.type === "month") list = list.filter(m => monthKey(m.datum) === v.key);
+  return sortedMetingen(list);
+}
+function cssVar(name){ return getComputedStyle(document.documentElement).getPropertyValue(name).trim(); }
+
+/* ================= VERSLEUTELING (WebCrypto: PBKDF2 + AES-GCM, identiek aan FinBo) ================= */
+const PBKDF2_ITERATIONS = 300000;
+function bufToBase64(buf){ const b=new Uint8Array(buf); let s=""; for(let i=0;i<b.length;i++) s+=String.fromCharCode(b[i]); return btoa(s); }
+function base64ToBuf(b64){ const bin=atob(b64); const b=new Uint8Array(bin.length); for(let i=0;i<bin.length;i++) b[i]=bin.charCodeAt(i); return b.buffer; }
+async function deriveKey(password, saltBytes){
+  const baseKey = await crypto.subtle.importKey("raw", new TextEncoder().encode(password), "PBKDF2", false, ["deriveKey"]);
+  return crypto.subtle.deriveKey({ name:"PBKDF2", salt:saltBytes, iterations:PBKDF2_ITERATIONS, hash:"SHA-256" }, baseKey, { name:"AES-GCM", length:256 }, false, ["encrypt","decrypt"]);
+}
+async function encryptState(obj, password){
+  const salt = crypto.getRandomValues(new Uint8Array(16));
+  const iv = crypto.getRandomValues(new Uint8Array(12));
+  const key = await deriveKey(password, salt);
+  const ct = await crypto.subtle.encrypt({ name:"AES-GCM", iv }, key, new TextEncoder().encode(JSON.stringify(obj)));
+  return { ciphertext: bufToBase64(ct), salt: bufToBase64(salt), iv: bufToBase64(iv) };
+}
+async function decryptState(record, password){
+  const key = await deriveKey(password, base64ToBuf(record.salt));
+  let plain;
+  try{ plain = await crypto.subtle.decrypt({ name:"AES-GCM", iv: base64ToBuf(record.iv) }, key, base64ToBuf(record.ciphertext)); }
+  catch(err){ throw new Error("TEMBO_DECRYPT_FAILED"); }
+  return JSON.parse(new TextDecoder().decode(plain));
+}
+
+/* ================= CLOUD-SYNC ================= */
+const cloudClient = (typeof window.supabase !== "undefined") ? window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY) : null;
+let cloudSession = null;
+let encryptionPassword = null;
+let saveErrorFlag = false, saveConflictFlag = false;
+let autoSaveTimer = null, retryTimer = null, retryDelay = 0;
+let dirty = false, stateGeneration = 0, savedGeneration = 0;
+let lastSeenCiphertext = null;
+
+/* Versleutelingswachtwoord 8 uur onthouden in sessionStorage van dít tabblad (zelfde afweging als
+   FinBo issue #6): verversen vraagt dan niet opnieuw; uitloggen of het tabblad sluiten wist het. */
+const ENC_PW_TTL_MS = 8 * 60 * 60 * 1000;
+function encPwKey(uid){ return "tembo_enc_pw_" + uid; }
+function saveEncPw(uid, pw){ try{ sessionStorage.setItem(encPwKey(uid), JSON.stringify({ pw, expires: Date.now() + ENC_PW_TTL_MS })); }catch(e){} }
+function loadEncPw(uid){
+  try{
+    const r = JSON.parse(sessionStorage.getItem(encPwKey(uid)) || "null");
+    if(!r || !r.pw || Date.now() > r.expires){ sessionStorage.removeItem(encPwKey(uid)); return null; }
+    return r.pw;
+  }catch(e){ return null; }
+}
+function clearEncPw(uid){ try{ sessionStorage.removeItem(encPwKey(uid)); }catch(e){} }
+
+function scheduleRetry(){ clearTimeout(retryTimer); retryDelay = retryDelay ? Math.min(retryDelay*2, 60000) : 2000; retryTimer = setTimeout(() => { if(dirty) writeStateToCloud(); }, retryDelay); }
+function cancelRetry(){ clearTimeout(retryTimer); retryTimer = null; retryDelay = 0; }
+window.addEventListener("online", () => { if(dirty && cloudSession){ cancelRetry(); writeStateToCloud(); } });
+
+async function writeStateToCloud(forceOverwrite){
+  const sessionAtStart = cloudSession, pwAtStart = encryptionPassword;
+  if(!cloudClient || !sessionAtStart || !pwAtStart) return;
+  try{
+    const genAtStart = stateGeneration;
+    const record = await encryptState(state, pwAtStart);
+    if(cloudSession !== sessionAtStart) return;
+    if(!forceOverwrite){
+      const { data: cur, error: readErr } = await cloudClient.from(TABLE).select("ciphertext").eq("user_id", sessionAtStart.user.id).maybeSingle();
+      if(readErr) throw readErr;
+      if(cur && lastSeenCiphertext !== null && cur.ciphertext !== lastSeenCiphertext){
+        saveConflictFlag = true; saveErrorFlag = false; cancelRetry(); clearTimeout(autoSaveTimer); updateSaveStatus(); return;
+      }
+    }
+    const { error } = await cloudClient.from(TABLE).upsert({ user_id: sessionAtStart.user.id, ciphertext: record.ciphertext, salt: record.salt, iv: record.iv });
+    if(error) throw error;
+    lastSeenCiphertext = record.ciphertext;
+    saveConflictFlag = false; saveErrorFlag = false; cancelRetry();
+    savedGeneration = Math.max(savedGeneration, genAtStart);
+    dirty = stateGeneration !== savedGeneration;
+    if(dirty){ clearTimeout(autoSaveTimer); autoSaveTimer = setTimeout(writeStateToCloud, AUTOSAVE_DEBOUNCE_MS); }
+  }catch(err){
+    console.error("Cloud-opslaan mislukt:", err);
+    saveErrorFlag = true; scheduleRetry();
+  }
+  updateSaveStatus();
+}
+function scheduleAutoSave(){
+  dirty = true; stateGeneration++; updateSaveStatus();
+  if(!cloudSession) return;
+  clearTimeout(autoSaveTimer);
+  autoSaveTimer = setTimeout(writeStateToCloud, AUTOSAVE_DEBOUNCE_MS);
+}
+window.addEventListener("beforeunload", e => { if(dirty){ clearTimeout(autoSaveTimer); writeStateToCloud(); e.preventDefault(); e.returnValue = ""; } });
+document.addEventListener("visibilitychange", () => { if(document.visibilityState === "hidden" && cloudSession && dirty){ clearTimeout(autoSaveTimer); writeStateToCloud(); } });
+window.addEventListener("pagehide", () => { if(cloudSession && dirty){ clearTimeout(autoSaveTimer); writeStateToCloud(); } });
+
+function updateSaveStatus(){
+  document.querySelectorAll(".save-status").forEach(el => {
+    if(!cloudClient){ el.textContent = t("supabaseLibError"); el.className = "save-status error"; return; }
+    if(saveConflictFlag){ el.textContent = t("cloudSaveConflictStatus"); el.className = "save-status error"; return; }
+    if(saveErrorFlag){ el.textContent = t("cloudSaveErrorStatus"); el.className = "save-status error"; return; }
+    if(cloudSession){ el.innerHTML = `<span class="dot"></span>${escapeHtml(t("cloudSaveStatus")(cloudSession.user.email))}`; el.className = "save-status on"; return; }
+    el.textContent = t("cloudSaveOff"); el.className = "save-status";
+  });
+}
+async function saveNow(){
+  if(!cloudSession) return;
+  clearTimeout(autoSaveTimer);
+  const btn = document.getElementById("saveNowBtn");
+  if(btn){ btn.disabled = true; btn.textContent = t("saveNowSaving"); }
+  await writeStateToCloud();
+  if(saveConflictFlag){
+    if(confirm(t("cloudSaveConflictPrompt"))) await writeStateToCloud(true);
+    else { if(btn){ btn.disabled = false; btn.textContent = t("saveNowBtn"); } return; }
+  }
+  const b2 = document.getElementById("saveNowBtn");
+  if(b2){ b2.disabled = false; b2.textContent = saveErrorFlag ? t("saveNowBtn") : t("saveNowSaved"); }
+  setTimeout(() => { const b3 = document.getElementById("saveNowBtn"); if(b3) b3.textContent = t("saveNowBtn"); }, SAVE_BUTTON_RESET_MS);
+}
+async function signOutCloud(){
+  clearTimeout(autoSaveTimer); cancelRetry();
+  if(dirty) await writeStateToCloud();
+  if(dirty && !confirm(t("signOutUnsavedWarn"))){ updateSaveStatus(); return false; }
+  if(cloudClient) await cloudClient.auth.signOut();
+  if(cloudSession) clearEncPw(cloudSession.user.id);
+  cloudSession = null; encryptionPassword = null; dirty = false; lastSeenCiphertext = null;
+  state = emptyState();
+  setProfilePanel(false); setNavDrawer(false);
+  renderAuthGate();
+  return true;
+}
+
+/* ================= AUTH GATE ================= */
+let authGateMode = "signin";
+function authGateHTML(inner){ return `<div class="auth-gate-box"><div class="auth-gate-title">Tembo</div><div class="auth-gate-tagline">${escapeHtml(t("tagline"))}</div>${inner}</div>`; }
+function wireEnterSubmit(container){
+  if(!container || container.dataset.enterWired) return;
+  container.dataset.enterWired = "1";
+  container.addEventListener("keydown", e => {
+    if(e.key !== "Enter" || e.isComposing) return;
+    const f = e.target;
+    if(!f || f.tagName !== "INPUT" || ["checkbox","radio","button","submit","file"].includes(f.type)) return;
+    const block = f.closest("[data-submit-block]") || container;
+    const btn = block.querySelector("button.primary:not([disabled])");
+    if(!btn) return;
+    e.preventDefault(); btn.click();
+  });
+}
+function renderAuthGate(){
+  const el = document.getElementById("authGate");
+  applyMode();
+  wireEnterSubmit(el);
+  if(!cloudClient){ el.style.display = "flex"; el.innerHTML = authGateHTML(`<p class="auth-gate-error">${escapeHtml(t("supabaseLibError"))}</p>`); return; }
+  if(!cloudSession){ el.style.display = "flex"; renderLoginForm(); return; }
+  if(!encryptionPassword){ el.style.display = "flex"; renderEncryptionPrompt(); return; }
+  el.style.display = "none";
+}
+function renderLoginForm(){
+  const el = document.getElementById("authGate");
+  const isSignUp = authGateMode === "signup";
+  el.innerHTML = authGateHTML(`
+    <p class="auth-gate-subtitle">${escapeHtml(t("loginSubtitle"))}</p>
+    <div id="authGateError" class="auth-gate-error" style="display:none;"></div>
+    <div id="authGateNotice" class="auth-gate-notice" style="display:none;"></div>
+    <label>${t("loginEmailLabel")}<input type="email" id="authEmailInput" autocomplete="username" /></label>
+    <label>${t("loginPasswordLabel")}<input type="password" id="authPasswordInput" autocomplete="${isSignUp ? "new-password" : "current-password"}" /></label>
+    <button id="authSubmitBtn" class="primary">${isSignUp ? t("loginSignUpBtn") : t("loginSignInBtn")}</button>
+    <button id="authToggleModeBtn" class="ghost">${isSignUp ? t("loginToggleToSignIn") : t("loginToggleToSignUp")}</button>`);
+  document.getElementById("authToggleModeBtn").onclick = () => { authGateMode = isSignUp ? "signin" : "signup"; renderLoginForm(); };
+  document.getElementById("authSubmitBtn").onclick = async () => {
+    const email = document.getElementById("authEmailInput").value.trim();
+    const password = document.getElementById("authPasswordInput").value;
+    const errEl = document.getElementById("authGateError"), noticeEl = document.getElementById("authGateNotice");
+    errEl.style.display = "none"; noticeEl.style.display = "none";
+    const btn = document.getElementById("authSubmitBtn"); btn.disabled = true;
+    try{
+      if(isSignUp){
+        const { data, error } = await cloudClient.auth.signUp({ email, password });
+        if(error) throw error;
+        if(!data.session){ noticeEl.textContent = t("loginConfirmEmailNotice"); noticeEl.style.display = "block"; btn.disabled = false; return; }
+        cloudSession = data.session;
+      } else {
+        const { data, error } = await cloudClient.auth.signInWithPassword({ email, password });
+        if(error) throw error;
+        cloudSession = data.session;
+      }
+      renderAuthGate();
+    }catch(err){
+      errEl.textContent = t("loginErrorPrefix") + (err.message || String(err));
+      errEl.style.display = "block"; btn.disabled = false;
+    }
+  };
+  setTimeout(() => { const i = document.getElementById("authEmailInput"); if(i) i.focus(); }, 0);
+}
+function acceptDecrypted(decrypted, pw){
+  state = decrypted; migrateState();
+  encryptionPassword = pw;
+  saveEncPw(cloudSession.user.id, pw);
+  renderAuthGate();
+  bootApp();
+}
+function renderEncryptionPrompt(){
+  const el = document.getElementById("authGate");
+  el.innerHTML = authGateHTML(`<p class="auth-gate-subtitle">${t("checking")}</p>`);
+  cloudClient.from(TABLE).select("*").eq("user_id", cloudSession.user.id).maybeSingle().then(({ data, error }) => {
+    if(error){
+      el.innerHTML = authGateHTML(`<p class="auth-gate-error">${escapeHtml(error.message || String(error))}</p>
+        <button id="cloudRetryBtn">${t("retryBtn")}</button><button id="authSignOutBtn" class="ghost">${t("logoutBtn")}</button>`);
+      document.getElementById("cloudRetryBtn").onclick = () => renderAuthGate();
+      document.getElementById("authSignOutBtn").onclick = () => signOutCloud();
+      return;
+    }
+    if(data){
+      lastSeenCiphertext = data.ciphertext;
+      const remembered = loadEncPw(cloudSession.user.id);
+      if(remembered){
+        decryptState(data, remembered).then(d => acceptDecrypted(d, remembered)).catch(() => { clearEncPw(cloudSession.user.id); renderEncryptionExisting(data); });
+        return;
+      }
+      renderEncryptionExisting(data);
+    } else {
+      lastSeenCiphertext = null;
+      renderEncryptionNew();
+    }
+  });
+}
+function renderEncryptionExisting(record){
+  const el = document.getElementById("authGate");
+  el.innerHTML = authGateHTML(`
+    <div class="auth-gate-title2">${t("encTitleExisting")}</div>
+    <p class="auth-gate-subtitle">${escapeHtml(t("encSubExisting"))}</p>
+    <div id="encError" class="auth-gate-error" style="display:none;"></div>
+    <label>${t("encPw")}<input type="password" id="encPwInput" autocomplete="off" /></label>
+    <button id="encSubmitBtn" class="primary">${t("encOpenBtn")}</button>
+    <button id="authSignOutBtn" class="ghost">${t("logoutBtn")}</button>`);
+  const input = document.getElementById("encPwInput"); input.focus();
+  document.getElementById("authSignOutBtn").onclick = () => signOutCloud();
+  document.getElementById("encSubmitBtn").onclick = async () => {
+    const btn = document.getElementById("encSubmitBtn"), err = document.getElementById("encError");
+    btn.disabled = true; err.style.display = "none";
+    try{ const d = await decryptState(record, input.value); acceptDecrypted(d, input.value); }
+    catch(e){ err.textContent = t("encWrong"); err.style.display = "block"; btn.disabled = false; input.select(); }
+  };
+}
+function renderEncryptionNew(){
+  const el = document.getElementById("authGate");
+  el.innerHTML = authGateHTML(`
+    <div class="auth-gate-title2">${t("encTitleNew")}</div>
+    <p class="auth-gate-subtitle">${escapeHtml(t("encSubNew"))}</p>
+    <div class="auth-gate-warn">${escapeHtml(t("encWarn"))}</div>
+    <div id="encError" class="auth-gate-error" style="display:none;"></div>
+    <label>${t("encPw")}<input type="password" id="encPwInput" autocomplete="new-password" /></label>
+    <label>${t("encPw2")}<input type="password" id="encPwInput2" autocomplete="new-password" /></label>
+    <label class="radio"><input type="radio" name="startChoice" value="baseline" checked /> ${escapeHtml(t("startBaseline"))}</label>
+    <label class="radio"><input type="radio" name="startChoice" value="empty" /> ${escapeHtml(t("startEmpty"))}</label>
+    <button id="encSubmitBtn" class="primary">${t("encCreateBtn")}</button>
+    <button id="authSignOutBtn" class="ghost">${t("logoutBtn")}</button>`);
+  document.getElementById("encPwInput").focus();
+  document.getElementById("authSignOutBtn").onclick = () => signOutCloud();
+  document.getElementById("encSubmitBtn").onclick = async () => {
+    const pw = document.getElementById("encPwInput").value, pw2 = document.getElementById("encPwInput2").value;
+    const err = document.getElementById("encError"), btn = document.getElementById("encSubmitBtn");
+    err.style.display = "none";
+    if(pw.length < 8){ err.textContent = t("encTooShort"); err.style.display = "block"; return; }
+    if(pw !== pw2){ err.textContent = t("encMismatch"); err.style.display = "block"; return; }
+    btn.disabled = true;
+    const choice = (document.querySelector('input[name="startChoice"]:checked') || {}).value;
+    const lang = state.lang, dark = state.darkMode;
+    state = choice === "empty" ? emptyState() : baselineState();
+    state.lang = lang; state.darkMode = dark;
+    encryptionPassword = pw;
+    saveEncPw(cloudSession.user.id, pw);
+    renderAuthGate();
+    bootApp();
+    dirty = true; stateGeneration++;
+    await writeStateToCloud();
+  };
+}
+
+/* ================= NAVIGATIE & PANELEN ================= */
+let collapsedMonths = true;
+function setNavDrawer(open){
+  const d = document.getElementById("navDrawer");
+  d.classList.toggle("open", open);
+  document.getElementById("navBackdrop").classList.toggle("open", open);
+  d.setAttribute("aria-hidden", open ? "false" : "true");
+  if(open) d.removeAttribute("inert"); else d.setAttribute("inert", "");
+  document.getElementById("navToggleBtn").setAttribute("aria-expanded", open ? "true" : "false");
+}
+function setProfilePanel(open){
+  const p = document.getElementById("profilePanel");
+  p.classList.toggle("open", open);
+  document.getElementById("profileBackdrop").classList.toggle("open", open);
+  p.setAttribute("aria-hidden", open ? "false" : "true");
+  if(open) p.removeAttribute("inert"); else p.setAttribute("inert", "");
+  document.getElementById("profileBtn").classList.toggle("active", open);
+  if(open) renderProfilePanel();
+}
+function goTo(view){ state.activeView = view; setNavDrawer(false); renderAll(); window.scrollTo({ top:0 }); }
+
+function renderTabs(){
+  const v = state.activeView || {};
+  const months = {};
+  state.metingen.forEach(m => { const k = monthKey(m.datum); if(k) months[k] = (months[k]||0) + 1; });
+  const keys = Object.keys(months).sort().reverse();
+  const chev = `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M6 9l6 6 6-6"/></svg>`;
+  document.getElementById("tabs").innerHTML = `
+    <div class="tab-group">
+      <div class="tab-group-head"><span class="tab-group-label">${t("navOverview")}</span></div>
+      <button class="tab ${v.type==="overview"?"active":""}" data-go="overview"><span>${t("navAll")}</span><span class="tab-count">${state.metingen.length}</span></button>
+    </div>
+    <div class="tab-group">
+      <div class="tab-group-head collapsible" id="monthsHead">
+        <button class="group-collapse-btn ${collapsedMonths?"collapsed":""}" aria-label="${t("navMonths")}">${chev}</button>
+        <span class="tab-group-label">${t("navMonths")}</span>
+      </div>
+      ${collapsedMonths ? "" : keys.map(k => `<button class="tab ${v.type==="month"&&v.key===k?"active":""}" data-go="month" data-key="${k}"><span>${escapeHtml(monthLabel(k))}</span><span class="tab-count">${months[k]}</span></button>`).join("")}
+    </div>
+    <button class="tab tab-upload ${v.type==="import"?"active":""}" data-go="import">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 4v11M7 10l5 5 5-5M5 20h14"/></svg>${t("navImport")}
+    </button>`;
+  document.getElementById("monthsHead").onclick = () => { collapsedMonths = !collapsedMonths; renderTabs(); };
+  document.querySelectorAll("#tabs [data-go]").forEach(b => b.onclick = () => {
+    const type = b.dataset.go;
+    goTo(type === "month" ? { type, key: b.dataset.key } : { type });
+  });
+}
+
+/* ================= ICONEN ================= */
+const ICONS = {
+  plus: `<svg class="cat-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><circle cx="12" cy="12" r="8.5"/><path d="M12 8v8M8 12h8"/></svg>`,
+  therm: `<svg class="cat-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M14 14.8V5a2 2 0 1 0-4 0v9.8a4 4 0 1 0 4 0z"/><path d="M12 11v6"/></svg>`,
+  scatter: `<svg class="cat-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><path d="M4 4v16h16"/><circle cx="9" cy="14" r="1.3"/><circle cx="13" cy="11" r="1.3"/><circle cx="17" cy="7" r="1.3"/><path d="M7 16L19 6" stroke-dasharray="2 2"/></svg>`,
+  list: `<svg class="cat-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><path d="M9 6h11M9 12h11M9 18h11"/><circle cx="4.5" cy="6" r="1"/><circle cx="4.5" cy="12" r="1"/><circle cx="4.5" cy="18" r="1"/></svg>`,
+  upload: `<svg class="cat-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 16V5M7 10l5-5 5 5M5 20h14"/></svg>`,
+  trash: `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M6 6l12 12M18 6L6 18"/></svg>`,
+};
+function cardHTML(icon, title, body, extra){
+  return `<section class="card"><div class="card-head"><div class="htitle">${icon}<h2>${escapeHtml(title)}</h2></div>${extra ? `<span class="head-extra">${extra}</span>` : ""}</div><div class="card-body">${body}</div></section>`;
+}
+
+/* ================= HOOFDINHOUD ================= */
+let lastFormMsg = null;
+function renderMain(){
+  const main = document.getElementById("categories");
+  const v = state.activeView || {};
+  if(v.type === "import"){ main.innerHTML = renderImportView(); wireImportView(); return; }
+  const list = visibleMetingen();
+  let html = "";
+  if(v.type === "overview") html += cardHTML(ICONS.plus, t("newEntry"), entryFormHTML());
+  html += cardHTML(ICONS.therm, t("chartTime"), `<div id="timeChart"></div>`);
+  html += cardHTML(ICONS.scatter, t("chartScatter"), `<div id="scatterChart"></div><p class="card-note" style="margin-top:8px;">${escapeHtml(t("chartScatterNote"))}</p>`);
+  html += cardHTML(ICONS.list, t("tableTitle"), tableHTML(list), String(list.length));
+  main.innerHTML = html;
+  if(v.type === "overview") wireEntryForm();
+  wireTable();
+  drawTimeChart(document.getElementById("timeChart"), list);
+  drawScatterChart(document.getElementById("scatterChart"), list);
+}
+
+function entryFormHTML(){
+  return `<div class="entry-grid" data-submit-block>
+      <label>${t("fDatum")}<input type="date" id="fDatum" value="${todayISO()}" /></label>
+      <label>${t("fTijd")}<input type="time" id="fTijd" value="${nowHM()}" /></label>
+      <label>${t("fBinnen")}<input type="text" inputmode="decimal" id="fBinnen" placeholder="21,5" /></label>
+      <label>${t("fBuiten")}<input type="text" inputmode="decimal" id="fBuiten" placeholder="12" /></label>
+      <label>${t("fRuimte")}<input type="text" id="fRuimte" value="${escapeHtml(state.settings.defaultRuimte)}" list="ruimteList" /></label>
+      <label>${t("fVerwarming")}<select id="fVerw"><option value="">${t("verwUnknown")}</option><option value="aan">${t("verwAan")}</option><option value="uit">${t("verwUit")}</option></select></label>
+      <label class="wide">${t("fNotitie")}<input type="text" id="fNotitie" maxlength="200" /></label>
+      <datalist id="ruimteList">${[...new Set(state.metingen.map(m=>m.ruimte).filter(Boolean))].map(r=>`<option value="${escapeHtml(r)}">`).join("")}</datalist>
+    </div>
+    <div class="entry-actions" data-submit-block>
+      <button class="btn primary" id="addBtn">${t("addBtn")}</button>
+      <span class="form-msg ${lastFormMsg ? lastFormMsg.cls : ""}" id="formMsg">${lastFormMsg ? escapeHtml(lastFormMsg.text) : ""}</span>
+    </div>`;
+}
+function wireEntryForm(){
+  const main = document.getElementById("categories");
+  wireEnterSubmit(main);
+  lastFormMsg = null;
+  document.getElementById("addBtn").onclick = () => {
+    const datum = document.getElementById("fDatum").value;
+    const binnen = parseNum(document.getElementById("fBinnen").value);
+    const buiten = parseNum(document.getElementById("fBuiten").value);
+    const msg = document.getElementById("formMsg");
+    if(!datum){ msg.textContent = t("errDate"); msg.className = "form-msg err"; return; }
+    if(binnen === null || buiten === null){ msg.textContent = t("errTemps"); msg.className = "form-msg err"; return; }
+    state.metingen.push({
+      id:newId(), datum, tijd: document.getElementById("fTijd").value || "",
+      binnen, buiten,
+      ruimte: document.getElementById("fRuimte").value.trim() || state.settings.defaultRuimte,
+      verwarming: document.getElementById("fVerw").value, notitie: document.getElementById("fNotitie").value.trim(),
+    });
+    lastFormMsg = { cls:"ok", text:t("addedMsg") };
+    scheduleAutoSave();
+    renderAll();
+    const b = document.getElementById("fBinnen"); if(b) b.focus();
+  };
+}
+
+function tableHTML(list){
+  if(!list.length) return `<p class="card-note">${escapeHtml(t("noRows"))}</p>`;
+  const iso = !!state.settings.isolatieDatum;
+  const rows = list.slice().reverse().map(m => {
+    const d = m.binnen - m.buiten;
+    const ph = phaseOf(m);
+    return `<tr data-id="${m.id}">
+      <td><input class="t-date" type="date" data-f="datum" value="${escapeHtml(m.datum)}" /></td>
+      <td><input class="t-time" type="time" data-f="tijd" value="${escapeHtml(m.tijd)}" /></td>
+      <td class="num"><input class="t-num" type="text" inputmode="decimal" data-f="binnen" value="${escapeHtml(String(m.binnen).replace(".", state.lang==="en"?".":","))}" /></td>
+      <td class="num"><input class="t-num" type="text" inputmode="decimal" data-f="buiten" value="${escapeHtml(String(m.buiten).replace(".", state.lang==="en"?".":","))}" /></td>
+      <td class="num"><span class="delta">${fmtDelta(d)}</span></td>
+      ${iso ? `<td><span class="phase ${ph}">${t(ph==="voor"?"phaseVoor":"phaseNa")}</span></td>` : ""}
+      <td><input type="text" data-f="ruimte" value="${escapeHtml(m.ruimte)}" style="width:110px" /></td>
+      <td><select data-f="verwarming" style="width:70px"><option value="" ${!m.verwarming?"selected":""}>${t("verwUnknown")}</option><option value="aan" ${m.verwarming==="aan"?"selected":""}>${t("verwAan")}</option><option value="uit" ${m.verwarming==="uit"?"selected":""}>${t("verwUit")}</option></select></td>
+      <td><input type="text" data-f="notitie" value="${escapeHtml(m.notitie)}" /></td>
+      <td><button class="row-del" title="×" aria-label="delete">${ICONS.trash}</button></td>
+    </tr>`;
+  }).join("");
+  return `<div class="table-scroll"><table class="rtable"><thead><tr>
+    <th>${t("thDatum")}</th><th>${t("thTijd")}</th><th class="num">${t("thBinnen")}</th><th class="num">${t("thBuiten")}</th><th class="num">${t("thVerschil")}</th>
+    ${iso ? `<th>${t("thFase")}</th>` : ""}<th>${t("thRuimte")}</th><th>${t("thVerw")}</th><th>${t("thNotitie")}</th><th></th>
+  </tr></thead><tbody>${rows}</tbody></table></div>`;
+}
+function wireTable(){
+  document.querySelectorAll(".rtable tbody tr").forEach(tr => {
+    const m = state.metingen.find(x => x.id === tr.dataset.id);
+    if(!m) return;
+    tr.querySelectorAll("[data-f]").forEach(inp => {
+      inp.addEventListener("change", () => {
+        const f = inp.dataset.f;
+        if(f === "binnen" || f === "buiten"){
+          const n = parseNum(inp.value);
+          if(n === null){ inp.value = String(m[f]); return; }
+          m[f] = n;
+        } else if(f === "datum"){
+          if(!inp.value){ inp.value = m.datum; return; }
+          m.datum = inp.value;
+        } else m[f] = inp.value.trim ? inp.value.trim() : inp.value;
+        scheduleAutoSave();
+        renderAll({ keepFocus: { id: m.id, f } });
+      });
+    });
+    tr.querySelector(".row-del").onclick = () => {
+      if(!confirm(t("deleteConfirm"))) return;
+      state.metingen = state.metingen.filter(x => x.id !== m.id);
+      scheduleAutoSave();
+      if(state.activeView.type === "month" && !state.metingen.some(x => monthKey(x.datum) === state.activeView.key)) state.activeView = { type:"overview" };
+      renderAll();
+    };
+  });
+}
+
+/* ================= GRAFIEKEN (eigen SVG, geen library) ================= */
+function niceTicks(min, max, count){
+  if(min === max){ min -= 1; max += 1; }
+  const span = max - min, step0 = span / count;
+  const mag = Math.pow(10, Math.floor(Math.log10(step0)));
+  const step = [1,2,2.5,5,10].map(s => s*mag).find(s => s >= step0) || 10*mag;
+  const lo = Math.floor(min/step)*step, hi = Math.ceil(max/step)*step;
+  const ticks = []; for(let v = lo; v <= hi + 1e-9; v += step) ticks.push(Math.round(v*100)/100);
+  return { lo, hi, ticks };
+}
+function chartWidth(el){ return Math.max(300, Math.round(el.clientWidth || 600)); }
+function attachTooltip(wrap){
+  const tt = document.createElement("div"); tt.className = "chart-tooltip"; wrap.appendChild(tt);
+  return {
+    show(html, x, y){
+      tt.innerHTML = html; tt.style.opacity = "1";
+      const w = wrap.clientWidth, tw = tt.offsetWidth;
+      tt.style.left = Math.max(0, Math.min(w - tw, x - tw/2)) + "px";
+      tt.style.top = Math.max(0, y - tt.offsetHeight - 14) + "px";
+    },
+    hide(){ tt.style.opacity = "0"; }
+  };
+}
+function ttRow(color, label, val){ return `<div class="tt-row"><span><i class="tt-key" style="background:${color}"></i>${escapeHtml(label)}</span><span class="tt-val">${val}</span></div>`; }
+
+function drawTimeChart(el, list){
+  if(!el) return;
+  if(list.length < 2){ el.innerHTML = `<div class="chart-empty">${escapeHtml(t("chartNeed"))}</div>`; return; }
+  const W = chartWidth(el), H = Math.round(Math.min(320, Math.max(220, W*0.42)));
+  const m = { l:42, r:62, t:14, b:30 };
+  const iw = W - m.l - m.r, ih = H - m.t - m.b;
+  const xs = list.map(tsOf);
+  const x0 = Math.min(...xs), x1 = Math.max(...xs);
+  const all = list.flatMap(p => [p.binnen, p.buiten]);
+  const yt = niceTicks(Math.min(...all), Math.max(...all), 5);
+  const X = v => m.l + (x1 === x0 ? iw/2 : (v - x0) / (x1 - x0) * iw);
+  const Y = v => m.t + ih - (v - yt.lo) / (yt.hi - yt.lo) * ih;
+  const cIn = "var(--c-binnen)", cOut = "var(--c-buiten)";
+  // x-as: dagen
+  const dayMs = 86400000;
+  const firstDay = new Date(x0); firstDay.setHours(0,0,0,0);
+  const days = []; for(let d = firstDay.getTime(); d <= x1; d += dayMs){ if(d >= x0 - dayMs) days.push(d); }
+  const maxLabels = Math.max(2, Math.floor(iw / 70));
+  const every = Math.max(1, Math.ceil(days.length / maxLabels));
+  let grid = yt.ticks.map(v => `<line x1="${m.l}" x2="${m.l+iw}" y1="${Y(v)}" y2="${Y(v)}" stroke="var(--grid)" /><text x="${m.l-8}" y="${Y(v)+4}" text-anchor="end">${v.toLocaleString(state.lang==="en"?"en-GB":"nl-NL")}°</text>`).join("");
+  const isoOfTs = ts => { const dt = new Date(ts); return `${dt.getFullYear()}-${pad2(dt.getMonth()+1)}-${pad2(dt.getDate())}`; };
+  const inRange = days.filter((d,i) => d >= x0 && !(i % every));
+  grid += inRange.map(d => `<line x1="${X(d)}" x2="${X(d)}" y1="${m.t}" y2="${m.t+ih}" stroke="var(--grid)" /><text x="${X(d)}" y="${H-10}" text-anchor="middle">${escapeHtml(fmtDate(isoOfTs(d)))}</text>`).join("");
+  // Eerste dag begint vóór middernacht-lijn in beeld? Dan het eerste punt zelf labelen (als er ruimte is).
+  if(!inRange.length || X(inRange[0]) - X(x0) > 60) grid += `<text x="${X(x0)}" y="${H-10}" text-anchor="start">${escapeHtml(fmtDate(isoOfTs(x0)))}</text>`;
+  // isolatiemarkering
+  let iso = "";
+  if(state.settings.isolatieDatum){
+    const [y,mo,d] = state.settings.isolatieDatum.split("-").map(Number);
+    const it = new Date(y, mo-1, d).getTime();
+    if(it >= x0 && it <= x1) iso = `<line x1="${X(it)}" x2="${X(it)}" y1="${m.t}" y2="${m.t+ih}" stroke="var(--text-soft)" stroke-width="1.5" stroke-dasharray="4 4"/><text x="${X(it)+5}" y="${m.t+11}" class="lbl-strong">${escapeHtml(t("lIsolatie"))}</text>`;
+  }
+  const path = key => list.map((p,i) => `${i?"L":"M"}${X(tsOf(p)).toFixed(1)},${Y(p[key]).toFixed(1)}`).join("");
+  const dots = (key, c) => list.map(p => `<circle cx="${X(tsOf(p))}" cy="${Y(p[key])}" r="4" fill="${c}" stroke="var(--paper)" stroke-width="2"/>`).join("");
+  const last = list[list.length-1];
+  let ly1 = Y(last.binnen), ly2 = Y(last.buiten);
+  if(Math.abs(ly1-ly2) < 14){ const mid = (ly1+ly2)/2; if(ly1 <= ly2){ ly1 = mid-7; ly2 = mid+7; } else { ly1 = mid+7; ly2 = mid-7; } }
+  const lx = X(tsOf(last)) + 9;
+  const svg = `<svg viewBox="0 0 ${W} ${H}" role="img" aria-label="${escapeHtml(t("chartTime"))}">
+    ${grid}${iso}
+    <path d="${path("buiten")}" fill="none" stroke="${cOut}" stroke-width="2" stroke-linejoin="round" stroke-linecap="round"/>
+    <path d="${path("binnen")}" fill="none" stroke="${cIn}" stroke-width="2" stroke-linejoin="round" stroke-linecap="round"/>
+    ${dots("buiten", cOut)}${dots("binnen", cIn)}
+    <text x="${lx}" y="${ly1+4}" class="lbl-strong">${escapeHtml(t("lBinnen"))}</text>
+    <text x="${lx}" y="${ly2+4}" class="lbl-strong">${escapeHtml(t("lBuiten"))}</text>
+    <line id="xhair" x1="0" x2="0" y1="${m.t}" y2="${m.t+ih}" stroke="var(--text-soft)" stroke-width="1" opacity="0"/>
+    <rect x="${m.l}" y="${m.t}" width="${iw}" height="${ih}" fill="transparent" id="hit"/>
+  </svg>`;
+  el.innerHTML = `<div class="chart-legend"><span class="key"><i class="sw" style="background:${cIn}"></i>${t("lBinnen")}</span><span class="key"><i class="sw" style="background:${cOut}"></i>${t("lBuiten")}</span>${iso ? `<span class="key"><i class="sw dash"></i>${t("lIsolatie")}</span>` : ""}</div><div class="chart-wrap">${svg}</div>`;
+  const wrap = el.querySelector(".chart-wrap"), svgEl = wrap.querySelector("svg"), tip = attachTooltip(wrap);
+  const xh = svgEl.querySelector("#xhair");
+  const onMove = ev => {
+    const r = svgEl.getBoundingClientRect(), scale = W / r.width;
+    const px = (ev.clientX - r.left) * scale;
+    let best = list[0], bd = Infinity;
+    list.forEach(p => { const d = Math.abs(X(tsOf(p)) - px); if(d < bd){ bd = d; best = p; } });
+    const bx = X(tsOf(best));
+    xh.setAttribute("x1", bx); xh.setAttribute("x2", bx); xh.setAttribute("opacity", "0.5");
+    tip.show(`<div class="tt-head">${escapeHtml(fmtDate(best.datum, true))}${best.tijd ? " · " + escapeHtml(best.tijd) : ""}</div>
+      ${ttRow(cIn, t("lBinnen"), fmtT(best.binnen))}${ttRow(cOut, t("lBuiten"), fmtT(best.buiten))}
+      <div class="tt-row"><span>${t("thVerschil")}</span><span class="tt-val">${fmtDelta(best.binnen - best.buiten)}</span></div>`,
+      bx / scale, Y(Math.max(best.binnen, best.buiten)) / scale);
+  };
+  const hit = svgEl.querySelector("#hit");
+  hit.addEventListener("pointermove", onMove);
+  hit.addEventListener("pointerdown", onMove);
+  hit.addEventListener("pointerleave", () => { tip.hide(); xh.setAttribute("opacity","0"); });
+}
+
+function drawScatterChart(el, list){
+  if(!el) return;
+  if(list.length < 2){ el.innerHTML = `<div class="chart-empty">${escapeHtml(t("chartNeed"))}</div>`; return; }
+  const hasIso = !!state.settings.isolatieDatum;
+  const groups = hasIso
+    ? [{ key:"voor", label:t("lVoor"), color:"var(--c-voor)", pts:list.filter(p=>phaseOf(p)==="voor") }, { key:"na", label:t("lNa"), color:"var(--c-na)", pts:list.filter(p=>phaseOf(p)==="na") }].filter(g => g.pts.length)
+    : [{ key:"alle", label:t("lAlle"), color:"var(--accent)", pts:list }];
+  const W = chartWidth(el), H = Math.round(Math.min(320, Math.max(220, W*0.42)));
+  const m = { l:42, r:16, t:28, b:36 };
+  const iw = W - m.l - m.r, ih = H - m.t - m.b;
+  const xt = niceTicks(Math.min(...list.map(p=>p.buiten)), Math.max(...list.map(p=>p.buiten)), 6);
+  const yt = niceTicks(Math.min(...list.map(p=>p.binnen)), Math.max(...list.map(p=>p.binnen)), 5);
+  const X = v => m.l + (v - xt.lo) / (xt.hi - xt.lo) * iw;
+  const Y = v => m.t + ih - (v - yt.lo) / (yt.hi - yt.lo) * ih;
+  const nf = v => v.toLocaleString(state.lang==="en"?"en-GB":"nl-NL");
+  let grid = yt.ticks.map(v => `<line x1="${m.l}" x2="${m.l+iw}" y1="${Y(v)}" y2="${Y(v)}" stroke="var(--grid)"/><text x="${m.l-8}" y="${Y(v)+4}" text-anchor="end">${nf(v)}°</text>`).join("");
+  grid += xt.ticks.map(v => `<line x1="${X(v)}" x2="${X(v)}" y1="${m.t}" y2="${m.t+ih}" stroke="var(--grid)"/><text x="${X(v)}" y="${m.t+ih+16}" text-anchor="middle">${nf(v)}°</text>`).join("");
+  grid += `<text x="${m.l+iw}" y="${H-2}" text-anchor="end">${escapeHtml(t("lBuiten"))} →</text><text x="${m.l-34}" y="${m.t-16}">${escapeHtml(t("lBinnen"))} ↑</text>`;
+  let lines = "", dots = "";
+  groups.forEach(g => {
+    const reg = linReg(g.pts.map(p => ({ x:p.buiten, y:p.binnen })));
+    if(reg && g.pts.length >= 3) lines += `<line x1="${X(reg.minX)}" y1="${Y(reg.a+reg.b*reg.minX)}" x2="${X(reg.maxX)}" y2="${Y(reg.a+reg.b*reg.maxX)}" stroke="${g.color}" stroke-width="2" stroke-dasharray="6 4" opacity=".85"/>`;
+    dots += g.pts.map(p => `<circle cx="${X(p.buiten)}" cy="${Y(p.binnen)}" r="5" fill="${g.color}" stroke="var(--paper)" stroke-width="2" data-id="${p.id}" data-g="${g.key}"/>`).join("");
+  });
+  el.innerHTML = `<div class="chart-legend">${groups.map(g => `<span class="key"><i class="sw dot" style="background:${g.color}"></i>${escapeHtml(g.label)} (${g.pts.length})</span>`).join("")}</div>
+    <div class="chart-wrap"><svg viewBox="0 0 ${W} ${H}" role="img" aria-label="${escapeHtml(t("chartScatter"))}">${grid}${lines}${dots}</svg></div>`;
+  const wrap = el.querySelector(".chart-wrap"), svgEl = wrap.querySelector("svg"), tip = attachTooltip(wrap);
+  svgEl.addEventListener("pointermove", ev => {
+    const r = svgEl.getBoundingClientRect(), scale = W / r.width;
+    const px = (ev.clientX - r.left) * scale, py = (ev.clientY - r.top) * scale;
+    let best = null, bd = 18;
+    list.forEach(p => { const d = Math.hypot(X(p.buiten) - px, Y(p.binnen) - py); if(d < bd){ bd = d; best = p; } });
+    if(!best){ tip.hide(); return; }
+    const g = groups.find(gg => gg.pts.includes(best));
+    tip.show(`<div class="tt-head">${escapeHtml(fmtDate(best.datum, true))}${best.tijd ? " · " + escapeHtml(best.tijd) : ""}</div>
+      ${ttRow(g.color, t("lBinnen"), fmtT(best.binnen))}${ttRow(g.color, t("lBuiten"), fmtT(best.buiten))}`, X(best.buiten)/scale, Y(best.binnen)/scale);
+  });
+  svgEl.addEventListener("pointerleave", () => tip.hide());
+}
+
+/* ================= SAMENVATTING ================= */
+function renderSummary(){
+  const el = document.getElementById("summary");
+  const v = state.activeView || {};
+  const list = v.type === "import" ? sortedMetingen(state.metingen) : visibleMetingen();
+  const title = v.type === "month" ? monthLabel(v.key) : t("navAll");
+  const deltas = list.map(p => p.binnen - p.buiten);
+  const aD = avg(deltas);
+  const last = list[list.length-1];
+  const ins = list.map(p=>p.binnen), outs = list.map(p=>p.buiten);
+  let html = `<h2>${escapeHtml(title)}</h2>
+    <div class="stamp"><div class="stamp-label">${t("sumAvgDelta")}</div><div class="stamp-value">${fmtDelta(aD)}</div><div class="stamp-sub">${escapeHtml(t("sumOver")(list.length))}</div></div>`;
+  if(last){
+    html += `
+      <div class="summary-line"><span class="l">${t("sumLatest")}</span><span class="v">${escapeHtml(fmtDate(last.datum, true))}${last.tijd ? " " + escapeHtml(last.tijd) : ""}</span></div>
+      <div class="summary-line"><span class="l">${t("sumLatestIn")}</span><span class="v"><i class="sw" style="background:var(--c-binnen)"></i>${fmtT(last.binnen)}</span></div>
+      <div class="summary-line"><span class="l">${t("sumLatestOut")}</span><span class="v"><i class="sw" style="background:var(--c-buiten)"></i>${fmtT(last.buiten)}</span></div>
+      <div class="summary-line"><span class="l">${t("sumAvgIn")}</span><span class="v">${fmtT(avg(ins))}</span></div>
+      <div class="summary-line"><span class="l">${t("sumAvgOut")}</span><span class="v">${fmtT(avg(outs))}</span></div>
+      <div class="summary-line"><span class="l">${t("sumRangeIn")}</span><span class="v">${fmtT(Math.min(...ins))} – ${fmtT(Math.max(...ins))}</span></div>
+      <div class="summary-line"><span class="l">${t("sumRangeOut")}</span><span class="v">${fmtT(Math.min(...outs))} – ${fmtT(Math.max(...outs))}</span></div>`;
+  }
+  // Vóór/na-vergelijk (altijd over álle metingen, niet alleen de geselecteerde maand)
+  html += `<h3>${t("sumCompare")}</h3>`;
+  if(!state.settings.isolatieDatum){
+    html += `<p class="summary-hint">${escapeHtml(t("sumNoIso"))}</p>`;
+  } else {
+    const allS = sortedMetingen(state.metingen);
+    const voor = allS.filter(p => phaseOf(p) === "voor"), na = allS.filter(p => phaseOf(p) === "na");
+    const dv = avg(voor.map(p=>p.binnen-p.buiten)), dn = avg(na.map(p=>p.binnen-p.buiten));
+    html += `<div class="stamp-row">
+      <div class="stamp voor"><div class="stamp-label">${t("lVoor")}</div><div class="stamp-value">${fmtDelta(dv)}</div><div class="stamp-sub">${escapeHtml(t("sumOver")(voor.length))}</div></div>
+      <div class="stamp na"><div class="stamp-label">${t("lNa")}</div><div class="stamp-value">${fmtDelta(dn)}</div><div class="stamp-sub">${escapeHtml(t("sumOver")(na.length))}</div></div>
+    </div>`;
+    const ref = Number(state.settings.refBuiten);
+    const rv = linReg(voor.map(p=>({x:p.buiten,y:p.binnen}))), rn = linReg(na.map(p=>({x:p.buiten,y:p.binnen})));
+    const ok = r => r && r.spread >= 1;
+    if(voor.length >= 3 && na.length >= 3 && ok(rv) && ok(rn) && isFinite(ref)){
+      const ev = rv.a + rv.b*ref, en = rn.a + rn.b*ref;
+      html += `<div class="summary-line"><span class="l">${escapeHtml(t("sumAt")(fmtT(ref,0)))}</span><span class="v"></span></div>
+        <div class="summary-line"><span class="l">&nbsp;&nbsp;${t("lVoor")}</span><span class="v"><i class="sw" style="background:var(--c-voor)"></i>${fmtT(ev)}</span></div>
+        <div class="summary-line"><span class="l">&nbsp;&nbsp;${t("lNa")}</span><span class="v"><i class="sw" style="background:var(--c-na)"></i>${fmtT(en)}</span></div>
+        <div class="summary-line"><span class="l">&nbsp;&nbsp;${t("thVerschil")}</span><span class="v">${fmtDelta(en - ev)}</span></div>`;
+    } else {
+      html += `<p class="summary-hint">${escapeHtml(t("sumNeedMore"))}</p>`;
+    }
+    html += `<p class="summary-hint">${escapeHtml(t("sumCaveat"))}</p>`;
+  }
+  html += `<div class="actions">
+      <button class="primary" id="saveNowBtn">${t("saveNowBtn")}</button>
+      <button id="logoutBtn">${t("logoutBtn")}</button>
+      <button id="exportXlsxBtn">${t("exportXlsx")}</button>
+      <button id="exportBackupBtn">${t("exportBackup")}</button>
+      <button id="importBtn">${t("importBtn")}</button>
+    </div>
+    <div class="save-status"></div>`;
+  el.innerHTML = html;
+  document.getElementById("saveNowBtn").onclick = saveNow;
+  document.getElementById("logoutBtn").onclick = signOutCloud;
+  document.getElementById("exportXlsxBtn").onclick = exportXlsx;
+  document.getElementById("exportBackupBtn").onclick = exportBackup;
+  document.getElementById("importBtn").onclick = () => document.getElementById("importFileInput").click();
+  updateSaveStatus();
+}
+
+/* ================= IMPORT / EXPORT ================= */
+let lastImportMsg = "";
+function renderImportView(){
+  return cardHTML(ICONS.upload, t("importTitle"), `
+    <p class="card-note" style="margin-bottom:14px;">${escapeHtml(t("importNote"))}</p>
+    <div class="import-drop" id="importDrop"><strong>${escapeHtml(t("importDrop"))}</strong>.xlsx · .csv · .json</div>
+    <div class="import-result" id="importResult">${lastImportMsg}</div>`);
+}
+function wireImportView(){
+  const drop = document.getElementById("importDrop");
+  drop.onclick = () => document.getElementById("importFileInput").click();
+  drop.addEventListener("dragover", e => { e.preventDefault(); drop.classList.add("drag"); });
+  drop.addEventListener("dragleave", () => drop.classList.remove("drag"));
+  drop.addEventListener("drop", e => { e.preventDefault(); drop.classList.remove("drag"); if(e.dataTransfer.files[0]) handleImportFile(e.dataTransfer.files[0]); });
+}
+function excelSerialToDate(n){ const ms = Math.round((n - 25569) * 86400000); const d = new Date(ms); return new Date(d.getUTCFullYear(), d.getUTCMonth(), d.getUTCDate(), d.getUTCHours(), d.getUTCMinutes()); }
+function normDate(v){
+  if(v === null || v === undefined || v === "") return null;
+  if(v instanceof Date && !isNaN(v)) return `${v.getFullYear()}-${pad2(v.getMonth()+1)}-${pad2(v.getDate())}`;
+  if(typeof v === "number" && v > 20000 && v < 80000){ const d = excelSerialToDate(v); return `${d.getFullYear()}-${pad2(d.getMonth()+1)}-${pad2(d.getDate())}`; }
+  const s = String(v).trim();
+  let m = s.match(/^(\d{4})-(\d{1,2})-(\d{1,2})/); if(m) return `${m[1]}-${pad2(m[2])}-${pad2(m[3])}`;
+  m = s.match(/^(\d{1,2})[-\/.](\d{1,2})[-\/.](\d{2,4})/); if(m){ const y = m[3].length === 2 ? "20"+m[3] : m[3]; return `${y}-${pad2(m[2])}-${pad2(m[1])}`; }
+  return null;
+}
+function normTime(v){
+  if(v === null || v === undefined || v === "") return "";
+  if(v instanceof Date && !isNaN(v)) return `${pad2(v.getHours())}:${pad2(v.getMinutes())}`;
+  if(typeof v === "number" && v >= 0 && v < 1){ const mins = Math.round(v * 1440); return `${pad2(Math.floor(mins/60)%24)}:${pad2(mins%60)}`; }
+  const m = String(v).trim().match(/^(\d{1,2})[:.](\d{2})/);
+  return m ? `${pad2(m[1])}:${m[2]}` : "";
+}
+function detectColumns(header){
+  const h = header.map(x => String(x || "").toLowerCase().trim());
+  const find = re => h.findIndex(x => re.test(x));
+  return {
+    datum: find(/datum|date|dag/),
+    tijd: find(/tijd|time|uur/),
+    buiten: find(/buiten|outdoor|outside|buitentemp/),
+    binnen: (() => { const i = find(/binnen|indoor|inside|woonkamer|kamer|living/); return i >= 0 ? i : h.findIndex((x,idx) => /temp/.test(x) && !/buiten|outdoor|outside/.test(x) && idx !== find(/buiten|outdoor|outside/)); })(),
+    ruimte: find(/ruimte|room|locatie/),
+    notitie: find(/notitie|note|opmerking/),
+    verwarming: find(/verwarming|heating|airco/),
+  };
+}
+function ruimteFromHeader(label){ const m = String(label||"").match(/temp(?:eratuur)?\s+(.+)/i); if(m && !/binnen|indoor|inside/i.test(m[1])) return m[1].trim().charAt(0).toUpperCase() + m[1].trim().slice(1); return null; }
+function importRows(rows){
+  let hi = rows.findIndex(r => r && r.some(c => /datum|date/i.test(String(c||""))));
+  if(hi < 0) hi = 0;
+  const cols = detectColumns(rows[hi] || []);
+  if(cols.binnen < 0 || cols.buiten < 0 || cols.datum < 0) throw new Error(t("importNoCols"));
+  const defRuimte = ruimteFromHeader(rows[hi][cols.binnen]) || state.settings.defaultRuimte;
+  const existing = new Set(state.metingen.map(m => `${m.datum}|${m.tijd}|${(m.ruimte||"").toLowerCase()}`));
+  let added = 0, dup = 0, empty = 0;
+  rows.slice(hi+1).forEach(r => {
+    if(!r || r.every(c => c === null || c === undefined || c === "")) return;
+    const datum = normDate(r[cols.datum]);
+    const binnen = parseNum(r[cols.binnen]), buiten = parseNum(r[cols.buiten]);
+    if(!datum || binnen === null || buiten === null){ empty++; return; }
+    const tijd = cols.tijd >= 0 ? normTime(r[cols.tijd]) : "";
+    const ruimte = (cols.ruimte >= 0 && r[cols.ruimte]) ? String(r[cols.ruimte]).trim() : defRuimte;
+    const key = `${datum}|${tijd}|${ruimte.toLowerCase()}`;
+    if(existing.has(key)){ dup++; return; }
+    existing.add(key);
+    const vw = cols.verwarming >= 0 ? String(r[cols.verwarming]||"").toLowerCase() : "";
+    state.metingen.push({ id:newId(), datum, tijd, binnen, buiten, ruimte,
+      verwarming: /aan|on|ja|yes|1/.test(vw) ? "aan" : /uit|off|nee|no|0/.test(vw) ? "uit" : "",
+      notitie: cols.notitie >= 0 ? String(r[cols.notitie]||"").trim() : "" });
+    added++;
+  });
+  return { added, dup, empty };
+}
+function parseCsv(text){
+  const first = text.split(/\r?\n/)[0] || "";
+  const sep = (first.match(/;/g)||[]).length >= (first.match(/,/g)||[]).length ? ";" : ",";
+  const rows = []; let row = [], cur = "", q = false;
+  for(let i = 0; i < text.length; i++){
+    const c = text[i];
+    if(q){ if(c === '"'){ if(text[i+1] === '"'){ cur += '"'; i++; } else q = false; } else cur += c; }
+    else if(c === '"') q = true;
+    else if(c === sep){ row.push(cur); cur = ""; }
+    else if(c === "\n" || c === "\r"){ if(c === "\r" && text[i+1] === "\n") i++; row.push(cur); rows.push(row); row = []; cur = ""; }
+    else cur += c;
+  }
+  if(cur !== "" || row.length){ row.push(cur); rows.push(row); }
+  return rows;
+}
+async function handleImportFile(file){
+  const name = file.name.toLowerCase();
+  try{
+    if(name.endsWith(".json")){
+      const data = JSON.parse(await file.text());
+      if(!data || !Array.isArray(data.metingen)) throw new Error("geen Tembo-back-up");
+      if(!confirm(t("importBackupConfirm"))) return;
+      const lang = state.lang, dark = state.darkMode;
+      state = data; migrateState(); state.lang = lang; state.darkMode = dark;
+      lastImportMsg = escapeHtml(t("importBackupOk"));
+    } else {
+      let rows;
+      if(name.endsWith(".csv")) rows = parseCsv(await file.text());
+      else {
+        if(typeof XLSX === "undefined") throw new Error(t("xlsxMissing"));
+        const wb = XLSX.read(await file.arrayBuffer(), { type:"array", cellDates:true });
+        rows = XLSX.utils.sheet_to_json(wb.Sheets[wb.SheetNames[0]], { header:1, raw:true, defval:null });
+      }
+      const r = importRows(rows);
+      lastImportMsg = escapeHtml(t("importResult")(r.added, r.dup, r.empty));
+    }
+    scheduleAutoSave();
+  }catch(err){
+    lastImportMsg = `<span style="color:var(--debit)">${escapeHtml(t("importFail") + (err.message || err))}</span>`;
+  }
+  state.activeView = { type:"import" };
+  renderAll();
+}
+function exportRows(){
+  return sortedMetingen(state.metingen).map(m => ({
+    [t("thDatum")]: m.datum, [t("thTijd")]: m.tijd, [t("fBinnen")]: m.binnen, [t("fBuiten")]: m.buiten,
+    [t("thVerschil")]: Math.round((m.binnen - m.buiten)*10)/10, [t("fRuimte")]: m.ruimte,
+    [t("fVerwarming")]: m.verwarming, [t("fNotitie")]: m.notitie,
+    ...(state.settings.isolatieDatum ? { [t("thFase")]: t(phaseOf(m)==="voor"?"phaseVoor":"phaseNa") } : {}),
+  }));
+}
+function downloadBlob(blob, filename){ const a = document.createElement("a"); a.href = URL.createObjectURL(blob); a.download = filename; document.body.appendChild(a); a.click(); setTimeout(() => { URL.revokeObjectURL(a.href); a.remove(); }, 500); }
+function exportXlsx(){
+  const rows = exportRows();
+  if(typeof XLSX !== "undefined"){
+    const ws = XLSX.utils.json_to_sheet(rows);
+    ws["!cols"] = [{wch:12},{wch:8},{wch:12},{wch:12},{wch:10},{wch:14},{wch:12},{wch:30},{wch:8}];
+    const wb = XLSX.utils.book_new(); XLSX.utils.book_append_sheet(wb, ws, "Metingen");
+    XLSX.writeFile(wb, `Tembo_metingen_${todayISO()}.xlsx`);
+  } else {
+    const keys = rows.length ? Object.keys(rows[0]) : [];
+    const csv = [keys.join(";")].concat(rows.map(r => keys.map(k => `"${String(r[k]??"").replace(/"/g,'""')}"`).join(";"))).join("\n");
+    downloadBlob(new Blob(["﻿" + csv], { type:"text/csv" }), `Tembo_metingen_${todayISO()}.csv`);
+  }
+}
+function exportBackup(){ downloadBlob(new Blob([JSON.stringify(state, null, 2)], { type:"application/json" }), `tembo_backup_${todayISO()}.json`); }
+
+/* ================= PROFIELPANEEL ================= */
+let profileTab = "settings";
+function renderProfilePanel(){
+  document.getElementById("profilePanelTitle").textContent = t("profileTitle");
+  document.getElementById("profilePanelTabs").innerHTML = ["settings","account"].map(k => `<button class="profile-tab-btn ${profileTab===k?"active":""}" data-tab="${k}">${t(k==="account"?"tabAccount":"tabSettings")}</button>`).join("");
+  document.querySelectorAll(".profile-tab-btn").forEach(b => b.onclick = () => { profileTab = b.dataset.tab; renderProfilePanel(); });
+  const body = document.getElementById("profilePanelBody");
+  wireEnterSubmit(body);
+  if(profileTab === "settings"){
+    body.innerHTML = `
+      <div>
+        <label class="profile-field">${t("setIso")}<input type="date" id="setIso" value="${escapeHtml(state.settings.isolatieDatum)}" /></label>
+        <p class="profile-hint">${escapeHtml(t("setIsoHint"))}</p>
+      </div>
+      <div>
+        <label class="profile-field">${t("setRef")}<input type="number" step="1" id="setRef" value="${escapeHtml(state.settings.refBuiten)}" /></label>
+        <p class="profile-hint">${escapeHtml(t("setRefHint"))}</p>
+      </div>
+      <div><label class="profile-field">${t("setRuimte")}<input type="text" id="setRuimte" value="${escapeHtml(state.settings.defaultRuimte)}" /></label></div>`;
+    document.getElementById("setIso").onchange = e => { state.settings.isolatieDatum = e.target.value; scheduleAutoSave(); renderAll(); };
+    document.getElementById("setRef").onchange = e => { const n = parseNum(e.target.value); if(n !== null){ state.settings.refBuiten = n; scheduleAutoSave(); renderAll(); } };
+    document.getElementById("setRuimte").onchange = e => { state.settings.defaultRuimte = e.target.value.trim() || "Woonkamer"; scheduleAutoSave(); renderAll(); };
+  } else {
+    const email = cloudSession ? cloudSession.user.email : "";
+    body.innerHTML = `
+      <div data-submit-block>
+        <div class="profile-section-title">${t("accEmail")}</div>
+        <div class="profile-current-email">${escapeHtml(email)}</div>
+        <label class="profile-field">${t("accNewEmail")}<input type="email" id="accEmail" autocomplete="email" /></label>
+        <button class="primary" id="accEmailBtn">${t("accUpdateEmail")}</button>
+        <div id="accEmailMsg"></div>
+      </div>
+      <hr class="profile-divider">
+      <div data-submit-block>
+        <label class="profile-field">${t("accNewPw")}<input type="password" id="accPw" autocomplete="new-password" /></label>
+        <p class="profile-hint">${escapeHtml(t("accPwHint"))}</p>
+        <button class="primary" id="accPwBtn">${t("accUpdatePw")}</button>
+        <div id="accPwMsg"></div>
+      </div>
+      <hr class="profile-divider">
+      <div><button id="accLogout">${t("logoutBtn")}</button></div>`;
+    const upd = async (payload, msgId) => {
+      const box = document.getElementById(msgId);
+      try{ const { error } = await cloudClient.auth.updateUser(payload); if(error) throw error; box.className = "profile-msg notice"; box.textContent = t("accUpdated"); }
+      catch(err){ box.className = "profile-msg error"; box.textContent = err.message || String(err); }
+    };
+    document.getElementById("accEmailBtn").onclick = () => { const v = document.getElementById("accEmail").value.trim(); if(v) upd({ email:v }, "accEmailMsg"); };
+    document.getElementById("accPwBtn").onclick = () => { const v = document.getElementById("accPw").value; if(v) upd({ password:v }, "accPwMsg"); };
+    document.getElementById("accLogout").onclick = signOutCloud;
+  }
+  document.querySelectorAll(".lang-btn").forEach(b => b.classList.toggle("active", b.dataset.lang === state.lang));
+}
+
+/* ================= RENDER ================= */
+function applyMode(){
+  document.documentElement.setAttribute("data-mode", state.darkMode ? "dark" : "light");
+  document.documentElement.lang = state.lang;
+  const moon = document.getElementById("modeIconMoon"), sun = document.getElementById("modeIconSun");
+  if(moon){ moon.style.display = state.darkMode ? "none" : ""; sun.style.display = state.darkMode ? "" : "none"; }
+}
+function renderAll(opts){
+  applyMode();
+  document.getElementById("mainTitle").textContent = t("tagline");
+  document.getElementById("navDrawerTitle").textContent = t("navTitle");
+  renderTabs();
+  renderMain();
+  renderSummary();
+  if(document.getElementById("profilePanel").classList.contains("open")) renderProfilePanel();
+  if(opts && opts.keepFocus){
+    const inp = document.querySelector(`tr[data-id="${opts.keepFocus.id}"] [data-f="${opts.keepFocus.f}"]`);
+    if(inp) inp.focus();
+  }
+}
+function bootApp(){
+  state.activeView = { type:"overview" };
+  dirty = false; stateGeneration = 0; savedGeneration = 0;
+  renderAll();
+}
+
+/* ================= EVENTS ================= */
+document.getElementById("navToggleBtn").onclick = () => setNavDrawer(true);
+document.getElementById("navCloseBtn").onclick = () => setNavDrawer(false);
+document.getElementById("navBackdrop").onclick = () => setNavDrawer(false);
+document.getElementById("profileBtn").onclick = () => setProfilePanel(!document.getElementById("profilePanel").classList.contains("open"));
+document.getElementById("profileCloseBtn").onclick = () => setProfilePanel(false);
+document.getElementById("profileBackdrop").onclick = () => setProfilePanel(false);
+document.addEventListener("keydown", e => { if(e.key === "Escape"){ setNavDrawer(false); setProfilePanel(false); } });
+document.getElementById("modeBtn").onclick = () => { state.darkMode = !state.darkMode; scheduleAutoSave(); renderAll(); };
+document.querySelectorAll(".lang-btn").forEach(b => b.onclick = () => { state.lang = b.dataset.lang; scheduleAutoSave(); renderAll(); });
+document.getElementById("importFileInput").addEventListener("change", e => { const f = e.target.files[0]; e.target.value = ""; if(f) handleImportFile(f); });
+let resizeTimer = null;
+window.addEventListener("resize", () => { clearTimeout(resizeTimer); resizeTimer = setTimeout(() => { if(encryptionPassword && state.activeView.type !== "import"){ const list = visibleMetingen(); drawTimeChart(document.getElementById("timeChart"), list); drawScatterChart(document.getElementById("scatterChart"), list); } }, 150); });
+
+/* ================= START ================= */
+(async function start(){
+  try{ if(window.matchMedia && matchMedia("(prefers-color-scheme: dark)").matches) state.darkMode = true; }catch(e){}
+  applyMode();
+  if(cloudClient){
+    try{ const { data } = await cloudClient.auth.getSession(); cloudSession = data && data.session ? data.session : null; }catch(e){ cloudSession = null; }
+  }
+  renderAuthGate();
+})();
+</script>
+</body>
+</html>
