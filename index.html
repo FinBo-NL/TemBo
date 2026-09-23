@@ -208,6 +208,28 @@
   .profile-msg.notice{color:var(--deep); background:color-mix(in srgb, var(--deep) 12%, transparent);}
   .profile-hint{font-size:11.5px; color:var(--text-soft); line-height:1.5; margin:4px 0 0;}
   .profile-divider{border:none; border-top:1px solid var(--rule); margin:0;}
+  .loc-search-row{display:flex; gap:8px; margin-top:10px;}
+  .loc-search-row input{flex:1; min-width:0; font-family:inherit; font-size:14px; padding:8px 10px; border:1px solid var(--rule); border-radius:4px; background:var(--paper); color:var(--text);}
+  .loc-search-row input:focus{outline:none; border-color:var(--accent);}
+  .loc-search-row button{margin-top:0 !important;}
+  .loc-results{display:flex; flex-direction:column; gap:4px; margin-top:8px;}
+  .loc-results button{margin-top:0 !important; text-align:left; font-size:13px;}
+  .loc-results button:hover{border-color:var(--accent); color:var(--accent);}
+  .loc-results .none{font-size:12px; color:var(--text-soft);}
+  .loc-btn-row{display:flex; gap:8px; flex-wrap:wrap;}
+  .profile-check{display:flex; gap:8px; align-items:flex-start; font-size:13px; color:var(--text); margin-top:12px; line-height:1.4;}
+  .src-choice{display:inline-flex; border:1px solid var(--rule); border-radius:4px; overflow:hidden; margin-top:4px; align-self:flex-start;}
+  .src-choice button{font-family:inherit; font-size:11px; padding:4px 9px; border:none; background:transparent; color:var(--text-soft); cursor:pointer;}
+  .src-choice button + button{border-left:1px solid var(--rule);}
+  .src-choice button.on{background:color-mix(in srgb, var(--accent) 14%, transparent); color:var(--accent); font-weight:600;}
+  #fBuiten[readonly]{background:var(--paper-2); color:var(--accent);}
+  .online-was{font-size:10px; color:var(--text-soft); font-family:"Courier New",monospace; white-space:nowrap;}
+  .buiten-cell .t-num{width:56px;}
+  .src-hint{font-size:10.5px; color:var(--text-soft); min-height:13px; line-height:1.3;}
+  .src-hint.online{color:var(--accent);}
+  .src-hint.err{color:var(--debit);}
+  .buiten-cell{display:inline-flex; align-items:center; gap:4px; justify-content:flex-end;}
+  .online-dot{width:6px; height:6px; border-radius:50%; background:var(--accent); flex-shrink:0;}
 
   /* Layout */
   .layout{display:grid; grid-template-columns:minmax(0,1fr) 380px; align-items:start;}
@@ -559,6 +581,21 @@ const I18N = {
     setIso: "Datum spouwmuurisolatie",
     setIsoHint: "Metingen vóór deze datum tellen als 'vóór isolatie', vanaf deze datum als 'na isolatie'. Leeg laten = geen vergelijk.",
     setRuimte: "Standaard ruimte",
+    setLoc: "Locatie voor buitentemperatuur",
+    setLocHint: "Plaatsnaam of postcode. Tembo haalt dan bij elke nieuwe meting de buitentemperatuur voor dat uur online op (Open-Meteo, gratis weermodel). Alleen de gekozen locatie, datum en tijd worden naar Open-Meteo gestuurd.",
+    setLocSearch: "Zoeken", setLocGps: "Gebruik mijn huidige locatie", setLocClear: "Locatie wissen",
+    setLocNone: "Geen locatie ingesteld", setLocNoResults: "Niets gevonden.", setLocGpsName: "Huidige locatie",
+    setLocCurrent: "Ingesteld:",
+    setAuto: "Bij een nieuwe meting standaard 'Online' kiezen (per meting kun je altijd afwijken)",
+    srcFetching: "Buitentemperatuur ophalen…",
+    srcOnline: (v, n) => `Online: ${v} (${n})`,
+    srcFail: "Online ophalen lukte niet — vul zelf in.",
+    srcManual: "Handmatig ingevuld",
+    srcNoLoc: "Stel een locatie in (Profiel → Instellingen) om buiten automatisch in te vullen.",
+    srcBadge: "online opgehaald",
+    srcOptOnline: "Online", srcOptOwn: "Eigen meting",
+    srcOwnHint: v => v === null ? "Vul je eigen buitentemperatuur in." : `Eigen meting (online was ${v}).`,
+    srcOnlineWas: v => `online: ${v}`,
     setRef: "Referentie-buitentemperatuur (°C)",
     setRefHint: "Voor de schatting 'binnen bij X °C buiten' in het vergelijk vóór/na.",
     importTitle: "Importeer metingen",
@@ -650,6 +687,21 @@ const I18N = {
     setIso: "Cavity wall insulation date",
     setIsoHint: "Readings before this date count as 'before insulation', from this date as 'after'. Leave empty = no comparison.",
     setRuimte: "Default room",
+    setLoc: "Location for outdoor temperature",
+    setLocHint: "Town or postcode. Tembo then fetches the outdoor temperature for that hour online with every new reading (Open-Meteo, free weather model). Only the chosen location, date and time are sent to Open-Meteo.",
+    setLocSearch: "Search", setLocGps: "Use my current location", setLocClear: "Clear location",
+    setLocNone: "No location set", setLocNoResults: "Nothing found.", setLocGpsName: "Current location",
+    setLocCurrent: "Set:",
+    setAuto: "Default to 'Online' for new readings (you can always deviate per reading)",
+    srcFetching: "Fetching outdoor temperature…",
+    srcOnline: (v, n) => `Online: ${v} (${n})`,
+    srcFail: "Could not fetch online — enter it yourself.",
+    srcManual: "Entered manually",
+    srcNoLoc: "Set a location (Profile → Settings) to fill in outdoor automatically.",
+    srcBadge: "fetched online",
+    srcOptOnline: "Online", srcOptOwn: "Own reading",
+    srcOwnHint: v => v === null ? "Enter your own outdoor temperature." : `Own reading (online was ${v}).`,
+    srcOnlineWas: v => `online: ${v}`,
     setRef: "Reference outdoor temperature (°C)",
     setRefHint: "Used for the 'indoor at X °C outdoor' estimate in the before/after comparison.",
     importTitle: "Import readings",
@@ -672,7 +724,7 @@ function newId(){ return "m" + Date.now().toString(36) + Math.random().toString(
 function emptyState(){
   return {
     version: 1, lang: "nl", darkMode: false,
-    settings: { isolatieDatum: "", defaultRuimte: "Woonkamer", refBuiten: 10 },
+    settings: { isolatieDatum: "", defaultRuimte: "Woonkamer", refBuiten: 10, locatie: null, autoBuiten: true },
     metingen: [],
     activeView: { type: "overview" },
   };
@@ -692,7 +744,7 @@ function migrateState(){
   if(!state.lang) state.lang = "nl";
   if(typeof state.darkMode !== "boolean") state.darkMode = false;
   if(!state.activeView) state.activeView = { type:"overview" };
-  state.metingen.forEach(m => { if(!m.id) m.id = newId(); if(m.ruimte === undefined) m.ruimte = state.settings.defaultRuimte; if(m.verwarming === undefined) m.verwarming = ""; if(m.notitie === undefined) m.notitie = ""; });
+  state.metingen.forEach(m => { if(!m.id) m.id = newId(); if(m.ruimte === undefined) m.ruimte = state.settings.defaultRuimte; if(m.verwarming === undefined) m.verwarming = ""; if(m.notitie === undefined) m.notitie = ""; if(!m.buitenBron) m.buitenBron = "handmatig"; });
 }
 
 /* ================= HULPFUNCTIES ================= */
@@ -1080,7 +1132,10 @@ function renderMain(){
   if(v.type === "import"){ main.innerHTML = renderImportView(); wireImportView(); return; }
   const list = visibleMetingen();
   let html = "";
-  if(v.type === "overview") html += cardHTML(ICONS.plus, t("newEntry"), entryFormHTML());
+  if(v.type === "overview"){
+    if(!formModeTouched) formBuitenMode = (state.settings.locatie && state.settings.autoBuiten) ? "online" : "eigen";
+    html += cardHTML(ICONS.plus, t("newEntry"), entryFormHTML());
+  }
   html += cardHTML(ICONS.therm, t("chartTime"), `<div id="timeChart"></div>`);
   html += cardHTML(ICONS.scatter, t("chartScatter"), `<div id="scatterChart"></div><p class="card-note" style="margin-top:8px;">${escapeHtml(t("chartScatterNote"))}</p>`);
   html += cardHTML(ICONS.list, t("tableTitle"), tableHTML(list), String(list.length));
@@ -1096,7 +1151,11 @@ function entryFormHTML(){
       <label>${t("fDatum")}<input type="date" id="fDatum" value="${todayISO()}" /></label>
       <label>${t("fTijd")}<input type="time" id="fTijd" value="${nowHM()}" /></label>
       <label>${t("fBinnen")}<input type="text" inputmode="decimal" id="fBinnen" placeholder="21,5" /></label>
-      <label>${t("fBuiten")}<input type="text" inputmode="decimal" id="fBuiten" placeholder="12" /></label>
+      <label>${t("fBuiten")}<input type="text" inputmode="decimal" id="fBuiten" placeholder="12" />
+        ${state.settings.locatie ? `<span class="src-choice" role="radiogroup">
+          <button type="button" data-src="online" class="${formBuitenMode==="online"?"on":""}">${t("srcOptOnline")}</button>
+          <button type="button" data-src="eigen" class="${formBuitenMode==="eigen"?"on":""}">${t("srcOptOwn")}</button>
+        </span>` : ""}<span class="src-hint" id="fBuitenSrc"></span></label>
       <label>${t("fRuimte")}<input type="text" id="fRuimte" value="${escapeHtml(state.settings.defaultRuimte)}" list="ruimteList" /></label>
       <label>${t("fVerwarming")}<select id="fVerw"><option value="">${t("verwUnknown")}</option><option value="aan">${t("verwAan")}</option><option value="uit">${t("verwUit")}</option></select></label>
       <label class="wide">${t("fNotitie")}<input type="text" id="fNotitie" maxlength="200" /></label>
@@ -1111,6 +1170,11 @@ function wireEntryForm(){
   const main = document.getElementById("categories");
   wireEnterSubmit(main);
   lastFormMsg = null;
+  formBuitenFetched = null;
+  document.querySelectorAll(".src-choice button").forEach(b => b.onclick = () => { formModeTouched = true; setBuitenMode(b.dataset.src, true); });
+  document.getElementById("fDatum").addEventListener("change", autoFillBuiten);
+  document.getElementById("fTijd").addEventListener("change", autoFillBuiten);
+  setBuitenMode(formBuitenMode, false);
   document.getElementById("addBtn").onclick = () => {
     const datum = document.getElementById("fDatum").value;
     const binnen = parseNum(document.getElementById("fBinnen").value);
@@ -1121,10 +1185,13 @@ function wireEntryForm(){
     state.metingen.push({
       id:newId(), datum, tijd: document.getElementById("fTijd").value || "",
       binnen, buiten,
+      buitenBron: (formBuitenMode === "online" && formBuitenFetched !== null && buiten === formBuitenFetched) ? "online" : "handmatig",
+      buitenOnline: formBuitenFetched,
       ruimte: document.getElementById("fRuimte").value.trim() || state.settings.defaultRuimte,
       verwarming: document.getElementById("fVerw").value, notitie: document.getElementById("fNotitie").value.trim(),
     });
     lastFormMsg = { cls:"ok", text:t("addedMsg") };
+    formModeTouched = false;
     scheduleAutoSave();
     renderAll();
     const b = document.getElementById("fBinnen"); if(b) b.focus();
@@ -1141,7 +1208,7 @@ function tableHTML(list){
       <td><input class="t-date" type="date" data-f="datum" value="${escapeHtml(m.datum)}" /></td>
       <td><input class="t-time" type="time" data-f="tijd" value="${escapeHtml(m.tijd)}" /></td>
       <td class="num"><input class="t-num" type="text" inputmode="decimal" data-f="binnen" value="${escapeHtml(String(m.binnen).replace(".", state.lang==="en"?".":","))}" /></td>
-      <td class="num"><input class="t-num" type="text" inputmode="decimal" data-f="buiten" value="${escapeHtml(String(m.buiten).replace(".", state.lang==="en"?".":","))}" /></td>
+      <td class="num"><span class="buiten-cell"><input class="t-num" type="text" inputmode="decimal" data-f="buiten" value="${escapeHtml(String(m.buiten).replace(".", state.lang==="en"?".":","))}" />${m.buitenBron==="online" ? `<i class="online-dot" title="${escapeHtml(t("srcBadge"))}"></i>` : (m.buitenOnline !== null && m.buitenOnline !== undefined ? `<span class="online-was" title="${escapeHtml(t("srcOnlineWas")(fmtT(m.buitenOnline)))}">${escapeHtml(fmtT(m.buitenOnline).replace(" °C","°"))}</span>` : "")}</span></td>
       <td class="num"><span class="delta">${fmtDelta(d)}</span></td>
       ${iso ? `<td><span class="phase ${ph}">${t(ph==="voor"?"phaseVoor":"phaseNa")}</span></td>` : ""}
       <td><input type="text" data-f="ruimte" value="${escapeHtml(m.ruimte)}" style="width:110px" /></td>
@@ -1166,6 +1233,7 @@ function wireTable(){
           const n = parseNum(inp.value);
           if(n === null){ inp.value = String(m[f]); return; }
           m[f] = n;
+          if(f === "buiten") m.buitenBron = "handmatig";
         } else if(f === "datum"){
           if(!inp.value){ inp.value = m.datum; return; }
           m.datum = inp.value;
@@ -1501,7 +1569,9 @@ async function handleImportFile(file){
 function exportRows(){
   return sortedMetingen(state.metingen).map(m => ({
     [t("thDatum")]: m.datum, [t("thTijd")]: m.tijd, [t("fBinnen")]: m.binnen, [t("fBuiten")]: m.buiten,
-    [t("thVerschil")]: Math.round((m.binnen - m.buiten)*10)/10, [t("fRuimte")]: m.ruimte,
+    [t("thVerschil")]: Math.round((m.binnen - m.buiten)*10)/10,
+    [state.lang==="en" ? "Outdoor online (°C)" : "Buiten online (°C)"]: (m.buitenOnline ?? ""), [state.lang==="en" ? "Outdoor source" : "Bron buiten"]: m.buitenBron,
+    [t("fRuimte")]: m.ruimte,
     [t("fVerwarming")]: m.verwarming, [t("fNotitie")]: m.notitie,
     ...(state.settings.isolatieDatum ? { [t("thFase")]: t(phaseOf(m)==="voor"?"phaseVoor":"phaseNa") } : {}),
   }));
@@ -1522,6 +1592,118 @@ function exportXlsx(){
 }
 function exportBackup(){ downloadBlob(new Blob([JSON.stringify(state, null, 2)], { type:"application/json" }), `tembo_backup_${todayISO()}.json`); }
 
+/* ================= BUITENTEMPERATUUR ONLINE (Open-Meteo) =================
+   Geen achtergrondtaak en geen 92 dagen vooruit ophalen: alleen de buitentemperatuur voor het uur
+   van de meting die je op dat moment invoert. Recente datums via de forecast-API (die ook de
+   afgelopen weken bevat), oudere datums via de archief-API. Tussen twee hele uren wordt lineair
+   geïnterpoleerd (bijv. 13:10 → 5/6 van 13:00 + 1/6 van 14:00). */
+let formBuitenMode = "eigen", formBuitenFetched = null, fetchSeq = 0, formModeTouched = false;
+const weatherCache = {};
+function addDaysISO(iso, n){ const [y,m,d] = iso.split("-").map(Number); const dt = new Date(y, m-1, d + n); return `${dt.getFullYear()}-${pad2(dt.getMonth()+1)}-${pad2(dt.getDate())}`; }
+function daysBetween(a, b){ const pa = a.split("-").map(Number), pb = b.split("-").map(Number); return Math.round((Date.UTC(pb[0],pb[1]-1,pb[2]) - Date.UTC(pa[0],pa[1]-1,pa[2])) / 86400000); }
+async function fetchHourly(loc, datum){
+  const key = `${loc.lat.toFixed(3)},${loc.lon.toFixed(3)},${datum}`;
+  if(weatherCache[key]) return weatherCache[key];
+  const pr = fetchHourlyUncached(loc, datum).catch(err => { delete weatherCache[key]; throw err; });
+  weatherCache[key] = pr;   // lopende aanvraag delen i.p.v. dezelfde dag twee keer op te halen
+  return pr;
+}
+async function fetchHourlyUncached(loc, datum){
+  const ago = daysBetween(datum, todayISO());
+  if(ago < -14) throw new Error("te ver in de toekomst");
+  const base = ago > 60 ? "https://archive-api.open-meteo.com/v1/archive" : "https://api.open-meteo.com/v1/forecast";
+  const url = `${base}?latitude=${loc.lat}&longitude=${loc.lon}&hourly=temperature_2m&timezone=auto&start_date=${datum}&end_date=${addDaysISO(datum, 1)}`;
+  const res = await fetch(url);
+  if(!res.ok) throw new Error("HTTP " + res.status);
+  const data = await res.json();
+  if(!data.hourly || !Array.isArray(data.hourly.time)) throw new Error("onverwacht antwoord");
+  const map = {};
+  data.hourly.time.forEach((tm, i) => { const v = data.hourly.temperature_2m[i]; if(v !== null && v !== undefined) map[tm] = v; });
+  return map;
+}
+async function fetchOutdoorTemp(loc, datum, tijd){
+  const [h, mi] = (tijd || "12:00").split(":").map(Number);
+  const map = await fetchHourly(loc, datum);
+  const k0 = `${datum}T${pad2(h)}:00`;
+  const k1 = h === 23 ? `${addDaysISO(datum,1)}T00:00` : `${datum}T${pad2(h+1)}:00`;
+  const v0 = map[k0], v1 = map[k1], f = (mi || 0) / 60;
+  if(v0 === undefined) return null;
+  const v = (v1 === undefined || f === 0) ? v0 : v0 + (v1 - v0) * f;
+  return Math.round(v * 10) / 10;
+}
+function setSrcHint(text, cls){ const el = document.getElementById("fBuitenSrc"); if(el){ el.textContent = text || ""; el.className = "src-hint" + (cls ? " " + cls : ""); } }
+function setBuitenMode(mode, userClick){
+  const fB = document.getElementById("fBuiten");
+  if(!fB) return;
+  if(!state.settings.locatie) mode = "eigen";
+  const prev = formBuitenMode;
+  formBuitenMode = mode;
+  document.querySelectorAll(".src-choice button").forEach(b => { b.classList.toggle("on", b.dataset.src === mode); b.setAttribute("aria-checked", b.dataset.src === mode ? "true" : "false"); });
+  fB.readOnly = mode === "online";
+  if(mode === "eigen"){
+    // Overstappen van Online naar Eigen: veld leegmaken zodat je niet per ongeluk de online waarde bewaart.
+    if(userClick && prev === "online"){ fB.value = ""; fB.focus(); }
+    if(!state.settings.locatie){ setSrcHint(state.settings.autoBuiten ? t("srcNoLoc") : ""); }
+    else setSrcHint(t("srcOwnHint")(formBuitenFetched === null ? null : fmtT(formBuitenFetched)));
+  }
+  autoFillBuiten();
+}
+async function autoFillBuiten(){
+  const fB = document.getElementById("fBuiten");
+  const loc = state.settings.locatie;
+  if(!fB || !loc) return;
+  const datum = document.getElementById("fDatum").value, tijd = document.getElementById("fTijd").value;
+  if(!datum) return;
+  const seq = ++fetchSeq;
+  // Ook bij "Eigen meting" halen we de online waarde op (en bewaren die mee), zodat je later je
+  // eigen thermometer met het weermodel kunt vergelijken.
+  if(formBuitenMode === "online"){ fB.value = ""; setSrcHint(t("srcFetching")); }
+  try{
+    const v = await fetchOutdoorTemp(loc, datum, tijd);
+    if(seq !== fetchSeq || !document.getElementById("fBuiten")) return;
+    formBuitenFetched = v;
+    if(formBuitenMode === "online"){
+      if(v === null){ setSrcHint(t("srcFail"), "err"); return; }
+      document.getElementById("fBuiten").value = String(v).replace(".", state.lang === "en" ? "." : ",");
+      setSrcHint(t("srcOnline")(fmtT(v), loc.naam), "online");
+    } else {
+      setSrcHint(t("srcOwnHint")(v === null ? null : fmtT(v)));
+    }
+  }catch(err){
+    if(seq !== fetchSeq) return;
+    console.warn("Buitentemperatuur ophalen mislukt:", err);
+    formBuitenFetched = null;
+    if(formBuitenMode === "online"){ setSrcHint(t("srcFail"), "err"); setBuitenMode("eigen", true); setSrcHint(t("srcFail"), "err"); }
+  }
+}
+function wireLocationSettings(){
+  const setLoc = loc => { state.settings.locatie = loc; formModeTouched = false; scheduleAutoSave(); renderAll(); };
+  const results = document.getElementById("locResults");
+  document.getElementById("locSearchBtn").onclick = async () => {
+    const q = document.getElementById("locQuery").value.trim();
+    if(q.length < 2) return;
+    results.innerHTML = `<span class="none">${t("checking")}</span>`;
+    try{
+      const res = await fetch(`https://geocoding-api.open-meteo.com/v1/search?name=${encodeURIComponent(q)}&count=6&language=${state.lang}&format=json`);
+      const data = await res.json();
+      const list = (data && data.results) || [];
+      if(!list.length){ results.innerHTML = `<span class="none">${escapeHtml(t("setLocNoResults"))}</span>`; return; }
+      results.innerHTML = list.map((r, i) => `<button data-i="${i}">${escapeHtml([r.name, r.admin2 && r.admin2 !== r.name ? r.admin2 : null, r.admin1, r.country_code].filter(Boolean).join(", "))}</button>`).join("");
+      results.querySelectorAll("button").forEach(b => b.onclick = () => { const r = list[Number(b.dataset.i)]; setLoc({ naam: r.name, lat: r.latitude, lon: r.longitude }); });
+    }catch(err){ results.innerHTML = `<span class="none">${escapeHtml(err.message || String(err))}</span>`; }
+  };
+  document.getElementById("locGpsBtn").onclick = () => {
+    if(!navigator.geolocation){ results.innerHTML = `<span class="none">—</span>`; return; }
+    navigator.geolocation.getCurrentPosition(
+      pos => setLoc({ naam: t("setLocGpsName"), lat: Math.round(pos.coords.latitude*1000)/1000, lon: Math.round(pos.coords.longitude*1000)/1000 }),
+      err => { results.innerHTML = `<span class="none">${escapeHtml(err.message)}</span>`; },
+      { timeout: 10000 });
+  };
+  const clr = document.getElementById("locClearBtn");
+  if(clr) clr.onclick = () => setLoc(null);
+  document.getElementById("setAuto").onchange = e => { state.settings.autoBuiten = e.target.checked; formModeTouched = false; scheduleAutoSave(); renderAll(); };
+}
+
 /* ================= PROFIELPANEEL ================= */
 let profileTab = "settings";
 function renderProfilePanel(){
@@ -1540,7 +1722,18 @@ function renderProfilePanel(){
         <label class="profile-field">${t("setRef")}<input type="number" step="1" id="setRef" value="${escapeHtml(state.settings.refBuiten)}" /></label>
         <p class="profile-hint">${escapeHtml(t("setRefHint"))}</p>
       </div>
-      <div><label class="profile-field">${t("setRuimte")}<input type="text" id="setRuimte" value="${escapeHtml(state.settings.defaultRuimte)}" /></label></div>`;
+      <div><label class="profile-field">${t("setRuimte")}<input type="text" id="setRuimte" value="${escapeHtml(state.settings.defaultRuimte)}" /></label></div>
+      <hr class="profile-divider">
+      <div data-submit-block>
+        <div class="profile-section-title">${t("setLoc")}</div>
+        <div class="profile-current-email" id="locCurrent">${state.settings.locatie ? `${t("setLocCurrent")} ${escapeHtml(state.settings.locatie.naam)} <span class="profile-hint">(${state.settings.locatie.lat.toFixed(3)}, ${state.settings.locatie.lon.toFixed(3)})</span>` : escapeHtml(t("setLocNone"))}</div>
+        <div class="loc-search-row"><input type="text" id="locQuery" placeholder="Heerlen / 6411" /><button class="primary" id="locSearchBtn">${t("setLocSearch")}</button></div>
+        <div class="loc-results" id="locResults"></div>
+        <div class="loc-btn-row"><button id="locGpsBtn">${t("setLocGps")}</button>${state.settings.locatie ? `<button id="locClearBtn">${t("setLocClear")}</button>` : ""}</div>
+        <p class="profile-hint">${escapeHtml(t("setLocHint"))}</p>
+        <label class="profile-check"><input type="checkbox" id="setAuto" ${state.settings.autoBuiten ? "checked" : ""} /> ${escapeHtml(t("setAuto"))}</label>
+      </div>`;
+    wireLocationSettings();
     document.getElementById("setIso").onchange = e => { state.settings.isolatieDatum = e.target.value; scheduleAutoSave(); renderAll(); };
     document.getElementById("setRef").onchange = e => { const n = parseNum(e.target.value); if(n !== null){ state.settings.refBuiten = n; scheduleAutoSave(); renderAll(); } };
     document.getElementById("setRuimte").onchange = e => { state.settings.defaultRuimte = e.target.value.trim() || "Woonkamer"; scheduleAutoSave(); renderAll(); };
