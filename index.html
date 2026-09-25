@@ -372,6 +372,8 @@
   .howto li{margin-bottom:4px;}
   .chart-legend .sw.hollow{background:transparent; border:2px solid var(--text-soft); width:9px; height:9px; box-sizing:border-box;}
   .ktable{min-width:0;}
+  .ktable .mono{white-space:nowrap;}
+  .kt-title{font-size:12px; font-weight:700; letter-spacing:.06em; text-transform:uppercase; color:var(--deep); margin:18px 0 4px;}
   .summary-grid{display:grid; grid-template-columns:repeat(3,1fr); gap:10px;}
   .summary-grid > div{display:flex; flex-direction:column; gap:2px; border:1px solid var(--rule); border-radius:4px; padding:8px 10px;}
   .summary-grid .l{font-size:11px; color:var(--text-soft);}
@@ -800,7 +802,7 @@ const I18N = {
     kpVrijNote: "Metingen waarbij cv én airco uit stonden laten zien hoe je huis zélf presteert. Hoe groter het verschil binnen − buiten bij kou, hoe beter de warmte binnen blijft.",
     kpVrijAvg: "Gem. verschil binnen − buiten",
     kpVrijNone: "Nog geen metingen met cv én airco uit.",
-    kpMonth: "Maand", kpN: "Metingen", kpAvgOut: "Gem. buiten", kpAvgDelta: "Gem. verschil",
+    kpMonth: "Maand", kpN: "Metingen", kpAvgOut: "Gem. buiten", kpAvgIn: "Gem. binnen", kpAvgDelta: "Gem. verschil",
     kpHeatMax: (bi, bu) => `Warmste binnen zonder koelen: ${bi} bij ${bu} buiten.`,
     kpVerwTitle: "Verwarmen",
     kpVerwNote: "Wordt de ingestelde temperatuur gehaald? Lukt dat bij kou niet meer, dan verliest het huis meer warmte dan de verwarming kan bijhouden. Goede isolatie schuift dat punt op naar koudere dagen.",
@@ -860,6 +862,29 @@ const I18N = {
     kpUnknownHint: n => `${n} oudere meting${n===1?"":"en"} ${n===1?"heeft":"hebben"} nog geen cv/airco-gegevens (—).`,
     kpUnknownBtn: n => `Zet ${n} meting${n===1?"":"en"} op 'Uit'`,
     kpUnknownConfirm: n => `${n} meting${n===1?"":"en"} zonder cv/airco-gegevens op 'cv uit, airco uit' zetten? Doe dit alleen als er toen echt niets aan stond.`,
+    ktTitle: "Koeltests",
+    ktNote: "Automatisch herkend: een meting met alles uit vlak vóór je de airco aanzet, gevolgd door een meting met koelen (zelfde ruimte, binnen 8 uur). Tip: meet dus even vóór het aanzetten en een tijd erna. Bij dezelfde buitentemperatuur betekent een hogere koelsnelheid dat er minder warmte het huis in lekt.",
+    ktNone: "Nog geen koeltests gevonden. Doe een meting met alles uit, zet dan de airco op koelen en meet later opnieuw (Airco: Koelen, met de ingestelde temperatuur).",
+    ktDur: "Duur", ktRate: "Koelsnelheid", ktPerH: "°C/u", ktSet: "Instelling", ktReached: "gehaald",
+    ktChart: "Koelsnelheid t.o.v. buitentemperatuur", ktAvgRate: "Gem. koelsnelheid",
+    howtoKoel: [
+      "Elke stip is één koeltest: van links naar rechts de gemiddelde buitentemperatuur tijdens het koelen, van onder naar boven hoe snel het binnen koeler werd (°C per uur).",
+      "Hoe warmer het buiten, hoe harder de airco moet werken; stippen rechts liggen daardoor meestal lager.",
+      "Vergelijk tests bij ongeveer dezelfde buitentemperatuur. Na isolatie (groen) hoort de koelsnelheid hoger te liggen dan ervoor (paars), omdat er minder warmte door de muren naar binnen komt.",
+      "Werd de ingestelde temperatuur niet gehaald ('niet gehaald' in de tabel), dan was de airco op zijn grens — een teken van veel warmte-instroom (zon, slecht geïsoleerde ramen of muren).",
+    ],
+    howtoK: {
+      dot: "Elke stip is één meting, gekleurd naar wat er aan stond:",
+      cVrij: "aqua", cVerw: "oranje", cKoel: "blauw",
+      open: "Een open stip betekent: binnen ≈ ingestelde temperatuur, dus de thermostaat regelde het.",
+      stook: "De oranje stippellijn is de stookgrens: links daarvan (kouder buiten) staat de verwarming meestal aan. Hoe verder die lijn naar links schuift, hoe later in het jaar je hoeft te stoken.",
+      stookNeed: (nv, nw) => `De stookgrens (oranje stippellijn) verschijnt zodra er minstens 3 metingen met alles uit én 3 met de verwarming aan zijn. Nu: ${nv} alles uit, ${nw} verwarmd.`,
+      koel: "De blauwe stippellijn is de koelgrens: rechts daarvan (warmer buiten) wordt er meestal gekoeld. Hoe verder naar rechts, hoe beter het huis de hitte buiten houdt.",
+      koelNeed: (nv, nk) => `De koelgrens (blauwe stippellijn) verschijnt zodra er minstens 3 metingen met alles uit én 3 met koelen zijn. Nu: ${nv} alles uit, ${nk} gekoeld.`,
+      vrij: "Aqua stippen die hoog liggen bij lage buitentemperatuur laten zien dat het huis zonder verwarming lang warm blijft. Stippen rechtsboven (warm buiten én binnen) tonen hoe warm het zonder koelen wordt.",
+      niet: "Gevulde oranje stippen onder de ingestelde temperatuur (label 'niet gehaald' in de tabel) betekenen dat de verwarming het bij die kou niet bijhield.",
+      onlyVrij: "Je hebt nu alleen metingen met alles uit. Zet bij een meting de cv of airco op aan (met de ingestelde temperatuur) om ook verwarmen en koelen te zien.",
+    },
     tp1: "1 dag",
     zoomIn: "Inzoomen", zoomOut: "Uitzoomen", zoomReset: "Herstel", zoomMax: "Maximaal ingezoomd (uurniveau)",
     nowLbl: "nu", tpEmptyToday: "Vandaag nog geen metingen. Voeg er hierboven één toe, of blader terug met ‹.",
@@ -1063,7 +1088,7 @@ const I18N = {
     kpVrijNote: "Readings with both boiler and AC off show how your house itself performs. The larger the indoor − outdoor difference in cold weather, the better the warmth stays in.",
     kpVrijAvg: "Avg. difference indoor − outdoor",
     kpVrijNone: "No readings with boiler and AC off yet.",
-    kpMonth: "Month", kpN: "Readings", kpAvgOut: "Avg. outdoor", kpAvgDelta: "Avg. difference",
+    kpMonth: "Month", kpN: "Readings", kpAvgOut: "Avg. outdoor", kpAvgIn: "Avg. indoor", kpAvgDelta: "Avg. difference",
     kpHeatMax: (bi, bu) => `Warmest indoor without cooling: ${bi} at ${bu} outdoor.`,
     kpVerwTitle: "Heating",
     kpVerwNote: "Is the set temperature reached? If it no longer is in cold weather, the house loses more heat than the heating can supply. Good insulation pushes that point to colder days.",
@@ -1123,6 +1148,29 @@ const I18N = {
     kpUnknownHint: n => `${n} older reading${n===1?" has":"s have"} no boiler/AC data yet (—).`,
     kpUnknownBtn: n => `Set ${n} reading${n===1?"":"s"} to 'Off'`,
     kpUnknownConfirm: n => `Set ${n} reading${n===1?"":"s"} without boiler/AC data to 'boiler off, AC off'? Only do this if nothing was actually running.`,
+    ktTitle: "AC cooling tests",
+    ktNote: "Detected automatically: a reading with everything off just before switching the AC on, followed by a reading with cooling (same room, within 8 hours). Tip: measure just before switching on and again a while later. At the same outdoor temperature, a higher cooling rate means less heat leaks into the house.",
+    ktNone: "No cooling tests found yet. Take a reading with everything off, then switch the AC to cooling and measure again later (AC: Cooling, with the set temperature).",
+    ktDur: "Duration", ktRate: "Cooling rate", ktPerH: "°C/h", ktSet: "Set to", ktReached: "reached",
+    ktChart: "Cooling rate vs. outdoor temperature", ktAvgRate: "Avg. cooling rate",
+    howtoKoel: [
+      "Each dot is one cooling test: left to right the average outdoor temperature while cooling, bottom to top how quickly indoor got cooler (°C per hour).",
+      "The warmer outside, the harder the AC has to work; dots on the right therefore usually sit lower.",
+      "Compare tests at roughly the same outdoor temperature. After insulation (green) the cooling rate should be higher than before (purple), because less heat comes in through the walls.",
+      "If the set temperature was not reached ('not reached' in the table), the AC was at its limit — a sign of a lot of heat coming in (sun, poorly insulated windows or walls).",
+    ],
+    howtoK: {
+      dot: "Each dot is one reading, coloured by what was on:",
+      cVrij: "aqua", cVerw: "orange", cKoel: "blue",
+      open: "An open dot means indoor ≈ set temperature, so the thermostat was in control.",
+      stook: "The orange dashed line is the heating threshold: to the left (colder outside) the heating is usually on. The further left it moves, the later in the year you need to heat.",
+      stookNeed: (nv, nw) => `The heating threshold (orange dashed line) appears once there are at least 3 readings with all off and 3 with heating on. Now: ${nv} all off, ${nw} heated.`,
+      koel: "The blue dashed line is the cooling threshold: to the right (warmer outside) you usually cool. The further right, the better the house keeps heat out.",
+      koelNeed: (nv, nk) => `The cooling threshold (blue dashed line) appears once there are at least 3 readings with all off and 3 with cooling. Now: ${nv} all off, ${nk} cooled.`,
+      vrij: "Aqua dots sitting high at low outdoor temperatures show the house stays warm without heating. Dots at the top right (warm outside and inside) show how warm it gets without cooling.",
+      niet: "Filled orange dots below the set temperature ('not reached' in the table) mean the heating could not keep up in that cold.",
+      onlyVrij: "You only have readings with everything off so far. Switch the boiler or AC on for a reading (with the set temperature) to see heating and cooling too.",
+    },
     tp1: "1 day",
     zoomIn: "Zoom in", zoomOut: "Zoom out", zoomReset: "Reset", zoomMax: "Fully zoomed in (hour level)",
     nowLbl: "now", tpEmptyToday: "No readings today yet. Add one above, or go back with ‹.",
@@ -1185,6 +1233,7 @@ function migrateState(){
   if(!Array.isArray(state.metingen)) state.metingen = [];
   if(!Array.isArray(state.afkoeltests)) state.afkoeltests = [];
   if(!Array.isArray(state.afkoelGenegeerd)) state.afkoelGenegeerd = [];
+  if(!Array.isArray(state.koeltestGenegeerd)) state.koeltestGenegeerd = [];
   if(state.settings.lastKlimaat){ if(!state.settings.lastKlimaat.cv) state.settings.lastKlimaat.cv = "uit"; if(!state.settings.lastKlimaat.airco) state.settings.lastKlimaat.airco = "uit"; }
   if(!state.lang) state.lang = "nl";
   if(typeof state.darkMode !== "boolean") state.darkMode = false;
@@ -1281,6 +1330,9 @@ function klimaatOf(m){
   const sys = mode === "verwarmen" ? (heatCv && heatAir ? "beide" : heatCv ? "cv" : heatAir ? "airco" : null) : null;
   return { mode, sp, reg, sys };
 }
+/* "Onbekend" bestaat alleen nog voor oude metingen zonder cv/airco-gegevens; nieuwe metingen
+   staan standaard op Uit. Zonder zulke metingen verbergen we de optie overal. */
+function hasUnknownKlimaat(){ return state.metingen.some(m => { const md = klimaatOf(m).mode; return md === "onbekend" || md === "gemengd"; }); }
 function isRegulated(m){ return klimaatOf(m).reg === "gehaald"; }
 let klimaatFilter = "all";   // schermvoorkeur: all | vrij | verwarmen | koelen | onbekend
 function applyKlimaat(list){ return klimaatFilter === "all" ? list : list.filter(m => { const k = klimaatOf(m).mode; return klimaatFilter === "onbekend" ? (k === "onbekend" || k === "gemengd") : k === klimaatFilter; }); }
@@ -1648,8 +1700,8 @@ const ICONS = {
 /* "Zo lees je deze grafiek": inklapbare uitleg onder een grafiek. Open/dicht wordt per grafiek
    onthouden zolang de pagina open is (niet opgeslagen). */
 const howtoOpen = {};
-function howtoHTML(key){
-  const items = t(key);
+function howtoHTML(key, itemsOverride){
+  const items = itemsOverride || t(key);
   return `<details class="howto" data-howto="${key}" ${howtoOpen[key] ? "open" : ""}><summary>${escapeHtml(t("howtoTitle"))}</summary><ul>${items.map(i => `<li>${escapeHtml(i)}</li>`).join("")}</ul></details>`;
 }
 document.addEventListener("toggle", e => { const d = e.target; if(d && d.dataset && d.dataset.howto) howtoOpen[d.dataset.howto] = d.open; }, true);
@@ -1686,7 +1738,7 @@ function renderMain(){
 function redrawCharts(){
   const v = state.activeView || {};
   if(v.type === "afkoel"){ drawCoolChart(document.getElementById("coolChart")); return; }
-  if(v.type === "klimaat"){ drawKlimaatChart(document.getElementById("klimaatChart")); return; }
+  if(v.type === "klimaat"){ drawKlimaatChart(document.getElementById("klimaatChart")); drawKoelChart(document.getElementById("koelChart"), koelTests()); return; }
   if(v.type === "import") return;
   const list = visibleMetingen();
   drawTimeChart(document.getElementById("timeChart"), list);
@@ -1697,7 +1749,7 @@ function filterRowHTML(){
     <span class="seg" role="radiogroup">${["all"].concat(DAGDELEN).map(k => `<button type="button" data-dp="${k}" class="${dagdeelFilter===k?"on":""}">${k==="all"?t("dpAll"):dpLabel(k)}</button>`).join("")}</span>
     <span class="filter-hint">${t("dpHint")}</span></div>
     <div class="filter-row"><span class="filter-label">${t("kFilterLabel")}</span>
-    <span class="seg" role="radiogroup">${["all","vrij","verwarmen","koelen","onbekend"].map(k => `<button type="button" data-kf="${k}" class="${klimaatFilter===k?"on":""}">${k==="all"?t("dpAll"):t("kStatus_"+k)}</button>`).join("")}</span></div>`;
+    <span class="seg" role="radiogroup">${["all","vrij","verwarmen","koelen"].concat(hasUnknownKlimaat() || klimaatFilter === "onbekend" ? ["onbekend"] : []).map(k => `<button type="button" data-kf="${k}" class="${klimaatFilter===k?"on":""}">${k==="all"?t("dpAll"):t("kStatus_"+k)}</button>`).join("")}</span></div>`;
 }
 function wireFilterRow(){
   document.querySelectorAll("[data-dp]").forEach(b => b.onclick = () => { dagdeelFilter = b.dataset.dp; renderAll({ skipProfile:true }); });
@@ -2539,6 +2591,21 @@ function klimaatStats(){
   const regPct = arr => { const k = arr.filter(x => x.k.reg); return k.length ? Math.round(k.filter(x => x.k.reg !== "niet").length / k.length * 100) : null; };
   return { all, withK, vrij, verw, koel, counts, stook, koelG, verwPct: regPct(verw), koelPct: regPct(koel) };
 }
+/* Uitleg onder de klimaatgrafiek: alleen wat er echt in de grafiek staat, plus wat er nog ontbreekt
+   en wanneer dat verschijnt (in plaats van een algemene tekst over stippen die er niet zijn). */
+function klimaatHowtoItems(S){
+  const T = t("howtoK");
+  const hasV = S.verw.length > 0, hasK = S.koel.length > 0, hasReg = S.withK.some(x => x.k.reg === "gehaald");
+  const colours = [t("kStatus_vrij") + " = " + T.cVrij].concat(hasV ? [t("kStatus_verwarmen") + " = " + T.cVerw] : [], hasK ? [t("kStatus_koelen") + " = " + T.cKoel] : []);
+  const items = [T.dot + " " + colours.join(", ") + "."];
+  if(hasReg) items.push(T.open);
+  if(S.stook) items.push(T.stook); else items.push(T.stookNeed(S.vrij.length, S.verw.length));
+  if(S.koelG) items.push(T.koel); else items.push(T.koelNeed(S.vrij.length, S.koel.length));
+  items.push(T.vrij);
+  if(hasV) items.push(T.niet);
+  if(!hasV && !hasK) items.push(T.onlyVrij);
+  return items;
+}
 function renderKlimaatView(main){
   const S = klimaatStats();
   const nf = v => fmtT(v);
@@ -2548,11 +2615,11 @@ function renderKlimaatView(main){
   else {
     const byMonth = {};
     S.vrij.forEach(x => { const k = monthKey(x.m.datum); (byMonth[k] = byMonth[k] || []).push(x.m); });
-    const rows = Object.keys(byMonth).sort().reverse().map(k => { const a = byMonth[k]; return `<tr><td>${escapeHtml(monthLabel(k))}</td><td class="num">${a.length}</td><td class="num mono">${nf(avg(a.map(kx)))}</td><td class="num mono">${fmtDelta(avg(a.map(m => m.binnen - kx(m))))}</td></tr>`; }).join("");
+    const rows = Object.keys(byMonth).sort().reverse().map(k => { const a = byMonth[k]; return `<tr><td>${escapeHtml(monthLabel(k))}</td><td class="num">${a.length}</td><td class="num mono">${nf(avg(a.map(kx)))}</td><td class="num mono">${nf(avg(a.map(m => m.binnen)))}</td><td class="num mono">${fmtDelta(avg(a.map(m => m.binnen - kx(m))))}</td></tr>`; }).join("");
     const warm = S.vrij.filter(x => kx(x.m) >= 22);
     let heat = "";
     if(warm.length){ const mx = warm.reduce((a,b) => b.m.binnen > a.m.binnen ? b : a); heat = `<p class="card-note" style="margin-top:10px;">${escapeHtml(t("kpHeatMax")(nf(mx.m.binnen), nf(kx(mx.m))))}</p>`; }
-    vrijBody = `<div class="table-scroll"><table class="rtable ktable"><thead><tr><th>${t("kpMonth")}</th><th class="num">${t("kpN")}</th><th class="num">${t("kpAvgOut")}</th><th class="num">${t("kpAvgDelta")}</th></tr></thead><tbody>${rows}</tbody></table></div>${heat}`;
+    vrijBody = `<div class="table-scroll"><table class="rtable ktable"><thead><tr><th>${t("kpMonth")}</th><th class="num">${t("kpN")}</th><th class="num">${t("kpAvgOut")}</th><th class="num">${t("kpAvgIn")}</th><th class="num">${t("kpAvgDelta")}</th></tr></thead><tbody>${rows}</tbody></table></div>${heat}`;
   }
   // 2. verwarmen per systeem
   let verwBody;
@@ -2570,6 +2637,7 @@ function renderKlimaatView(main){
     verwBody = `<p class="card-note" style="margin-bottom:8px;">${escapeHtml(t("kpVerwCols"))}</p><div class="table-scroll"><table class="rtable ktable"><thead><tr><th>${t("kpSys")}</th><th class="num">${t("kpN")}</th><th class="num">${t("kpGehaald")}</th><th class="num">${t("kpTekort")}</th><th class="num">${t("kpColdestOk")}</th><th class="num">${t("kpWarmestNot")}</th></tr></thead><tbody>${rows}</tbody></table></div>`;
   }
   // 3. koelen
+  const KT = koelTests();
   let koelBody;
   if(!S.koel.length) koelBody = `<p class="card-note">${escapeHtml(t("kpNoKoel"))}</p>`;
   else {
@@ -2581,13 +2649,16 @@ function renderKlimaatView(main){
       <div><span class="l">${t("kpAvgOut")}</span><span class="v mono">${fmtT(avg(S.koel.map(x => kx(x.m))))}</span></div></div>
       <p class="card-note" style="margin-top:10px;">${escapeHtml(t("kpKoelDays")(days))}</p>`;
   }
+  koelBody += koelTestsHTML(KT);
   main.innerHTML =
-    cardHTML(ICONS.scatter, t("kpChart"), `<div id="klimaatChart"></div>${howtoHTML("howtoKlimaat")}`, basisToggleHTML()) +
+    cardHTML(ICONS.scatter, t("kpChart"), `<div id="klimaatChart"></div>${howtoHTML("howtoKlimaat", klimaatHowtoItems(S))}`, basisToggleHTML()) +
     cardHTML(ICONS.therm, t("kpVrijTitle"), `<p class="card-note" style="margin-bottom:10px;">${escapeHtml(t("kpVrijNote"))}</p>${vrijBody}`, String(S.vrij.length)) +
     cardHTML(ICONS.plus, t("kpVerwTitle"), `<p class="card-note" style="margin-bottom:10px;">${escapeHtml(t("kpVerwNote"))}</p>${verwBody}`, String(S.verw.length)) +
     cardHTML(ICONS.moon, t("kpKoelTitle"), `<p class="card-note" style="margin-bottom:10px;">${escapeHtml(t("kpKoelNote"))}</p>${koelBody}`, String(S.koel.length));
   wireFilterRow();
   drawKlimaatChart(document.getElementById("klimaatChart"));
+  drawKoelChart(document.getElementById("koelChart"), KT);
+  wireKoelTests();
 }
 function drawKlimaatChart(el){
   if(!el) return;
@@ -2636,9 +2707,11 @@ function renderKlimaatSummary(el){
   let html = `<h2>${t("kpTitle")}</h2><div class="stamp-row">${stamp(S.stook, t("kpStook"), t("kpStookSub"), "k-verw")}${stamp(S.koelG, t("kpKoel"), t("kpKoelSub"), "k-koel")}</div>`;
   const vrijAvg = S.vrij.length ? avg(S.vrij.map(x => x.m.binnen - kx(x.m))) : null;
   html += `<div class="summary-line"><span class="l">${t("kpVrijAvg")} (${t("kStatus_vrij").toLowerCase()})</span><span class="v">${fmtDelta(vrijAvg)}</span></div>`;
-  html += `<h3>${t("kpCounts")}</h3>` + ["vrij","verwarmen","koelen","onbekend"].map(k => `<div class="summary-line"><span class="l"><i class="sw" style="background:${k==="vrij"?"var(--k-vrij)":k==="verwarmen"?"var(--k-verw)":k==="koelen"?"var(--k-koel)":"var(--rule)"}"></i>${t("kStatus_"+k)}</span><span class="v">${S.counts[k]||0}</span></div>`).join("");
+  html += `<h3>${t("kpCounts")}</h3>` + ["vrij","verwarmen","koelen"].concat(S.counts.onbekend ? ["onbekend"] : []).map(k => `<div class="summary-line"><span class="l"><i class="sw" style="background:${k==="vrij"?"var(--k-vrij)":k==="verwarmen"?"var(--k-verw)":k==="koelen"?"var(--k-koel)":"var(--rule)"}"></i>${t("kStatus_"+k)}</span><span class="v">${S.counts[k]||0}</span></div>`).join("");
   const unknownN = state.metingen.filter(m => !m.cv && !m.airco && m.verwarming !== "aan").length;
   if(unknownN) html += `<p class="summary-hint">${escapeHtml(t("kpUnknownHint")(unknownN))}</p><div class="actions" style="margin-top:8px;"><button id="bulkUitBtn">${escapeHtml(t("kpUnknownBtn")(unknownN))}</button></div>`;
+  const KTs = koelTests();
+  if(KTs.length) html += `<div class="summary-line"><span class="l">${escapeHtml(t("ktAvgRate"))} (${KTs.length})</span><span class="v">${escapeHtml(avg(KTs.map(k => k.rate)).toLocaleString(state.lang==="en"?"en-GB":"nl-NL", { maximumFractionDigits: 1, minimumFractionDigits: 1 }))} ${escapeHtml(t("ktPerH"))}</span></div>`;
   html += `<h3>${t("kpRegPct")}</h3>
     <div class="summary-line"><span class="l">${t("kpVerwTitle")}</span><span class="v">${S.verwPct === null ? "—" : S.verwPct + "%"}</span></div>
     <div class="summary-line"><span class="l">${t("kpKoelTitle")}</span><span class="v">${S.koelPct === null ? "—" : S.koelPct + "%"}</span></div>
@@ -2646,6 +2719,95 @@ function renderKlimaatSummary(el){
   html += actionsHTML();
   el.innerHTML = html;
   wireActions();
+}
+
+
+/* ================= KOELTESTS =================
+   Automatisch herkend in "Alle metingen": een meting met alles uit (vlak vóór het aanzetten),
+   gevolgd door één of meer metingen met de airco op koelen, in dezelfde ruimte, binnen 8 uur, met
+   een lagere binnentemperatuur. De laatste koelmeting in die aaneengesloten reeks is het eind.
+   Kengetallen: koelsnelheid (°C per uur), of de ingestelde temperatuur gehaald werd, en de
+   buitentemperatuur tijdens de test. Bij dezelfde buitentemperatuur betekent een hogere
+   koelsnelheid (of een lagere eindtemperatuur) dat er minder warmte het huis in lekt. */
+function koelTests(){
+  const dismissed = new Set(state.koeltestGenegeerd || []);
+  const byRoom = {};
+  sortedMetingen(state.metingen).forEach(m => { const r = (m.ruimte || "").toLowerCase(); (byRoom[r] = byRoom[r] || []).push(m); });
+  const out = [];
+  Object.values(byRoom).forEach(list => {
+    for(let i = 0; i < list.length - 1; i++){
+      const a = list[i];
+      if(klimaatOf(a).mode !== "vrij") continue;
+      let j = i + 1, lastJ = -1;
+      while(j < list.length && klimaatOf(list[j]).mode === "koelen" && (tsOf(list[j]) - tsOf(a)) <= 8 * HOUR){ lastJ = j; j++; }
+      if(lastJ < 0) continue;
+      const b = list[lastJ], dtH = (tsOf(b) - tsOf(a)) / HOUR;
+      if(dtH < 0.25 || b.binnen >= a.binnen) continue;
+      const key = a.id + "|" + b.id;
+      if(dismissed.has(key)) continue;
+      const kb = klimaatOf(b), mids = lastJ - i - 1;
+      const outs = list.slice(i, lastJ + 1).map(m => m.buiten);
+      out.push({ key, a, b, dtH, drop: a.binnen - b.binnen, rate: (a.binnen - b.binnen) / dtH, out: avg(outs), sp: kb.sp, reached: kb.sp === null ? null : b.binnen <= kb.sp + REG_TOL, mids, phase: phaseOf(a) });
+      i = lastJ;
+    }
+  });
+  return out.sort((x, y) => tsOf(y.a) - tsOf(x.a));
+}
+function koelTestsHTML(KT){
+  let html = `<h3 class="kt-title">${escapeHtml(t("ktTitle"))}</h3><p class="card-note">${escapeHtml(t("ktNote"))}</p>`;
+  if(!KT.length) return html + `<p class="card-note" style="margin-top:8px;"><em>${escapeHtml(t("ktNone"))}</em></p>`;
+  const iso = !!state.settings.isolatieDatum;
+  const nf1 = v => v.toLocaleString(state.lang==="en"?"en-GB":"nl-NL", { maximumFractionDigits: 1, minimumFractionDigits: 1 });
+  const rows = KT.map(k => `<tr data-key="${escapeHtml(k.key)}">
+      <td>${escapeHtml(fmtDate(k.a.datum, true))}<div class="pts">${escapeHtml(k.a.tijd)} → ${escapeHtml(k.b.tijd)}${k.mids ? " · " + escapeHtml(t("coolPoints")(k.mids + 2)) : ""}</div></td>
+      <td class="num mono">${escapeHtml(fmtT(k.a.binnen))} → ${escapeHtml(fmtT(k.b.binnen))}</td>
+      <td class="num mono">${escapeHtml(t("hours")(nf1(k.dtH)))}</td>
+      <td class="num mono"><strong>${escapeHtml(nf1(k.rate))}</strong> ${escapeHtml(t("ktPerH"))}</td>
+      <td class="num mono">${escapeHtml(fmtT(k.out))}</td>
+      <td class="num">${k.sp === null ? "—" : `${escapeHtml(fmtT(k.sp))} <span class="reg-tag ${k.reached ? "gehaald" : "niet"}">${escapeHtml(t(k.reached ? "ktReached" : "kReg_niet"))}</span>`}</td>
+      ${iso ? `<td>${k.phase ? `<span class="phase ${k.phase}">${t(k.phase==="voor"?"phaseVoor":"phaseNa")}</span>` : ""}</td>` : ""}
+      <td><button class="row-del kt-skip" title="${escapeHtml(t("coolCandSkip"))}" aria-label="${escapeHtml(t("coolCandSkip"))}">${ICONS.trash}</button></td>
+    </tr>`).join("");
+  html += `<div class="table-scroll" style="margin-top:8px;"><table class="rtable ktable"><thead><tr><th>${t("thDatum")}</th><th class="num">${t("thBinnen")}</th><th class="num">${t("ktDur")}</th><th class="num">${t("ktRate")}</th><th class="num">${t("thBuitenGem")}</th><th class="num">${t("ktSet")}</th>${iso ? `<th>${t("thFase")}</th>` : ""}<th></th></tr></thead><tbody>${rows}</tbody></table></div>`;
+  html += `<div id="koelChart" style="margin-top:14px;"></div>` + howtoHTML("howtoKoel");
+  return html;
+}
+function wireKoelTests(){
+  document.querySelectorAll(".kt-skip").forEach(b => b.onclick = () => {
+    const key = b.closest("tr").dataset.key;
+    state.koeltestGenegeerd = (state.koeltestGenegeerd || []).concat([key]);
+    scheduleAutoSave(); renderAll({ skipProfile:true });
+  });
+}
+function drawKoelChart(el, KT){
+  if(!el) return;
+  if(!KT.length){ el.innerHTML = ""; return; }
+  const hasIso = !!state.settings.isolatieDatum;
+  const colorOf = k => !hasIso || !k.phase ? "var(--k-koel)" : k.phase === "voor" ? "var(--c-voor)" : "var(--c-na)";
+  const W = chartWidth(el), H = Math.round(Math.min(280, Math.max(200, W*0.36)));
+  const m = { l:52, r:16, t:24, b:36 }, iw = W - m.l - m.r, ih = H - m.t - m.b;
+  const xs = KT.map(k => k.out), ys = KT.map(k => k.rate);
+  const xt = niceTicks(Math.min(...xs) - (xs.length === 1 ? 2 : 0), Math.max(...xs) + (xs.length === 1 ? 2 : 0), 5), yt = niceTicks(0, Math.max(...ys) * 1.15, 4);
+  const X = v => m.l + (v - xt.lo) / (xt.hi - xt.lo) * iw, Y = v => m.t + ih - (v - yt.lo) / (yt.hi - yt.lo) * ih;
+  const nfv = v => v.toLocaleString(state.lang==="en"?"en-GB":"nl-NL");
+  let g = yt.ticks.map(v => `<line x1="${m.l}" x2="${m.l+iw}" y1="${Y(v)}" y2="${Y(v)}" stroke="var(--grid)"/><text x="${m.l-8}" y="${Y(v)+4}" text-anchor="end">${nfv(v)}</text>`).join("");
+  g += xt.ticks.map(v => `<line x1="${X(v)}" x2="${X(v)}" y1="${m.t}" y2="${m.t+ih}" stroke="var(--grid)"/><text x="${X(v)}" y="${m.t+ih+16}" text-anchor="middle">${nfv(v)}°</text>`).join("");
+  g += `<text x="${m.l+iw}" y="${H-2}" text-anchor="end">${escapeHtml(t("thBuitenGem"))} →</text><text x="${m.l-44}" y="${m.t-10}">${escapeHtml(t("ktRate"))} (${escapeHtml(t("ktPerH"))}) ↑</text>`;
+  const dots = KT.map(k => `<circle cx="${X(k.out)}" cy="${Y(k.rate)}" r="6" fill="${colorOf(k)}" stroke="var(--paper)" stroke-width="2"/>`).join("");
+  const groups = hasIso ? [["voor", t("lVoor"), "var(--c-voor)"], ["na", t("lNa"), "var(--c-na)"]].filter(([p]) => KT.some(k => k.phase === p)) : [["", t("ktTitle"), "var(--k-koel)"]];
+  el.innerHTML = `<div class="chart-legend">${groups.map(([p, l, c]) => `<span class="key"><i class="sw dot" style="background:${c}"></i>${escapeHtml(l)} (${p ? KT.filter(k => k.phase === p).length : KT.length})</span>`).join("")}</div>
+    <div class="chart-wrap"><svg viewBox="0 0 ${W} ${H}" role="img" aria-label="${escapeHtml(t("ktChart"))}">${g}${dots}</svg></div>`;
+  const wrap = el.querySelector(".chart-wrap"), svgEl = wrap.querySelector("svg"), tip = attachTooltip(wrap);
+  svgEl.addEventListener("pointermove", ev => {
+    const r = svgEl.getBoundingClientRect(), sc = W / r.width, px = (ev.clientX - r.left) * sc, py = (ev.clientY - r.top) * sc;
+    let best = null, bd = 20;
+    KT.forEach(k => { const d = Math.hypot(X(k.out) - px, Y(k.rate) - py); if(d < bd){ bd = d; best = k; } });
+    if(!best){ tip.hide(); return; }
+    const c = colorOf(best), nf1 = v => v.toLocaleString(state.lang==="en"?"en-GB":"nl-NL", { maximumFractionDigits: 1 });
+    tip.show(`<div class="tt-head">${escapeHtml(fmtDate(best.a.datum, true))} · ${escapeHtml(best.a.tijd)} → ${escapeHtml(best.b.tijd)}</div>
+      ${ttRow(c, t("thBinnen"), escapeHtml(fmtT(best.a.binnen) + " → " + fmtT(best.b.binnen)))}${ttRow(c, t("ktRate"), escapeHtml(nf1(best.rate) + " " + t("ktPerH")))}${ttRow(c, t("thBuitenGem"), fmtT(best.out))}`, X(best.out)/sc, Y(best.rate)/sc);
+  });
+  svgEl.addEventListener("pointerleave", () => tip.hide());
 }
 
 /* ================= IMPORT / EXPORT ================= */
@@ -2792,6 +2954,11 @@ function exportXlsx(){
     const wb = XLSX.utils.book_new(); XLSX.utils.book_append_sheet(wb, ws, "Metingen");
     const cool = coolExportRows();
     if(cool.length) XLSX.utils.book_append_sheet(wb, XLSX.utils.json_to_sheet(cool), state.lang==="en" ? "Cool-down tests" : "Afkoeltests");
+    const kts = koelTests();
+    if(kts.length){ const en = state.lang === "en"; XLSX.utils.book_append_sheet(wb, XLSX.utils.json_to_sheet(kts.slice().reverse().map(k => ({
+      [en?"Date":"Datum"]: k.a.datum, [en?"From":"Van"]: k.a.tijd, [en?"To":"Tot"]: k.b.tijd, [en?"Indoor start (°C)":"Binnen start (°C)"]: k.a.binnen, [en?"Indoor end (°C)":"Binnen eind (°C)"]: k.b.binnen,
+      [en?"Duration (h)":"Duur (u)"]: Math.round(k.dtH*10)/10, [en?"Cooling rate (°C/h)":"Koelsnelheid (°C/u)"]: Math.round(k.rate*10)/10, [en?"Outdoor avg. (°C)":"Buiten gem. (°C)"]: Math.round(k.out*10)/10,
+      [en?"AC set to (°C)":"Airco ingesteld (°C)"]: k.sp ?? "", [en?"Reached":"Gehaald"]: k.reached === null ? "" : (k.reached ? (en?"yes":"ja") : (en?"no":"nee")), [en?"Room":"Ruimte"]: k.a.ruimte || "" }))), en ? "AC cooling tests" : "Koeltests"); }
     XLSX.writeFile(wb, `Tembo_metingen_${todayISO()}.xlsx`);
   } else {
     const keys = rows.length ? Object.keys(rows[0]) : [];
