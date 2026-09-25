@@ -348,6 +348,7 @@
   .tnav-btn:hover:not(:disabled){border-color:var(--accent); color:var(--accent);}
   .tnav-btn:disabled{opacity:.35; cursor:default;}
   .tnav-label{font-size:12px; color:var(--text-soft); white-space:nowrap;}
+  .now-lbl{fill:var(--accent) !important; font-weight:700;}
   .tc-zoom{touch-action:pan-y; cursor:grab; user-select:none; -webkit-user-select:none;}
   .tc-zoom:active{cursor:grabbing;}
   .zoom-hint{font-size:11px; color:var(--text-soft); margin:6px 0 0;}
@@ -860,7 +861,8 @@ const I18N = {
     kpUnknownBtn: n => `Zet ${n} meting${n===1?"":"en"} op 'Uit'`,
     kpUnknownConfirm: n => `${n} meting${n===1?"":"en"} zonder cv/airco-gegevens op 'cv uit, airco uit' zetten? Doe dit alleen als er toen echt niets aan stond.`,
     tp1: "1 dag",
-    zoomIn: "Inzoomen", zoomOut: "Uitzoomen", zoomReset: "Herstel",
+    zoomIn: "Inzoomen", zoomOut: "Uitzoomen", zoomReset: "Herstel", zoomMax: "Maximaal ingezoomd (uurniveau)",
+    nowLbl: "nu", tpEmptyToday: "Vandaag nog geen metingen. Voeg er hierboven één toe, of blader terug met ‹.",
     zoomHint: "Zoomen: knijp met twee vingers (telefoon) of Ctrl + scrollen (computer). Slepen = verschuiven. Dubbeltik op een dag = naar die dag.",
     tlHourly: "Buiten online (per uur)",
     tp7: "7 dagen", tp30: "30 dagen", tp90: "3 mnd", tpAll: "Alles",
@@ -1122,7 +1124,8 @@ const I18N = {
     kpUnknownBtn: n => `Set ${n} reading${n===1?"":"s"} to 'Off'`,
     kpUnknownConfirm: n => `Set ${n} reading${n===1?"":"s"} without boiler/AC data to 'boiler off, AC off'? Only do this if nothing was actually running.`,
     tp1: "1 day",
-    zoomIn: "Zoom in", zoomOut: "Zoom out", zoomReset: "Reset",
+    zoomIn: "Zoom in", zoomOut: "Zoom out", zoomReset: "Reset", zoomMax: "Fully zoomed in (hour level)",
+    nowLbl: "now", tpEmptyToday: "No readings today yet. Add one above, or go back with ‹.",
     zoomHint: "Zoom: pinch with two fingers (phone) or Ctrl + scroll (computer). Drag = pan. Double-tap a day = go to that day.",
     tlHourly: "Outdoor online (hourly)",
     tp7: "7 days", tp30: "30 days", tp90: "3 mo", tpAll: "All",
@@ -1707,6 +1710,7 @@ function basisToggleHTML(){
 }
 
 let formKlimaat = null;
+let formTimeTouched = false;   // true zodra je datum/tijd zelf wijzigt; dan loopt de klok niet meer mee
 let formDraft = null;   // ingetypte waarden bewaren als het scherm opnieuw wordt opgebouwd (filter, taal …)
 const DRAFT_FIELDS = ["fDatum","fTijd","fBinnen","fBuiten","fRuimte","fNotitie","fCvTemp","fAirTemp"];
 function captureFormDraft(){
@@ -1720,7 +1724,7 @@ function restoreFormDraft(){
     const el = document.getElementById(id);
     if(!el || formDraft[id] === undefined) return;
     if(id === "fBuiten" && formBuitenMode === "online") return;   // die vult Tembo zelf
-    if((id === "fDatum" || id === "fTijd") && !formDraft[id]) return;
+    if((id === "fDatum" || id === "fTijd") && (!formDraft[id] || !formTimeTouched)) return;   // niet-aangeraakte tijd = "nu"
     el.value = formDraft[id];
   });
   formDraft = null;
@@ -1777,6 +1781,8 @@ function wireEntryForm(){
   };
   document.getElementById("fDatum").addEventListener("change", autoFillBuiten);
   document.getElementById("fTijd").addEventListener("change", autoFillBuiten);
+  // Zelf datum/tijd aangepast (bijv. een meting van eerder invoeren)? Dan niet meer automatisch bijwerken.
+  ["fDatum","fTijd"].forEach(id => document.getElementById(id).addEventListener("input", () => { formTimeTouched = true; }));
   setBuitenMode(formBuitenMode, false);
   document.querySelectorAll("[data-kgroup]").forEach(g => g.querySelectorAll("button").forEach(b => b.onclick = () => {
     formKlimaat[g.dataset.kgroup] = b.dataset.kv;
@@ -1807,6 +1813,7 @@ function wireEntryForm(){
     state.settings.lastKlimaat = { cv: last.cv, airco: last.airco,
       cvTemp: last.cvTemp ?? formKlimaat.cvTemp ?? 20, aircoTemp: last.aircoTemp ?? formKlimaat.aircoTemp ?? 21 };
     formKlimaat = null;
+    formTimeTouched = false;
     DRAFT_FIELDS.forEach(id => { const el = document.getElementById(id); if(el && id !== "fRuimte") el.value = ""; });
     lastFormMsg = { cls:"ok", text:t("addedMsg") };
     formModeTouched = false;
@@ -1942,10 +1949,16 @@ function ttRow(color, label, val){ return `<div class="tt-row"><span><i class="t
    dan 10 dagen per dag samengevat (binnen = daggemiddelde, buiten = band laagste–hoogste met het
    daggemiddelde), onderbroken lijnen bij gaten, en een schakelaar naar "verschil binnen − buiten"
    (één as, geen misleidende dubbele schaal). */
-let timePeriod = "30";      // "1" | "7" | "30" | "90" | "all"   (schermvoorkeur, niet opgeslagen)
+let timePeriod = "1";       // "1" | "7" | "30" | "90" | "all"   (schermvoorkeur, niet opgeslagen; standaard vandaag)
 let timeZoom = null;        // null = voorkeuzeperiode; anders { start, end } na zoomen/verschuiven/bladeren
 let timeView = "temp";      // "temp" | "diff"
-const DAY = 86400000, HOUR = 3600000, MIN_SPAN = 6 * HOUR;
+const DAY = 86400000, HOUR = 3600000;
+/* Maximaal inzoomen: tot uurniveau, waarbij één uur nooit breder wordt dan ~60 px. Verder
+   inzoomen zou alleen de kolommen uitrekken zonder extra informatie. Op een telefoon (smalle
+   grafiek) kom je zo tot ~5 uur in beeld, op de computer tot ~12 uur. */
+const MAX_PX_PER_HOUR = 60;
+let lastTimeIw = 700;
+function minSpanMs(){ return Math.max(2 * HOUR, (lastTimeIw / MAX_PX_PER_HOUR) * HOUR); }
 function dayStart(ts){ return tsFrom(tsToISO(ts), "00:00"); }
 /* Grenzen waarbinnen je kunt zoomen en verschuiven: van de eerste tot na de laatste meting
    (of de gekozen maand in de maandweergave). */
@@ -1955,13 +1968,15 @@ function timeBounds(list){
     const lo = tsFrom(v.key + "-01", "00:00");
     return { lo, hi: tsFrom(addDaysISO(v.key + "-01", 32).slice(0,7) + "-01", "00:00") };
   }
-  const latest = list.length ? tsOf(list[list.length-1]) : Date.now();
+  // Altijd t/m vandaag, ook als de laatste meting van eerder is: de grafiek start op "vandaag".
+  const latest = Math.max(list.length ? tsOf(list[list.length-1]) : 0, Date.now());
   const hi = tsFrom(addDaysISO(tsToISO(latest), 1), "00:00");
   const lo = list.length ? dayStart(tsOf(list[0])) : hi - 30*DAY;
   return { lo, hi };
 }
 function clampWin(start, end, b){
-  let span = Math.max(MIN_SPAN, end - start);
+  let span = Math.max(minSpanMs(), end - start);
+  if(span > end - start){ const c = (start + end) / 2; start = c - span / 2; }   // rond het midden begrenzen
   span = Math.min(span, Math.max(DAY, b.hi - b.lo));
   if(start < b.lo){ start = b.lo; }
   if(start + span > b.hi){ start = b.hi - span; }
@@ -1978,6 +1993,9 @@ function timeWindow(list){
 }
 function fmtWinLabel(w){
   const span = w.end - w.start;
+  const hm0 = ts => { const d = new Date(ts); return `${pad2(d.getHours())}:${pad2(d.getMinutes())}`; };
+  // Ingezoomd binnen één dag (minder dan ~20 uur): datum plus van–tot-tijd.
+  if(span < 20 * HOUR && tsToISO(w.start) === tsToISO(w.end - 1)) return `${fmtDate(tsToISO(w.start), true)} · ${hm0(w.start)}–${hm0(w.end)}`;
   if(span <= 1.05 * DAY && tsToISO(w.start) === tsToISO(w.end - 1)) return fmtDate(tsToISO(w.start), true);
   if(span < 3 * DAY){ const hm = ts => { const d = new Date(ts); return `${pad2(d.getHours())}:${pad2(d.getMinutes())}`; }; return `${fmtDate(tsToISO(w.start))} ${hm(w.start)} – ${fmtDate(tsToISO(w.end))} ${hm(w.end)}`; }
   return `${fmtDate(tsToISO(w.start), true)} – ${fmtDate(tsToISO(w.end - 1), true)}`;
@@ -1988,7 +2006,7 @@ function timeToolbarHTML(){
   const presets = v.type === "month" ? "" : `<span class="seg small">${[["1","tp1"],["7","tp7"],["30","tp30"],["90","tp90"],["all","tpAll"]].map(([k,l]) => `<button type="button" data-tp="${k}" class="${!timeZoom && timePeriod===k?"on":""}">${t(l)}</button>`).join("")}</span>`;
   return `<div class="chart-toolbar">${presets}
     <span class="tnav"><button type="button" class="tnav-btn" data-tnav="-1" ${w.atFirst?"disabled":""} aria-label="${escapeHtml(t("tpPrev"))}">‹</button><span class="tnav-label" id="tnavLabel">${escapeHtml(fmtWinLabel(w))}</span><button type="button" class="tnav-btn" data-tnav="1" ${w.atLatest?"disabled":""} aria-label="${escapeHtml(t("tpNext"))}">›</button></span>
-    <span class="tnav"><button type="button" class="tnav-btn" data-tzoom="out" aria-label="${escapeHtml(t("zoomOut"))}" title="${escapeHtml(t("zoomOut"))}">−</button><button type="button" class="tnav-btn" data-tzoom="in" aria-label="${escapeHtml(t("zoomIn"))}" title="${escapeHtml(t("zoomIn"))}">+</button>${timeZoom ? `<button type="button" class="tnav-reset" data-tzoom="reset">${t("zoomReset")}</button>` : ""}</span>
+    <span class="tnav"><button type="button" class="tnav-btn" data-tzoom="out" aria-label="${escapeHtml(t("zoomOut"))}" title="${escapeHtml(t("zoomOut"))}">−</button><button type="button" class="tnav-btn" data-tzoom="in" aria-label="${escapeHtml(t("zoomIn"))}" title="${escapeHtml(t(w.end - w.start <= minSpanMs() + 60000 ? "zoomMax" : "zoomIn"))}" ${w.end - w.start <= minSpanMs() + 60000 ? "disabled" : ""}>+</button>${timeZoom ? `<button type="button" class="tnav-reset" data-tzoom="reset">${t("zoomReset")}</button>` : ""}</span>
     <span class="seg small">${["temp","diff"].map(k => `<button type="button" data-tview="${k}" class="${timeView===k?"on":""}">${t(k==="temp"?"tvTemp":"tvDiff")}</button>`).join("")}</span>
   </div>`;
 }
@@ -2018,6 +2036,7 @@ function wireTimeToolbar(){
   });
   document.querySelectorAll("[data-tzoom]").forEach(b => b.onclick = () => {
     const k = b.dataset.tzoom;
+    if(b.disabled) return;
     if(k === "reset") timeZoom = null; else zoomAround(k === "in" ? 0.5 : 2);
     refreshTimeCard();
   });
@@ -2062,6 +2081,7 @@ function wireTimeZoom(el){
     pts.set(e.pointerId, { x: e.clientX, y: e.clientY });
     try{ el.setPointerCapture(e.pointerId); }catch(err){}
     const w = timeWindow(visibleMetingen());
+    el._gesture = true;
     if(pts.size === 1) g = { type:"pan", x0: e.clientX, y0: e.clientY, w0: { start: w.start, end: w.end }, moved: false };
     else if(pts.size === 2){ const [a, b] = [...pts.values()]; g = { type:"pinch", d0: Math.abs(a.x - b.x) || 1, c0: tsAt((a.x + b.x) / 2), w0: { start: w.start, end: w.end }, moved: true }; }
   });
@@ -2098,7 +2118,7 @@ function wireTimeZoom(el){
         lastTap = { t: 0, x: 0 };
       } else lastTap = { t: now, x: e.clientX };
     }
-    if(pts.size === 0){ if(g && g.moved) finish(); g = null; }
+    if(pts.size === 0){ if(g && g.moved) finish(); g = null; el._gesture = false; }
     else if(pts.size === 1 && g && g.type === "pinch"){ const [p] = [...pts.values()]; const w = timeWindow(visibleMetingen()); g = { type:"pan", x0: p.x, y0: p.y, w0: { start: w.start, end: w.end }, moved: true }; }
   };
   el.addEventListener("pointerup", up); el.addEventListener("pointercancel", up);
@@ -2121,7 +2141,8 @@ function drawTimeChart(el, listAll, fast){
   const hourly = (!fast || el._hourlyOk) ? hourlyOnlineFor(w, () => { if(document.getElementById("timeChart") === el) drawTimeChart(el, visibleMetingen()); }) : null;
   if(!list.length && !(hourly && hourly.length)){
     el._geom = null;
-    el.innerHTML = `<div class="chart-empty">${escapeHtml(listAll.length ? t("tpEmpty") : t("chartNeed"))}</div>`;
+    const isToday = w.start <= Date.now() && Date.now() < w.end && w.end - w.start <= 1.05 * DAY;
+    el.innerHTML = `<div class="chart-empty">${escapeHtml(!listAll.length ? t("chartNeed") : isToday ? t("tpEmptyToday") : t("tpEmpty"))}</div>`;
     return;
   }
   const span = (w.end - w.start) / DAY;
@@ -2144,6 +2165,7 @@ function drawTimeChart(el, listAll, fast){
   const m = { l:42, r: diff ? 16 : (narrow ? 50 : 62), t:14, b:30 };
   const iw = W - m.l - m.r, ih = H - m.t - m.b;
   el._geom = { W, m, iw, start: w.start, end: w.end };
+  lastTimeIw = iw;
   const X = v => m.l + (v - w.start) / (w.end - w.start) * iw;
   let yVals = diff ? pts.flatMap(p => daily ? [p.dMin, p.dMax] : [p.d]).concat([0]) : pts.flatMap(p => daily ? [p.bin, p.buMin, p.buMax] : [p.bin, p.bu]);
   if(showHourly) yVals = yVals.concat(hourly.filter(h => h.ts >= w.start && h.ts <= w.end).map(h => h.v));
@@ -2179,6 +2201,9 @@ function drawTimeChart(el, listAll, fast){
   }
   let iso = "";
   if(state.settings.isolatieDatum){ const it = tsFrom(state.settings.isolatieDatum, "00:00"); if(it > w.start && it < w.end){ const xi = X(it), right = xi > m.l + iw - 70; iso = `<line x1="${xi}" x2="${xi}" y1="${m.t}" y2="${m.t+ih}" stroke="var(--text-soft)" stroke-width="1.5" stroke-dasharray="4 4"/><text x="${right ? xi - 5 : xi + 5}" y="${m.t+ih-6}" text-anchor="${right ? "end" : "start"}" class="lbl-strong">${escapeHtml(t("lIsolatie"))}</text>`; } }
+  const nowTs = Date.now();
+  let nowMark = "";
+  if(nowTs > w.start && nowTs < w.end && span <= 7.5){ const xn = X(nowTs); nowMark = `<line x1="${xn}" x2="${xn}" y1="${m.t}" y2="${m.t+ih}" stroke="var(--accent)" stroke-width="1.2" opacity=".7"/><text x="${xn}" y="${m.t+10}" text-anchor="${xn > m.l + iw - 20 ? "end" : "middle"}" class="now-lbl">${escapeHtml(t("nowLbl"))}</text>`; }
   const pathOf = (seg, key) => seg.map((p, i) => `${i?"L":"M"}${X(p.ts).toFixed(1)},${Y(p[key]).toFixed(1)}`).join("");
   const bandOf = (seg, lo, hi) => seg.length < 2 ? "" : `M${seg.map(p => `${X(p.ts).toFixed(1)},${Y(p[hi]).toFixed(1)}`).join("L")}L${seg.slice().reverse().map(p => `${X(p.ts).toFixed(1)},${Y(p[lo]).toFixed(1)}`).join("L")}Z`;
   const showDots = pts.length <= (narrow ? 35 : 60);
@@ -2205,7 +2230,7 @@ function drawTimeChart(el, listAll, fast){
     const lx = Math.min(X(last.ts) + 8, m.l + iw + 6);
     if(X(last.ts) <= m.l + iw + 1) labels = `<text x="${lx}" y="${ly1+4}" class="lbl-strong">${escapeHtml(t("lBinnen"))}</text><text x="${lx}" y="${ly2+4}" class="lbl-strong">${escapeHtml(t("lBuiten"))}</text>`;
   }
-  const svg = `<svg viewBox="0 0 ${W} ${H}" role="img" aria-label="${escapeHtml(t("chartTime"))}"><defs><clipPath id="tcClip"><rect x="${m.l}" y="0" width="${iw}" height="${H}"/></clipPath></defs>${grid}<g clip-path="url(#tcClip)">${iso}${marks}</g>${labels}
+  const svg = `<svg viewBox="0 0 ${W} ${H}" role="img" aria-label="${escapeHtml(t("chartTime"))}"><defs><clipPath id="tcClip"><rect x="${m.l}" y="0" width="${iw}" height="${H}"/></clipPath></defs>${grid}<g clip-path="url(#tcClip)">${iso}${nowMark}${marks}</g>${labels}
     <line class="xhair" x1="0" x2="0" y1="${m.t}" y2="${m.t+ih}" stroke="var(--text-soft)" stroke-width="1" opacity="0"/>
     <rect class="hit" x="${m.l}" y="${m.t}" width="${iw}" height="${ih}" fill="transparent"/></svg>`;
   const sw = (c, lbl, band, dash) => `<span class="key"><i class="sw${band ? " band" : ""}${dash ? " dashc" : ""}" style="${dash ? `border-color:${c}; border-top-style:dotted` : `background:${band ? `color-mix(in srgb, ${c} 25%, transparent)` : c}`}"></i>${escapeHtml(lbl)}</span>`;
@@ -3455,7 +3480,7 @@ function renderAll(opts){
 }
 function bootApp(){
   state.activeView = { type:"overview" };
-  dagdeelFilter = "all"; klimaatFilter = "all"; scatterBasisUser = null; timePeriod = "30"; timeZoom = null; timeView = "temp"; tableOpenMonths.clear(); formKlimaat = null; formDraft = null; lastImportMsg = ""; formModeTouched = false;
+  dagdeelFilter = "all"; klimaatFilter = "all"; scatterBasisUser = null; timePeriod = "1"; timeZoom = null; timeView = "temp"; tableOpenMonths.clear(); formKlimaat = null; formDraft = null; formTimeTouched = false; lastImportMsg = ""; formModeTouched = false;
   dirty = false; stateGeneration = 0; savedGeneration = 0;
   renderAll();
   backfillOnline();
@@ -3486,6 +3511,27 @@ if(cloudClient && cloudClient.auth.onAuthStateChange){
     }
   });
 }
+
+/* Klok: werk datum/tijd van het invoerformulier bij naar "nu" (zolang je ze niet zelf hebt aangepast)
+   en ververs de tijdgrafiek als die het huidige moment toont (nu-streep, online uurlijn). */
+let lastClockMinute = "";
+setInterval(() => {
+  if(!encryptionPassword) return;
+  const hm = nowHM(), today = todayISO();
+  const fD = document.getElementById("fDatum"), fT = document.getElementById("fTijd");
+  if(fD && fT && !formTimeTouched && document.activeElement !== fD && document.activeElement !== fT && (fT.value !== hm || fD.value !== today)){
+    fD.value = today; fT.value = hm;
+    if(formBuitenMode === "online") autoFillBuiten();
+  }
+  if(hm !== lastClockMinute){
+    lastClockMinute = hm;
+    const el = document.getElementById("timeChart");
+    if(el && el._geom && !el._gesture){
+      const w = timeWindow(visibleMetingen());
+      if(Date.now() >= w.start - 60000 && Date.now() <= w.end + 60000) drawTimeChart(el, visibleMetingen());
+    }
+  }
+}, 30000);
 
 /* ================= START ================= */
 (async function start(){
