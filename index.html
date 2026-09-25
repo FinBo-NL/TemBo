@@ -2139,26 +2139,37 @@ function drawTimeChart(el, listAll, fast){
   const w = timeWindow(listAll);
   const list = listAll.filter(m => { const ts = tsOf(m); return ts >= w.start && ts < w.end; });
   const hourly = (!fast || el._hourlyOk) ? hourlyOnlineFor(w, () => { if(document.getElementById("timeChart") === el) drawTimeChart(el, visibleMetingen()); }) : null;
-  if(!list.length && !(hourly && hourly.length)){
+  const span = (w.end - w.start) / DAY;
+  const daily = span > 10.5;
+  const diff = timeView === "diff";
+  // Alle punten (ruw of per dag) over ALLE metingen, zodat we het eerste punt net buiten beeld aan
+  // beide kanten kunnen meenemen: de lijn loopt dan door tot de rand en wordt daar afgesneden,
+  // in plaats van te verdwijnen zodra het beginpunt van dat lijnstuk uit beeld schuift.
+  let all;
+  if(!daily){
+    all = listAll.map(m => ({ ts: tsOf(m), bin: m.binnen, bu: m.buiten, d: m.binnen - m.buiten, m, n:1 }));
+  } else {
+    const byDay = {};
+    listAll.forEach(m => { (byDay[m.datum] = byDay[m.datum] || []).push(m); });
+    all = Object.keys(byDay).sort().map(d => { const a = byDay[d], bu = a.map(x => x.buiten), dd = a.map(x => x.binnen - x.buiten);
+      return { ts: tsFrom(d, "12:00"), datum: d, bin: avg(a.map(x => x.binnen)), bu: avg(bu), buMin: Math.min(...bu), buMax: Math.max(...bu), d: avg(dd), dMin: Math.min(...dd), dMax: Math.max(...dd), n: a.length }; });
+  }
+  const gap = daily ? 1.6 * DAY : 36 * HOUR;
+  let ia = all.findIndex(p => p.ts >= w.start); if(ia < 0) ia = all.length;
+  let ib = all.findIndex(p => p.ts >= w.end); if(ib < 0) ib = all.length;
+  const pts = all.slice(ia, ib);                       // punten ín beeld (tooltip, labels, stippen)
+  let before = ia > 0 ? all[ia - 1] : null, after = ib < all.length ? all[ib] : null;
+  const firstIn = pts.length ? pts[0] : after, lastIn = pts.length ? pts[pts.length - 1] : before;
+  if(before && !(firstIn && firstIn.ts - before.ts <= gap)) before = null;
+  if(after && !(lastIn && after.ts - lastIn.ts <= gap)) after = null;
+  const drawPts = (before ? [before] : []).concat(pts, after ? [after] : []);
+  if(!pts.length && !(before && after) && !(hourly && hourly.length)){
     el._geom = null;
     const isToday = w.start <= Date.now() && Date.now() < w.end && w.end - w.start <= 1.05 * DAY;
     el.innerHTML = `<div class="chart-empty">${escapeHtml(!listAll.length ? t("chartNeed") : isToday ? t("tpEmptyToday") : t("tpEmpty"))}</div>`;
     return;
   }
-  const span = (w.end - w.start) / DAY;
-  const daily = span > 10.5;
-  const diff = timeView === "diff";
-  let pts;
-  if(!daily){
-    pts = list.map(m => ({ ts: tsOf(m), bin: m.binnen, bu: m.buiten, d: m.binnen - m.buiten, m, n:1 }));
-  } else {
-    const byDay = {};
-    list.forEach(m => { (byDay[m.datum] = byDay[m.datum] || []).push(m); });
-    pts = Object.keys(byDay).sort().map(d => { const a = byDay[d], bu = a.map(x => x.buiten), dd = a.map(x => x.binnen - x.buiten);
-      return { ts: tsFrom(d, "12:00"), datum: d, bin: avg(a.map(x => x.binnen)), bu: avg(bu), buMin: Math.min(...bu), buMax: Math.max(...bu), d: avg(dd), dMin: Math.min(...dd), dMax: Math.max(...dd), n: a.length }; });
-  }
-  const gap = daily ? 1.6 * DAY : 36 * HOUR;
-  const segs = []; pts.forEach((p, i) => { if(!i || p.ts - pts[i-1].ts > gap) segs.push([]); segs[segs.length-1].push(p); });
+  const segs = []; drawPts.forEach((p, i) => { if(!i || p.ts - drawPts[i-1].ts > gap) segs.push([]); segs[segs.length-1].push(p); });
   const showHourly = !diff && hourly && hourly.length >= 2;
   const W = chartWidth(el), narrow = W < 520;
   const H = Math.round(Math.min(340, Math.max(narrow ? 260 : 220, W*0.42)));
@@ -2167,7 +2178,11 @@ function drawTimeChart(el, listAll, fast){
   el._geom = { W, m, iw, start: w.start, end: w.end };
   lastTimeIw = iw;
   const X = v => m.l + (v - w.start) / (w.end - w.start) * iw;
-  let yVals = diff ? pts.flatMap(p => daily ? [p.dMin, p.dMax] : [p.d]).concat([0]) : pts.flatMap(p => daily ? [p.bin, p.buMin, p.buMax] : [p.bin, p.bu]);
+  const valsOf = p => diff ? (daily ? [p.dMin, p.dMax] : [p.d]) : (daily ? [p.bin, p.buMin, p.buMax] : [p.bin, p.bu]);
+  let yVals = pts.flatMap(valsOf).concat(diff ? [0] : []);
+  // Waar de lijn de linker/rechter rand kruist (lineair tussen het punt buiten en binnen beeld).
+  const edgeVals = (outP, inP, edgeTs) => { if(!outP || !inP) return []; const f = (edgeTs - outP.ts) / (inP.ts - outP.ts); const a = valsOf(outP), b = valsOf(inP); return a.map((v, k) => v + (b[k] - v) * f); };
+  yVals = yVals.concat(edgeVals(before, pts[0] || after, w.start), edgeVals(after, pts[pts.length-1] || before, w.end));
   if(showHourly) yVals = yVals.concat(hourly.filter(h => h.ts >= w.start && h.ts <= w.end).map(h => h.v));
   if(!yVals.length) yVals = [0, 20];
   const yt = niceTicks(Math.min(...yVals), Math.max(...yVals), 5);
@@ -2223,12 +2238,15 @@ function drawTimeChart(el, listAll, fast){
     }
   });
   let labels = "";
-  if(!diff && pts.length){
-    const last = pts[pts.length-1];
-    let ly1 = Y(last.bin), ly2 = Y(last.bu);
+  if(!diff && (pts.length || (before && after))){
+    // Loopt de lijn rechts door buiten beeld, dan de labels aan de rechterrand op de hoogte waar de
+    // lijn die rand kruist; anders naast het laatste punt in beeld.
+    const last = pts.length ? pts[pts.length-1] : before;
+    let vb = last.bin, vu = last.bu, lx = Math.min(X(last.ts) + 8, m.l + iw + 6);
+    if(after){ const f = (w.end - last.ts) / (after.ts - last.ts); vb = last.bin + (after.bin - last.bin) * f; vu = last.bu + (after.bu - last.bu) * f; lx = m.l + iw + 6; }
+    let ly1 = Y(vb), ly2 = Y(vu);
     if(Math.abs(ly1-ly2) < 14){ const mid = (ly1+ly2)/2; if(ly1 <= ly2){ ly1 = mid-7; ly2 = mid+7; } else { ly1 = mid+7; ly2 = mid-7; } }
-    const lx = Math.min(X(last.ts) + 8, m.l + iw + 6);
-    if(X(last.ts) <= m.l + iw + 1) labels = `<text x="${lx}" y="${ly1+4}" class="lbl-strong">${escapeHtml(t("lBinnen"))}</text><text x="${lx}" y="${ly2+4}" class="lbl-strong">${escapeHtml(t("lBuiten"))}</text>`;
+    labels = `<text x="${lx}" y="${ly1+4}" class="lbl-strong">${escapeHtml(t("lBinnen"))}</text><text x="${lx}" y="${ly2+4}" class="lbl-strong">${escapeHtml(t("lBuiten"))}</text>`;
   }
   const svg = `<svg viewBox="0 0 ${W} ${H}" role="img" aria-label="${escapeHtml(t("chartTime"))}"><defs><clipPath id="tcClip"><rect x="${m.l}" y="0" width="${iw}" height="${H}"/></clipPath></defs>${grid}<g clip-path="url(#tcClip)">${iso}${nowMark}${marks}</g>${labels}
     <line class="xhair" x1="0" x2="0" y1="${m.t}" y2="${m.t+ih}" stroke="var(--text-soft)" stroke-width="1" opacity="0"/>
