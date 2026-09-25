@@ -342,6 +342,22 @@
   .reg-tag.gehaald{color:var(--accent); background:color-mix(in srgb, var(--accent) 12%, transparent);}
   .reg-tag.niet{color:var(--warm); background:color-mix(in srgb, var(--warm) 13%, transparent);}
   .chart-legend .sw.dashc{width:18px; height:0; border-top:2px dashed; border-radius:0; background:none;}
+  .chart-toolbar{display:flex; align-items:center; gap:10px; flex-wrap:wrap; margin:0 0 10px;}
+  .tnav{display:inline-flex; align-items:center; gap:6px;}
+  .tnav-btn{width:26px; height:26px; border-radius:50%; border:1px solid var(--rule); background:var(--paper); color:var(--text-soft); cursor:pointer; font-size:15px; line-height:1; padding:0;}
+  .tnav-btn:hover:not(:disabled){border-color:var(--accent); color:var(--accent);}
+  .tnav-btn:disabled{opacity:.35; cursor:default;}
+  .tnav-label{font-size:12px; color:var(--text-soft); white-space:nowrap;}
+  .chart-legend .sw.band{height:9px; border-radius:2px;}
+  .table-section-title{font-size:11px; letter-spacing:.08em; text-transform:uppercase; color:var(--text-soft); font-weight:600; margin:0 0 6px;}
+  .month-group{border:1px solid var(--rule); border-radius:4px; margin-bottom:6px; background:var(--paper);}
+  .month-group > summary{cursor:pointer; list-style:none; display:flex; justify-content:space-between; align-items:center; padding:9px 12px; font-size:13px; font-weight:600; color:var(--deep);}
+  .month-group > summary::-webkit-details-marker{display:none;}
+  .month-group > summary::before{content:"›"; display:inline-block; margin-right:8px; transition:transform .15s; color:var(--text-soft);}
+  .month-group[open] > summary::before{transform:rotate(90deg);}
+  .month-group > summary > span:first-child{flex:1;}
+  .mg-count{font-size:11.5px; color:var(--text-soft); font-weight:400;}
+  .month-group .table-scroll{padding:0 8px 8px;}
   .howto{margin-top:10px; font-size:12.5px; color:var(--text-soft); border-top:1px solid var(--rule); padding-top:8px;}
   .howto summary{cursor:pointer; color:var(--accent); font-weight:600; list-style:none; display:inline-flex; align-items:center; gap:6px;}
   .howto summary::-webkit-details-marker{display:none;}
@@ -839,6 +855,16 @@ const I18N = {
     kpUnknownHint: n => `${n} oudere meting${n===1?"":"en"} ${n===1?"heeft":"hebben"} nog geen cv/airco-gegevens (—).`,
     kpUnknownBtn: n => `Zet ${n} meting${n===1?"":"en"} op 'Uit'`,
     kpUnknownConfirm: n => `${n} meting${n===1?"":"en"} zonder cv/airco-gegevens op 'cv uit, airco uit' zetten? Doe dit alleen als er toen echt niets aan stond.`,
+    tp7: "7 dagen", tp30: "30 dagen", tp90: "3 mnd", tpAll: "Alles",
+    tpPrev: "Vorige periode", tpNext: "Volgende periode",
+    tvTemp: "Temperaturen", tvDiff: "Verschil binnen − buiten",
+    tpEmpty: "Geen metingen in deze periode. Blader terug met ‹ of kies een langere periode.",
+    tpDailyNote: (n, d) => `Per dag samengevat: ${n} metingen op ${d} dagen. Kies '7 dagen' om elke meting apart te zien.`,
+    tpN: n => `${n} meting${n===1?"":"en"}`,
+    tlInAvg: "Binnen (daggemiddelde)", tlOutAvg: "Buiten (daggemiddelde)", tlOutBand: "Buiten laagste – hoogste",
+    tlDiffAvg: "Verschil (daggemiddelde)", tlDiffBand: "Laagste – hoogste van de dag",
+    tblRecent: n => `Laatste ${n} meting${n===1?"":"en"}`,
+    tblOlder: n => `Oudere metingen (${n}) — per maand`,
     negTip: "Minteken (voor temperaturen onder nul)",
     srcBadge: "online opgehaald",
     srcOptOnline: "Online", srcOptOwn: "Eigen meting",
@@ -1087,6 +1113,16 @@ const I18N = {
     kpUnknownHint: n => `${n} older reading${n===1?" has":"s have"} no boiler/AC data yet (—).`,
     kpUnknownBtn: n => `Set ${n} reading${n===1?"":"s"} to 'Off'`,
     kpUnknownConfirm: n => `Set ${n} reading${n===1?"":"s"} without boiler/AC data to 'boiler off, AC off'? Only do this if nothing was actually running.`,
+    tp7: "7 days", tp30: "30 days", tp90: "3 mo", tpAll: "All",
+    tpPrev: "Previous period", tpNext: "Next period",
+    tvTemp: "Temperatures", tvDiff: "Difference indoor − outdoor",
+    tpEmpty: "No readings in this period. Go back with ‹ or pick a longer period.",
+    tpDailyNote: (n, d) => `Summarised per day: ${n} readings on ${d} days. Pick '7 days' to see every reading.`,
+    tpN: n => `${n} reading${n===1?"":"s"}`,
+    tlInAvg: "Indoor (daily avg.)", tlOutAvg: "Outdoor (daily avg.)", tlOutBand: "Outdoor lowest – highest",
+    tlDiffAvg: "Difference (daily avg.)", tlDiffBand: "Lowest – highest of the day",
+    tblRecent: n => `Latest ${n} reading${n===1?"":"s"}`,
+    tblOlder: n => `Older readings (${n}) — per month`,
     negTip: "Minus sign (for temperatures below zero)",
     srcBadge: "fetched online",
     srcOptOnline: "Online", srcOptOwn: "Own reading",
@@ -1621,7 +1657,7 @@ function renderMain(){
     if(!formModeTouched) formBuitenMode = (state.settings.locatie && state.settings.autoBuiten) ? "online" : "eigen";
     html += cardHTML(ICONS.plus, t("newEntry"), entryFormHTML());
   }
-  html += cardHTML(ICONS.therm, t("chartTime"), `<div id="timeChart"></div>`);
+  html += cardHTML(ICONS.therm, t("chartTime"), `<div id="timeToolbar">${timeToolbarHTML()}</div><div id="timeChart"></div>`);
   html += cardHTML(ICONS.scatter, t("chartScatter"), `<div id="scatterChart"></div>${howtoHTML("howtoScatter")}${scatterBasis()==="24" ? `<p class="card-note" style="margin-top:6px;">${escapeHtml(t("basis24Hint"))}</p>` : ""}`, basisToggleHTML());
   html += cardHTML(ICONS.list, t("tableTitle"), tableHTML(list), String(list.length));
   main.innerHTML = html;
@@ -1629,6 +1665,7 @@ function renderMain(){
   else formDraft = null;
   wireTable();
   wireFilterRow();
+  wireTimeToolbar();
   redrawCharts();
 }
 function redrawCharts(){
@@ -1776,10 +1813,10 @@ function klimaatCellHTML(m){
   return `<div class="krow"><span class="ksys">${t("kCv")}</span><select data-f="cv">${!m.cv ? opt("", "kOptNone", "") : ""}${opt("uit","kOptUit",m.cv)}${opt("aan","kOptAan",m.cv)}</select>${m.cv==="aan" ? `<input class="t-sp" type="text" inputmode="decimal" data-f="cvTemp" value="${escapeHtml(num(m.cvTemp))}" placeholder="°C" />` : ""}</div>
     <div class="krow"><span class="ksys">${t("kAirco")}</span><select data-f="airco">${!m.airco ? opt("", "kOptNone", "") : ""}${opt("uit","kOptUit",m.airco)}${opt("verwarmen","kOptVerwShort",m.airco)}${opt("koelen","kOptKoelShort",m.airco)}</select>${(m.airco==="verwarmen"||m.airco==="koelen") ? `<input class="t-sp" type="text" inputmode="decimal" data-f="aircoTemp" value="${escapeHtml(num(m.aircoTemp))}" placeholder="°C" />` : ""}</div>${reg}`;
 }
-function tableHTML(list){
-  if(!list.length) return `<p class="card-note">${escapeHtml(t("noRows"))}</p>`;
-  const iso = !!state.settings.isolatieDatum;
-  const rows = list.slice().reverse().map(m => {
+/* Tabel: de laatste 10 metingen altijd zichtbaar; oudere metingen per maand in een inklapbare
+   sectie (standaard dicht). Zo blijft de pagina kort, hoeveel metingen er ook bijkomen. */
+const tableOpenMonths = new Set();
+function tableRowHTML(m, iso){
     const d = m.binnen - m.buiten;
     const ph = phaseOf(m);
     return `<tr data-id="${m.id}">
@@ -1796,12 +1833,28 @@ function tableHTML(list){
       <td><input type="text" data-f="notitie" value="${escapeHtml(m.notitie)}" /></td>
       <td><button class="row-del" title="×" aria-label="delete">${ICONS.trash}</button></td>
     </tr>`;
-  }).join("");
+}
+function tableBlockHTML(rows, iso){
   return `<div class="table-scroll"><table class="rtable"><thead><tr>
     <th>${t("thDatum")}</th><th>${t("thTijd")}</th><th class="num">${t("thBinnen")}</th><th class="num">${t("thBuiten")}</th><th class="num">${t("th24")}</th><th class="num">${t("thVerschil")}</th><th>${t("dpLabel")}</th>
     ${iso ? `<th>${t("thFase")}</th>` : ""}<th>${t("thRuimte")}</th><th>${t("thKlimaat")}</th><th>${t("thNotitie")}</th><th></th>
-  </tr></thead><tbody>${rows}</tbody></table></div>`;
+  </tr></thead><tbody>${rows.map(m => tableRowHTML(m, iso)).join("")}</tbody></table></div>`;
 }
+function tableHTML(list){
+  if(!list.length) return `<p class="card-note">${escapeHtml(t("noRows"))}</p>`;
+  const iso = !!state.settings.isolatieDatum;
+  const desc = list.slice().reverse();
+  const recent = desc.slice(0, 10), older = desc.slice(10);
+  let html = `<div class="table-section-title">${escapeHtml(t("tblRecent")(recent.length))}</div>` + tableBlockHTML(recent, iso);
+  if(older.length){
+    const groups = {};
+    older.forEach(m => { const k = monthKey(m.datum); (groups[k] = groups[k] || []).push(m); });
+    html += `<div class="table-section-title" style="margin-top:14px;">${escapeHtml(t("tblOlder")(older.length))}</div>`;
+    html += Object.keys(groups).sort().reverse().map(k => `<details class="month-group" data-mk="${k}" ${tableOpenMonths.has(k) ? "open" : ""}><summary><span>${escapeHtml(monthLabel(k))}</span><span class="mg-count">${escapeHtml(t("tpN")(groups[k].length))}</span></summary>${tableBlockHTML(groups[k], iso)}</details>`).join("");
+  }
+  return html;
+}
+document.addEventListener("toggle", e => { const d = e.target; if(d && d.classList && d.classList.contains("month-group")){ if(d.open) tableOpenMonths.add(d.dataset.mk); else tableOpenMonths.delete(d.dataset.mk); } }, true);
 function wireTable(){
   document.querySelectorAll(".rtable tbody tr").forEach(tr => {
     const m = state.metingen.find(x => x.id === tr.dataset.id);
@@ -1870,73 +1923,158 @@ function attachTooltip(wrap){
 }
 function ttRow(color, label, val){ return `<div class="tt-row"><span><i class="tt-key" style="background:${color}"></i>${escapeHtml(label)}</span><span class="tt-val">${val}</span></div>`; }
 
-function drawTimeChart(el, list){
-  if(!el) return;
-  if(list.length < 2){ el.innerHTML = `<div class="chart-empty">${escapeHtml(t("chartNeed"))}</div>`; return; }
-  const W = chartWidth(el), H = Math.round(Math.min(320, Math.max(220, W*0.42)));
-  const m = { l:42, r:62, t:14, b:30 };
-  const iw = W - m.l - m.r, ih = H - m.t - m.b;
-  const xs = list.map(tsOf);
-  const x0 = Math.min(...xs), x1 = Math.max(...xs);
-  const all = list.flatMap(p => [p.binnen, p.buiten]);
-  const yt = niceTicks(Math.min(...all), Math.max(...all), 5);
-  const X = v => m.l + (x1 === x0 ? iw/2 : (v - x0) / (x1 - x0) * iw);
-  const Y = v => m.t + ih - (v - yt.lo) / (yt.hi - yt.lo) * ih;
-  const cIn = "var(--c-binnen)", cOut = "var(--c-buiten)";
-  // x-as: dagen
-  const dayMs = 86400000;
-  // Per kalenderdag (niet per 24 uur optellen): rond de wintertijd-overgang is een dag 25 uur,
-  // en dan schoven alle labels een uur op naar de vorige dag ("25 okt" twee keer).
-  const days = []; for(let dd = tsToISO(x0); tsFrom(dd, "00:00") <= x1; dd = addDaysISO(dd, 1)) days.push(tsFrom(dd, "00:00"));
-  const maxLabels = Math.max(2, Math.floor(iw / 70));
-  const every = Math.max(1, Math.ceil(days.length / maxLabels));
-  let grid = yt.ticks.map(v => `<line x1="${m.l}" x2="${m.l+iw}" y1="${Y(v)}" y2="${Y(v)}" stroke="var(--grid)" /><text x="${m.l-8}" y="${Y(v)+4}" text-anchor="end">${v.toLocaleString(state.lang==="en"?"en-GB":"nl-NL")}°</text>`).join("");
-  const isoOfTs = ts => { const dt = new Date(ts); return `${dt.getFullYear()}-${pad2(dt.getMonth()+1)}-${pad2(dt.getDate())}`; };
-  const inRange = days.filter((d,i) => d >= x0 && !(i % every));
-  grid += inRange.map(d => `<line x1="${X(d)}" x2="${X(d)}" y1="${m.t}" y2="${m.t+ih}" stroke="var(--grid)" /><text x="${X(d)}" y="${H-10}" text-anchor="middle">${escapeHtml(fmtDate(isoOfTs(d)))}</text>`).join("");
-  // Eerste dag begint vóór middernacht-lijn in beeld? Dan het eerste punt zelf labelen (als er ruimte is).
-  if(!inRange.length || X(inRange[0]) - X(x0) > 60) grid += `<text x="${X(x0)}" y="${H-10}" text-anchor="start">${escapeHtml(fmtDate(isoOfTs(x0)))}</text>`;
-  // isolatiemarkering
-  let iso = "";
-  if(state.settings.isolatieDatum){
-    const [y,mo,d] = state.settings.isolatieDatum.split("-").map(Number);
-    const it = new Date(y, mo-1, d).getTime();
-    if(it >= x0 && it <= x1) iso = `<line x1="${X(it)}" x2="${X(it)}" y1="${m.t}" y2="${m.t+ih}" stroke="var(--text-soft)" stroke-width="1.5" stroke-dasharray="4 4"/><text x="${X(it)+5}" y="${m.t+11}" class="lbl-strong">${escapeHtml(t("lIsolatie"))}</text>`;
+/* ---- Tijdgrafiek: periode, per-dag samenvatten, gaten, verschil-weergave ----
+   Met veel metingen werd de grafiek een onleesbare zigzag (ochtend/middag/avond door elkaar), liep
+   de lijn dwars over weken zonder metingen heen en verdween de kleine binnenvariatie op een as van
+   0–25 °C. Nu: een periodekeuze (7 dagen / 30 dagen / 3 maanden / alles) met bladeren, bij meer
+   dan 10 dagen per dag samengevat (binnen = daggemiddelde, buiten = band laagste–hoogste met het
+   daggemiddelde), onderbroken lijnen bij gaten, en een schakelaar naar "verschil binnen − buiten"
+   (één as, geen misleidende dubbele schaal). */
+let timePeriod = "30";      // "7" | "30" | "90" | "all"   (schermvoorkeur, niet opgeslagen)
+let timeEndTs = null;       // null = t/m de laatste meting; anders het (exclusieve) eindmoment
+let timeView = "temp";      // "temp" | "diff"
+const DAY = 86400000;
+function dayStart(ts){ return tsFrom(tsToISO(ts), "00:00"); }
+function timeWindow(list){
+  const v = state.activeView || {};
+  if(v.type === "month"){
+    const start = tsFrom(v.key + "-01", "00:00"), end = tsFrom(addDaysISO(v.key + "-01", 32).slice(0,7) + "-01", "00:00");
+    return { start, end, fixed:true, atLatest:true, atFirst:true };
   }
-  const path = key => list.map((p,i) => `${i?"L":"M"}${X(tsOf(p)).toFixed(1)},${Y(p[key]).toFixed(1)}`).join("");
-  const dots = (key, c) => list.map(p => `<circle cx="${X(tsOf(p))}" cy="${Y(p[key])}" r="4" fill="${c}" stroke="var(--paper)" stroke-width="2"/>`).join("");
-  const last = list[list.length-1];
-  let ly1 = Y(last.binnen), ly2 = Y(last.buiten);
-  if(Math.abs(ly1-ly2) < 14){ const mid = (ly1+ly2)/2; if(ly1 <= ly2){ ly1 = mid-7; ly2 = mid+7; } else { ly1 = mid+7; ly2 = mid-7; } }
-  const lx = X(tsOf(last)) + 9;
-  const svg = `<svg viewBox="0 0 ${W} ${H}" role="img" aria-label="${escapeHtml(t("chartTime"))}">
-    ${grid}${iso}
-    <path d="${path("buiten")}" fill="none" stroke="${cOut}" stroke-width="2" stroke-linejoin="round" stroke-linecap="round"/>
-    <path d="${path("binnen")}" fill="none" stroke="${cIn}" stroke-width="2" stroke-linejoin="round" stroke-linecap="round"/>
-    ${dots("buiten", cOut)}${dots("binnen", cIn)}
-    <text x="${lx}" y="${ly1+4}" class="lbl-strong">${escapeHtml(t("lBinnen"))}</text>
-    <text x="${lx}" y="${ly2+4}" class="lbl-strong">${escapeHtml(t("lBuiten"))}</text>
-    <line id="xhair" x1="0" x2="0" y1="${m.t}" y2="${m.t+ih}" stroke="var(--text-soft)" stroke-width="1" opacity="0"/>
-    <rect x="${m.l}" y="${m.t}" width="${iw}" height="${ih}" fill="transparent" id="hit"/>
-  </svg>`;
-  el.innerHTML = `<div class="chart-legend"><span class="key"><i class="sw" style="background:${cIn}"></i>${t("lBinnen")}</span><span class="key"><i class="sw" style="background:${cOut}"></i>${t("lBuiten")}</span>${iso ? `<span class="key"><i class="sw dash"></i>${t("lIsolatie")}</span>` : ""}</div><div class="chart-wrap">${svg}</div>`;
-  const wrap = el.querySelector(".chart-wrap"), svgEl = wrap.querySelector("svg"), tip = attachTooltip(wrap);
-  const xh = svgEl.querySelector("#xhair");
+  const latest = list.length ? tsOf(list[list.length-1]) : Date.now();
+  const endDefault = tsFrom(addDaysISO(tsToISO(latest), 1), "00:00");
+  const first = list.length ? dayStart(tsOf(list[0])) : endDefault - 30*DAY;
+  if(timePeriod === "all") return { start: first, end: endDefault, atLatest:true, atFirst:true };
+  const days = Number(timePeriod);
+  let end = timeEndTs && timeEndTs < endDefault ? timeEndTs : endDefault;
+  let start = tsFrom(addDaysISO(tsToISO(end - 1), -(days - 1)), "00:00");
+  // Nooit (verder) vóór de eerste meting bladeren — ook niet als er intussen metingen zijn verwijderd.
+  if(start < first && timeEndTs){
+    end = tsFrom(addDaysISO(tsToISO(first), days), "00:00");
+    if(end >= endDefault){ end = endDefault; timeEndTs = null; } else timeEndTs = end;
+    start = tsFrom(addDaysISO(tsToISO(end - 1), -(days - 1)), "00:00");
+  }
+  return { start, end, days, endDefault, atLatest: end >= endDefault, atFirst: start <= first };
+}
+function timeToolbarHTML(){
+  const v = state.activeView || {};
+  if(v.type === "month") return `<div class="chart-toolbar"><span class="seg small">${["temp","diff"].map(k => `<button type="button" data-tview="${k}" class="${timeView===k?"on":""}">${t(k==="temp"?"tvTemp":"tvDiff")}</button>`).join("")}</span></div>`;
+  const list = visibleMetingen(), w = timeWindow(list);
+  const label = `${fmtDate(tsToISO(w.start), true)} – ${fmtDate(tsToISO(w.end - 1), true)}`;
+  return `<div class="chart-toolbar">
+    <span class="seg small">${[["7","tp7"],["30","tp30"],["90","tp90"],["all","tpAll"]].map(([k,l]) => `<button type="button" data-tp="${k}" class="${timePeriod===k?"on":""}">${t(l)}</button>`).join("")}</span>
+    ${timePeriod !== "all" ? `<span class="tnav"><button type="button" class="tnav-btn" data-tnav="-1" ${w.atFirst?"disabled":""} aria-label="${escapeHtml(t("tpPrev"))}">‹</button><span class="tnav-label">${escapeHtml(label)}</span><button type="button" class="tnav-btn" data-tnav="1" ${w.atLatest?"disabled":""} aria-label="${escapeHtml(t("tpNext"))}">›</button></span>` : `<span class="tnav-label">${escapeHtml(label)}</span>`}
+    <span class="seg small">${["temp","diff"].map(k => `<button type="button" data-tview="${k}" class="${timeView===k?"on":""}">${t(k==="temp"?"tvTemp":"tvDiff")}</button>`).join("")}</span>
+  </div>`;
+}
+function wireTimeToolbar(){
+  document.querySelectorAll("[data-tp]").forEach(b => b.onclick = () => { timePeriod = b.dataset.tp; timeEndTs = null; refreshTimeCard(); });
+  document.querySelectorAll("[data-tview]").forEach(b => b.onclick = () => { timeView = b.dataset.tview; refreshTimeCard(); });
+  document.querySelectorAll("[data-tnav]").forEach(b => b.onclick = () => {
+    if(b.disabled) return;
+    const w = timeWindow(visibleMetingen()), days = Number(timePeriod);
+    timeEndTs = b.dataset.tnav === "-1" ? w.start : tsFrom(addDaysISO(tsToISO(w.end), days), "00:00");
+    if(timeEndTs >= w.endDefault) timeEndTs = null;
+    refreshTimeCard();
+  });
+}
+function refreshTimeCard(){
+  const bar = document.getElementById("timeToolbar");
+  if(bar){ bar.innerHTML = timeToolbarHTML(); wireTimeToolbar(); }
+  drawTimeChart(document.getElementById("timeChart"), visibleMetingen());
+}
+function drawTimeChart(el, listAll){
+  if(!el) return;
+  const w = timeWindow(listAll);
+  const list = listAll.filter(m => { const ts = tsOf(m); return ts >= w.start && ts < w.end; });
+  if(!list.length){ el.innerHTML = `<div class="chart-empty">${escapeHtml(listAll.length ? t("tpEmpty") : t("chartNeed"))}</div>`; return; }
+  const daily = (w.end - w.start) > 10.5 * DAY;
+  const diff = timeView === "diff";
+  // Punten opbouwen: ruw (elke meting) of per dag samengevat.
+  let pts;
+  if(!daily){
+    pts = list.map(m => ({ ts: tsOf(m), bin: m.binnen, bu: m.buiten, d: m.binnen - m.buiten, m, n:1 }));
+  } else {
+    const byDay = {};
+    list.forEach(m => { (byDay[m.datum] = byDay[m.datum] || []).push(m); });
+    pts = Object.keys(byDay).sort().map(d => { const a = byDay[d], bu = a.map(x => x.buiten), dd = a.map(x => x.binnen - x.buiten);
+      return { ts: tsFrom(d, "12:00"), datum: d, bin: avg(a.map(x => x.binnen)), bu: avg(bu), buMin: Math.min(...bu), buMax: Math.max(...bu), d: avg(dd), dMin: Math.min(...dd), dMax: Math.max(...dd), n: a.length }; });
+  }
+  // Segmenten: onderbreken bij een gat (ruw > 36 uur, per dag > 1 dag zonder metingen).
+  const gap = daily ? 1.6 * DAY : 36 * 3600000;
+  const segs = []; pts.forEach((p, i) => { if(!i || p.ts - pts[i-1].ts > gap) segs.push([]); segs[segs.length-1].push(p); });
+  const W = chartWidth(el), narrow = W < 520;
+  const H = Math.round(Math.min(340, Math.max(narrow ? 260 : 220, W*0.42)));
+  const m = { l:42, r: diff ? 16 : (narrow ? 50 : 62), t:14, b:30 };
+  const iw = W - m.l - m.r, ih = H - m.t - m.b;
+  const X = v => m.l + (v - w.start) / (w.end - w.start) * iw;
+  const yVals = diff ? pts.flatMap(p => daily ? [p.dMin, p.dMax] : [p.d]).concat([0]) : pts.flatMap(p => daily ? [p.bin, p.buMin, p.buMax] : [p.bin, p.bu]);
+  const yt = niceTicks(Math.min(...yVals), Math.max(...yVals), 5);
+  const Y = v => m.t + ih - (v - yt.lo) / (yt.hi - yt.lo) * ih;
+  const nfv = v => v.toLocaleString(state.lang==="en"?"en-GB":"nl-NL");
+  const cIn = "var(--c-binnen)", cOut = "var(--c-buiten)", cDiff = "var(--accent)";
+  let grid = yt.ticks.map(v => `<line x1="${m.l}" x2="${m.l+iw}" y1="${Y(v)}" y2="${Y(v)}" stroke="var(--grid)"/><text x="${m.l-8}" y="${Y(v)+4}" text-anchor="end">${diff && v > 0 ? "+" : ""}${nfv(v)}°</text>`).join("");
+  if(diff && yt.lo < 0 && yt.hi > 0) grid += `<line x1="${m.l}" x2="${m.l+iw}" y1="${Y(0)}" y2="${Y(0)}" stroke="var(--text-soft)" stroke-width="1"/>`;
+  // x-as: per kalenderdag, bij lange periodes alleen maandbegin.
+  const span = (w.end - w.start) / DAY;
+  const dayTicks = []; for(let d = tsToISO(w.start); tsFrom(d, "00:00") < w.end; d = addDaysISO(d, 1)) dayTicks.push(d);
+  let ticks;
+  if(span > 120) ticks = dayTicks.filter(d => d.endsWith("-01"));
+  else { const maxL = Math.max(2, Math.floor(iw / (narrow ? 60 : 70))), every = Math.max(1, Math.ceil(dayTicks.length / maxL)); ticks = dayTicks.filter((d, i) => !(i % every)); }
+  const monthLbl = d => { const [y, mo] = d.split("-").map(Number); return t("monthNames")[mo-1].slice(0,3) + (mo === 1 ? " " + y : ""); };
+  grid += ticks.map(d => { const x = X(tsFrom(d, "00:00")); return `<line x1="${x}" x2="${x}" y1="${m.t}" y2="${m.t+ih}" stroke="var(--grid)"/><text x="${x}" y="${H-10}" text-anchor="${x < m.l + 20 ? "start" : "middle"}">${escapeHtml(span > 120 ? monthLbl(d) : fmtDate(d))}</text>`; }).join("");
+  // Isolatiemarkering
+  let iso = "";
+  if(state.settings.isolatieDatum){ const it = tsFrom(state.settings.isolatieDatum, "00:00"); if(it > w.start && it < w.end){ const xi = X(it), right = xi > m.l + iw - 70; iso = `<line x1="${xi}" x2="${xi}" y1="${m.t}" y2="${m.t+ih}" stroke="var(--text-soft)" stroke-width="1.5" stroke-dasharray="4 4"/><text x="${right ? xi - 5 : xi + 5}" y="${m.t+ih-6}" text-anchor="${right ? "end" : "start"}" class="lbl-strong">${escapeHtml(t("lIsolatie"))}</text>`; } }
+  const pathOf = (seg, key) => seg.map((p, i) => `${i?"L":"M"}${X(p.ts).toFixed(1)},${Y(p[key]).toFixed(1)}`).join("");
+  const bandOf = (seg, lo, hi) => seg.length < 2 ? "" : `M${seg.map(p => `${X(p.ts).toFixed(1)},${Y(p[hi]).toFixed(1)}`).join("L")}L${seg.slice().reverse().map(p => `${X(p.ts).toFixed(1)},${Y(p[lo]).toFixed(1)}`).join("L")}Z`;
+  const showDots = pts.length <= (narrow ? 35 : 60);
+  const r = daily ? 3 : 4;
+  let marks = "";
+  segs.forEach(seg => {
+    if(diff){
+      if(daily) marks += `<path d="${bandOf(seg, "dMin", "dMax")}" fill="color-mix(in srgb, ${cDiff} 16%, transparent)" stroke="none"/>`;
+      marks += `<path d="${pathOf(seg, "d")}" fill="none" stroke="${cDiff}" stroke-width="2" stroke-linejoin="round" stroke-linecap="round"/>`;
+      if(showDots || seg.length === 1) marks += seg.map(p => `<circle cx="${X(p.ts)}" cy="${Y(p.d)}" r="${r}" fill="${cDiff}" stroke="var(--paper)" stroke-width="1.5"/>`).join("");
+    } else {
+      if(daily) marks += `<path d="${bandOf(seg, "buMin", "buMax")}" fill="color-mix(in srgb, ${cOut} 16%, transparent)" stroke="none"/>`;
+      marks += `<path d="${pathOf(seg, "bu")}" fill="none" stroke="${cOut}" stroke-width="2" stroke-linejoin="round" stroke-linecap="round"/>`;
+      marks += `<path d="${pathOf(seg, "bin")}" fill="none" stroke="${cIn}" stroke-width="2" stroke-linejoin="round" stroke-linecap="round"/>`;
+      if(showDots || seg.length === 1) marks += seg.map(p => `<circle cx="${X(p.ts)}" cy="${Y(p.bu)}" r="${r}" fill="${cOut}" stroke="var(--paper)" stroke-width="1.5"/><circle cx="${X(p.ts)}" cy="${Y(p.bin)}" r="${r}" fill="${cIn}" stroke="var(--paper)" stroke-width="1.5"/>`).join("");
+    }
+  });
+  // Directe labels bij het laatste punt (alleen temperatuurweergave).
+  let labels = "";
+  if(!diff){
+    const last = pts[pts.length-1];
+    let ly1 = Y(last.bin), ly2 = Y(last.bu);
+    if(Math.abs(ly1-ly2) < 14){ const mid = (ly1+ly2)/2; if(ly1 <= ly2){ ly1 = mid-7; ly2 = mid+7; } else { ly1 = mid+7; ly2 = mid-7; } }
+    const lx = Math.min(X(last.ts) + 8, m.l + iw + 6);
+    labels = `<text x="${lx}" y="${ly1+4}" class="lbl-strong">${escapeHtml(t("lBinnen"))}</text><text x="${lx}" y="${ly2+4}" class="lbl-strong">${escapeHtml(t("lBuiten"))}</text>`;
+  }
+  const svg = `<svg viewBox="0 0 ${W} ${H}" role="img" aria-label="${escapeHtml(t("chartTime"))}">${grid}${iso}${marks}${labels}
+    <line class="xhair" x1="0" x2="0" y1="${m.t}" y2="${m.t+ih}" stroke="var(--text-soft)" stroke-width="1" opacity="0"/>
+    <rect class="hit" x="${m.l}" y="${m.t}" width="${iw}" height="${ih}" fill="transparent"/></svg>`;
+  const sw = (c, lbl, band) => `<span class="key"><i class="sw${band ? " band" : ""}" style="background:${band ? `color-mix(in srgb, ${c} 25%, transparent)` : c}"></i>${escapeHtml(lbl)}</span>`;
+  const legend = diff
+    ? sw(cDiff, daily ? t("tlDiffAvg") : t("tvDiff")) + (daily ? sw(cDiff, t("tlDiffBand"), true) : "")
+    : sw(cIn, daily ? t("tlInAvg") : t("lBinnen")) + sw(cOut, daily ? t("tlOutAvg") : t("lBuiten")) + (daily ? sw(cOut, t("tlOutBand"), true) : "");
+  el.innerHTML = `<div class="chart-legend">${legend}${iso ? `<span class="key"><i class="sw dash"></i>${t("lIsolatie")}</span>` : ""}</div><div class="chart-wrap">${svg}</div>${daily ? `<p class="card-note" style="margin-top:6px;">${escapeHtml(t("tpDailyNote")(list.length, pts.length))}</p>` : ""}`;
+  const wrap = el.querySelector(".chart-wrap"), svgEl = wrap.querySelector("svg"), tip = attachTooltip(wrap), xh = svgEl.querySelector(".xhair");
   const onMove = ev => {
-    const r = svgEl.getBoundingClientRect(), scale = W / r.width;
-    const px = (ev.clientX - r.left) * scale;
-    let best = list[0], bd = Infinity;
-    list.forEach(p => { const d = Math.abs(X(tsOf(p)) - px); if(d < bd){ bd = d; best = p; } });
-    const bx = X(tsOf(best));
+    const rc = svgEl.getBoundingClientRect(), sc = W / rc.width, px = (ev.clientX - rc.left) * sc;
+    let best = pts[0], bd = Infinity;
+    pts.forEach(p => { const d = Math.abs(X(p.ts) - px); if(d < bd){ bd = d; best = p; } });
+    const bx = X(best.ts);
     xh.setAttribute("x1", bx); xh.setAttribute("x2", bx); xh.setAttribute("opacity", "0.5");
-    tip.show(`<div class="tt-head">${escapeHtml(fmtDate(best.datum, true))}${best.tijd ? " · " + escapeHtml(best.tijd) : ""}</div>
-      ${ttRow(cIn, t("lBinnen"), fmtT(best.binnen))}${ttRow(cOut, t("lBuiten"), fmtT(best.buiten))}
-      <div class="tt-row"><span>${t("thVerschil")}</span><span class="tt-val">${fmtDelta(best.binnen - best.buiten)}</span></div>`,
-      bx / scale, Y(Math.max(best.binnen, best.buiten)) / scale);
+    let html;
+    if(!daily) html = `<div class="tt-head">${escapeHtml(fmtDate(best.m.datum, true))}${best.m.tijd ? " · " + escapeHtml(best.m.tijd) : ""}</div>${ttRow(cIn, t("lBinnen"), fmtT(best.bin))}${ttRow(cOut, t("lBuiten"), fmtT(best.bu))}<div class="tt-row"><span>${t("thVerschil")}</span><span class="tt-val">${fmtDelta(best.d)}</span></div>`;
+    else html = `<div class="tt-head">${escapeHtml(fmtDate(best.datum, true))} · ${escapeHtml(t("tpN")(best.n))}</div>${ttRow(cIn, t("tlInAvg"), fmtT(best.bin))}${ttRow(cOut, t("tlOutAvg"), fmtT(best.bu))}${ttRow(cOut, t("tlOutBand"), fmtT(best.buMin) + " – " + fmtT(best.buMax))}<div class="tt-row"><span>${t("thVerschil")}</span><span class="tt-val">${fmtDelta(best.d)}</span></div>`;
+    const yTop = diff ? Y(daily ? best.dMax : best.d) : Y(Math.max(best.bin, daily ? best.buMax : best.bu));
+    tip.show(html, bx / sc, yTop / sc);
   };
-  const hit = svgEl.querySelector("#hit");
-  hit.addEventListener("pointermove", onMove);
-  hit.addEventListener("pointerdown", onMove);
+  const hit = svgEl.querySelector(".hit");
+  hit.addEventListener("pointermove", onMove); hit.addEventListener("pointerdown", onMove);
   hit.addEventListener("pointerleave", () => { tip.hide(); xh.setAttribute("opacity","0"); });
 }
 
@@ -3160,7 +3298,7 @@ function renderAll(opts){
 }
 function bootApp(){
   state.activeView = { type:"overview" };
-  dagdeelFilter = "all"; klimaatFilter = "all"; scatterBasisUser = null; formKlimaat = null; formDraft = null; lastImportMsg = ""; formModeTouched = false;
+  dagdeelFilter = "all"; klimaatFilter = "all"; scatterBasisUser = null; timePeriod = "30"; timeEndTs = null; timeView = "temp"; tableOpenMonths.clear(); formKlimaat = null; formDraft = null; lastImportMsg = ""; formModeTouched = false;
   dirty = false; stateGeneration = 0; savedGeneration = 0;
   renderAll();
   backfillOnline();
