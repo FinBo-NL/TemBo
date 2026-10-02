@@ -230,6 +230,14 @@
   .loc-btn-row{display:flex; gap:8px; flex-wrap:wrap;}
   .profile-check{display:flex; gap:8px; align-items:flex-start; font-size:13px; color:var(--text); margin-top:12px; line-height:1.4;}
   .neg-wrap{display:flex; gap:4px;}
+  .cf-bar{display:flex; flex-wrap:wrap; gap:6px 10px; align-items:center; margin:0 0 10px;}
+  .cf-group{display:inline-flex; flex-wrap:wrap; gap:6px 10px; align-items:center;}
+  .chart-toolbar .cf-group{flex-basis:100%;}
+  .cf-sel{display:inline-flex; gap:5px; align-items:center; font-size:11px; color:var(--text-soft);}
+  .cf-sel select{font-family:inherit; font-size:12px; padding:3px 6px; border:1px solid var(--rule); border-radius:12px; background:var(--paper); color:var(--text); max-width:150px;}
+  .cf-sel select.on{border-color:var(--accent); color:var(--accent); background:color-mix(in srgb, var(--accent) 10%, var(--paper));}
+  .cf-sel select:focus{outline:none; border-color:var(--accent);}
+  @media (max-width:520px){ .cf-sel select{max-width:104px;} .cf-sel{gap:4px;} .cf-group{gap:6px 8px;} }
   .room-list{list-style:none; margin:8px 0 0; padding:0; display:flex; flex-direction:column; gap:4px;}
   .room-row{display:flex; align-items:center; gap:6px; padding:4px 6px; border:1px solid var(--rule); border-radius:6px; background:var(--paper);}
   .room-row.dragging{border-color:var(--accent); box-shadow:0 4px 14px rgba(0,0,0,.15); position:relative; z-index:2;}
@@ -810,6 +818,8 @@ const I18N = {
     kFormHint: "Standaard staat alles op Uit. Zet aan wat er aan stond, met de ingestelde temperatuur. Tembo onthoudt je vorige keuze.",
     kStatus_vrij: "Alles uit", kStatus_verwarmen: "Verwarmd", kStatus_koelen: "Gekoeld", kStatus_onbekend: "Onbekend", kStatus_gemengd: "Gemengd",
     kFilterLabel: "Klimaat",
+    cfReset: "Filters wissen", cfEmpty: "Geen metingen met deze filters. Kies een ruimere periode of zet een filter op 'Alle'.",
+    conFollows: l => `Volgt de filters van de grafiek 'Binnen t.o.v. buiten': ${l}.`,
     kReg_gehaald: "thermostaat", kReg_niet: "niet gehaald", kReg_boven: "boven instelling", kReg_onder: "onder instelling",
     kRegTip_gehaald: "Binnen ≈ ingestelde temperatuur: de thermostaat bepaalde de binnentemperatuur. Deze meting telt niet mee in het isolatievergelijk.",
     kRegTip_niet: "De ingestelde temperatuur werd niet gehaald — het systeem kon het niet bijhouden.",
@@ -1106,6 +1116,8 @@ const I18N = {
     kFormHint: "Everything is Off by default. Switch on what was running, with the set temperature. Tembo remembers your previous choice.",
     kStatus_vrij: "All off", kStatus_verwarmen: "Heated", kStatus_koelen: "Cooled", kStatus_onbekend: "Unknown", kStatus_gemengd: "Mixed",
     kFilterLabel: "Climate",
+    cfReset: "Clear filters", cfEmpty: "No readings with these filters. Pick a longer period or set a filter to 'All'.",
+    conFollows: l => `Follows the filters of the 'Indoor vs. outdoor' chart: ${l}.`,
     kReg_gehaald: "thermostat", kReg_niet: "not reached", kReg_boven: "above setting", kReg_onder: "below setting",
     kRegTip_gehaald: "Indoor ≈ set temperature: the thermostat determined the indoor temperature. This reading is left out of the insulation comparison.",
     kRegTip_niet: "The set temperature was not reached — the system could not keep up.",
@@ -1452,14 +1464,12 @@ function linReg(points){
 function dagdeelOf(tijd){ if(!tijd) return null; const h = Number(tijd.split(":")[0]); return h < 6 ? "nacht" : h < 12 ? "ochtend" : h < 18 ? "middag" : "avond"; }
 const DAGDELEN = ["nacht","ochtend","middag","avond"];
 function dpLabel(k){ return t("dp" + k.charAt(0).toUpperCase() + k.slice(1)); }
-let dagdeelFilter = "all";          // schermvoorkeur, niet opgeslagen
 let scatterBasisUser = null;        // "nu" | "24" | null (= automatisch)
-function applyDagdeel(list){ return dagdeelFilter === "all" ? list : list.filter(m => dagdeelOf(m.tijd) === dagdeelFilter); }
 function visibleMetingen(){
   const v = state.activeView || {};
   let list = state.metingen;
   if(v.type === "month") list = list.filter(m => monthKey(m.datum) === v.key);
-  return sortedMetingen(applyKlimaat(applyDagdeel(list)));
+  return sortedMetingen(list);
 }
 /* ---- Klimaat per meting ----
    cv: "" | "uit" | "aan" (+ cvTemp)   airco: "" | "uit" | "verwarmen" | "koelen" (+ aircoTemp)
@@ -1489,8 +1499,78 @@ function klimaatOf(m){
    staan standaard op Uit. Zonder zulke metingen verbergen we de optie overal. */
 function hasUnknownKlimaat(){ return state.metingen.some(m => { const md = klimaatOf(m).mode; return md === "onbekend" || md === "gemengd"; }); }
 function isRegulated(m){ return klimaatOf(m).reg === "gehaald"; }
-let klimaatFilter = "all";   // schermvoorkeur: all | vrij | verwarmen | koelen | onbekend
-function applyKlimaat(list){ return klimaatFilter === "all" ? list : list.filter(m => { const k = klimaatOf(m).mode; return klimaatFilter === "onbekend" ? (k === "onbekend" || k === "gemengd") : k === klimaatFilter; }); }
+/* ================= FILTERS PER GRAFIEK =================
+   Elke grafiek heeft zijn eigen filters (periode, dagdeel, klimaat, ruimte), net zo generiek als het
+   zoomen: CF_DEF zegt welke filters bij welke grafiek horen, cfBarHTML tekent ze, cfApply past ze
+   toe. Wijzigen tekent alles opnieuw. Schermvoorkeur, niet opgeslagen. De conclusie vóór/na volgt de
+   filters van "Binnen t.o.v. buiten" (zelfde metingen als de trendlijnen). In een maandoverzicht is
+   de maand de periode; de periodeknoppen vallen daar weg, de overige filters blijven. */
+const CF_DEF = {
+  time:    ["rf", "dp", "kf"],          // periode zit al in de eigen werkbalk (1 dag … alles + zoomen)
+  scatter: ["tp", "rf", "dp", "kf"],
+  klimaat: ["tp", "rf", "dp"],          // klimaat is daar de kleur, dus geen klimaatfilter
+  koel:    ["tp", "rf"],
+  afkoel:  ["tp", "rf"],
+};
+const chartFilters = {};
+const DP_RANGE = { nacht:"0–6", ochtend:"6–12", middag:"12–18", avond:"18–24" };
+function cfOf(key){ return chartFilters[key] || (chartFilters[key] = { tp:"all", dp:"all", kf:"all", rf:"all" }); }
+function cfHas(key, f){ return (CF_DEF[key] || []).includes(f) && !(f === "tp" && (state.activeView || {}).type === "month"); }
+function kfMatch(m, kf){ if(kf === "all") return true; const k = klimaatOf(m).mode; return kf === "onbekend" ? (k === "onbekend" || k === "gemengd") : k === kf; }
+function tpStart(tp){ return tp === "all" ? -Infinity : tsFrom(addDaysISO(todayISO(), -(Number(tp) - 1)), "00:00"); }
+/* opts.ts / opts.room / opts.m: hoe je tijdstip, ruimte en (voor dagdeel/klimaat) de meting uit een
+   element haalt — zo werkt dezelfde functie voor metingen, koeltests en afkoeltests. */
+function cfApply(key, list, opts){
+  opts = opts || {};
+  const f = cfOf(key), tsFn = opts.ts || tsOf, roomFn = opts.room || (x => x.ruimte), mFn = opts.m || (x => x);
+  const t0 = cfHas(key, "tp") ? tpStart(f.tp) : -Infinity;
+  return list.filter(x => {
+    if(t0 > -Infinity && tsFn(x) < t0) return false;
+    if(cfHas(key, "rf") && f.rf !== "all" && String(roomFn(x) || ROOM_DEFAULT).toLowerCase() !== f.rf.toLowerCase()) return false;
+    const m = mFn(x); if(!m) return true;
+    if(cfHas(key, "dp") && !opts.skipDp && f.dp !== "all" && dagdeelOf(m.tijd) !== f.dp) return false;
+    if(cfHas(key, "kf") && f.kf !== "all" && !kfMatch(m, f.kf)) return false;
+    return true;
+  });
+}
+function cfActive(key){ const f = cfOf(key); return ["tp","rf","dp","kf"].some(k => cfHas(key, k) && f[k] !== "all"); }
+function cfLabel(key){
+  const f = cfOf(key), p = [];
+  if(cfHas(key, "tp") && f.tp !== "all") p.push(t("tp" + f.tp));
+  if(cfHas(key, "rf") && f.rf !== "all") p.push(f.rf);
+  if(cfHas(key, "dp") && f.dp !== "all") p.push(dpLabel(f.dp).toLowerCase());
+  if(cfHas(key, "kf") && f.kf !== "all") p.push(t("kStatus_" + f.kf).toLowerCase());
+  return p.join(" · ");
+}
+function cfSelectsHTML(key){
+  const f = cfOf(key);
+  const sel = (fld, label, opts) => `<label class="cf-sel">${escapeHtml(label)}<select data-cfkey="${key}" data-cfsel="${fld}" class="${f[fld] !== "all" ? "on" : ""}">${opts.map(([v, l]) => `<option value="${escapeHtml(v)}" ${f[fld] === v ? "selected" : ""}>${escapeHtml(l)}</option>`).join("")}</select></label>`;
+  let h = "";
+  if(cfHas(key, "rf") && (ruimteList().length > 1 || f.rf !== "all")){
+    const R = ruimteList().slice(); if(f.rf !== "all" && !R.includes(f.rf)) R.push(f.rf);
+    h += sel("rf", t("fRuimte"), [["all", t("dpAll")]].concat(R.map(r => [r, r])));
+  }
+  if(cfHas(key, "dp")) h += sel("dp", t("dpLabel"), [["all", t("dpAll")]].concat(DAGDELEN.map(k => [k, `${dpLabel(k)} (${DP_RANGE[k]})`])));
+  if(cfHas(key, "kf")) h += sel("kf", t("kFilterLabel"), [["all", t("dpAll")]].concat(["vrij","verwarmen","koelen"].concat(hasUnknownKlimaat() || f.kf === "onbekend" ? ["onbekend"] : []).map(k => [k, t("kStatus_" + k)])));
+  return h;
+}
+function cfResetHTML(key){ return cfActive(key) ? `<button type="button" class="tnav-reset" data-cfreset="${key}">${t("cfReset")}</button>` : ""; }
+function cfBarHTML(key){
+  const per = cfHas(key, "tp") ? `<span class="seg small">${[["1","tp1"],["7","tp7"],["30","tp30"],["90","tp90"],["all","tpAll"]].map(([k, l]) => `<button type="button" data-cfkey="${key}" data-cft="${k}" class="${cfOf(key).tp === k ? "on" : ""}">${t(l)}</button>`).join("")}</span>` : "";
+  const sels = cfSelectsHTML(key);
+  return per || sels ? `<div class="cf-bar">${per}${sels || cfActive(key) ? `<span class="cf-group">${sels}${cfResetHTML(key)}</span>` : ""}</div>` : "";
+}
+function cfChanged(key){ delete xyZoom[key]; renderAll({ skipProfile: true }); }
+document.addEventListener("change", e => {
+  const s = e.target; if(!s || !s.matches || !s.matches("select[data-cfsel]")) return;
+  cfOf(s.dataset.cfkey)[s.dataset.cfsel] = s.value; cfChanged(s.dataset.cfkey);
+});
+document.addEventListener("click", e => {
+  const b = e.target && e.target.closest && e.target.closest("[data-cft],[data-cfreset]"); if(!b) return;
+  if(b.dataset.cfreset){ delete chartFilters[b.dataset.cfreset]; cfChanged(b.dataset.cfreset); }
+  else { cfOf(b.dataset.cfkey).tp = b.dataset.cft; cfChanged(b.dataset.cfkey); }
+});
+function cfEmptyHTML(){ return `<div class="chart-empty">${escapeHtml(t("cfEmpty"))}</div>`; }
 function klimaatTag(m){
   const k = klimaatOf(m);
   const parts = [];
@@ -1874,13 +1954,13 @@ function renderMain(){
   if(v.type === "afkoel"){ renderCoolView(main); return; }
   if(v.type === "klimaat"){ renderKlimaatView(main); return; }
   const list = visibleMetingen();
-  let html = filterRowHTML();
+  let html = "";
   if(v.type === "overview"){
     if(!formModeTouched) formBuitenMode = (state.settings.locatie && state.settings.autoBuiten) ? "online" : "eigen";
     html += cardHTML(ICONS.plus, t("newEntry"), entryFormHTML());
   }
   html += cardHTML(ICONS.therm, t("chartTime"), `<div id="timeToolbar">${timeToolbarHTML()}</div><div id="timeChart"></div>`);
-  html += cardHTML(ICONS.scatter, t("chartScatter"), `<div id="scatterChart"></div>${howtoHTML("howtoScatter")}${scatterBasis()==="24" ? `<p class="card-note" style="margin-top:6px;">${escapeHtml(t("basis24Hint"))}</p>` : ""}`, basisToggleHTML());
+  html += cardHTML(ICONS.scatter, t("chartScatter"), `${cfBarHTML("scatter")}<div id="scatterChart"></div>${howtoHTML("howtoScatter")}${scatterBasis()==="24" ? `<p class="card-note" style="margin-top:6px;">${escapeHtml(t("basis24Hint"))}</p>` : ""}`, basisToggleHTML());
   html += cardHTML(ICONS.list, t("tableTitle"), tableHTML(list), String(list.length));
   main.innerHTML = html;
   if(v.type === "overview"){ restoreFormDraft(); wireEntryForm(); }
@@ -1895,20 +1975,10 @@ function redrawCharts(){
   if(v.type === "afkoel"){ drawCoolChart(document.getElementById("coolChart")); return; }
   if(v.type === "klimaat"){ drawKlimaatChart(document.getElementById("klimaatChart")); drawKoelChart(document.getElementById("koelChart"), koelTests()); return; }
   if(v.type === "import") return;
-  const list = visibleMetingen();
-  drawTimeChart(document.getElementById("timeChart"), list);
-  drawScatterChart(document.getElementById("scatterChart"), list);
-}
-function filterRowHTML(){
-  return `<div class="filter-row"><span class="filter-label">${t("dpLabel")}</span>
-    <span class="seg" role="radiogroup">${["all"].concat(DAGDELEN).map(k => `<button type="button" data-dp="${k}" class="${dagdeelFilter===k?"on":""}">${k==="all"?t("dpAll"):dpLabel(k)}</button>`).join("")}</span>
-    <span class="filter-hint">${t("dpHint")}</span></div>
-    <div class="filter-row"><span class="filter-label">${t("kFilterLabel")}</span>
-    <span class="seg" role="radiogroup">${["all","vrij","verwarmen","koelen"].concat(hasUnknownKlimaat() || klimaatFilter === "onbekend" ? ["onbekend"] : []).map(k => `<button type="button" data-kf="${k}" class="${klimaatFilter===k?"on":""}">${k==="all"?t("dpAll"):t("kStatus_"+k)}</button>`).join("")}</span></div>`;
+  drawTimeChart(document.getElementById("timeChart"), timeList());
+  drawScatterChart(document.getElementById("scatterChart"), cfApply("scatter", visibleMetingen()));
 }
 function wireFilterRow(){
-  document.querySelectorAll("[data-dp]").forEach(b => b.onclick = () => { dagdeelFilter = b.dataset.dp; renderAll({ skipProfile:true }); });
-  document.querySelectorAll("[data-kf]").forEach(b => b.onclick = () => { klimaatFilter = b.dataset.kf; renderAll({ skipProfile:true }); });
   document.querySelectorAll("[data-basis]").forEach(b => b.onclick = () => { if(b.disabled) return; scatterBasisUser = b.dataset.basis; renderAll({ skipProfile:true }); });
 }
 function basisToggleHTML(){
@@ -2335,23 +2405,25 @@ function fmtWinLabel(w){
   if(span < 3 * DAY){ const hm = ts => { const d = new Date(ts); return `${pad2(d.getHours())}:${pad2(d.getMinutes())}`; }; return `${fmtDate(tsToISO(w.start))} ${hm(w.start)} – ${fmtDate(tsToISO(w.end))} ${hm(w.end)}`; }
   return `${fmtDate(tsToISO(w.start), true)} – ${fmtDate(tsToISO(w.end - 1), true)}`;
 }
+function timeList(){ return cfApply("time", visibleMetingen()); }
 function timeToolbarHTML(){
   const v = state.activeView || {};
-  const list = visibleMetingen(), w = timeWindow(list);
+  const list = timeList(), w = timeWindow(list);
   const presets = v.type === "month" ? "" : `<span class="seg small">${[["1","tp1"],["7","tp7"],["30","tp30"],["90","tp90"],["all","tpAll"]].map(([k,l]) => `<button type="button" data-tp="${k}" class="${!timeZoom && timePeriod===k?"on":""}">${t(l)}</button>`).join("")}</span>`;
   return `<div class="chart-toolbar">${presets}
     <span class="tnav"><button type="button" class="tnav-btn" data-tnav="-1" ${w.atFirst?"disabled":""} aria-label="${escapeHtml(t("tpPrev"))}">‹</button><span class="tnav-label" id="tnavLabel">${escapeHtml(fmtWinLabel(w))}</span><button type="button" class="tnav-btn" data-tnav="1" ${w.atLatest?"disabled":""} aria-label="${escapeHtml(t("tpNext"))}">›</button></span>
     <span class="tnav"><button type="button" class="tnav-btn" data-tzoom="out" aria-label="${escapeHtml(t("zoomOut"))}" title="${escapeHtml(t("zoomOut"))}">−</button><button type="button" class="tnav-btn" data-tzoom="in" aria-label="${escapeHtml(t("zoomIn"))}" title="${escapeHtml(t(w.end - w.start <= minSpanMs() + 60000 ? "zoomMax" : "zoomIn"))}" ${w.end - w.start <= minSpanMs() + 60000 ? "disabled" : ""}>+</button>${timeZoom ? `<button type="button" class="tnav-reset" data-tzoom="reset">${t("zoomReset")}</button>` : ""}</span>
     <span class="seg small">${["temp","diff"].map(k => `<button type="button" data-tview="${k}" class="${timeView===k?"on":""}">${t(k==="temp"?"tvTemp":"tvDiff")}</button>`).join("")}</span>
-    ${timeView === "temp" && dagdeelFilter === "all" && klimaatFilter === "all" && hasFillableGap(list) ? `<span class="seg small"><button type="button" data-tfill class="${fillGaps ? "on" : ""}" aria-pressed="${fillGaps}">${t("tFill")}</button></span>` : ""}
+    <span class="cf-group">${cfSelectsHTML("time")}${cfResetHTML("time")}</span>
+    ${timeView === "temp" && cfOf("time").dp === "all" && cfOf("time").kf === "all" && hasFillableGap(list) ? `<span class="seg small"><button type="button" data-tfill class="${fillGaps ? "on" : ""}" aria-pressed="${fillGaps}">${t("tFill")}</button></span>` : ""}
   </div>`;
 }
 function setZoom(start, end){
-  const list = visibleMetingen(), b = timeBounds(list);
+  const list = timeList(), b = timeBounds(list);
   timeZoom = clampWin(start, end, b);
 }
 function zoomAround(factor, centerTs){
-  const w = timeWindow(visibleMetingen());
+  const w = timeWindow(timeList());
   const c = centerTs ?? (w.start + w.end) / 2;
   const f = (c - w.start) / (w.end - w.start);
   const span = (w.end - w.start) * factor;
@@ -2363,7 +2435,7 @@ function wireTimeToolbar(){
   document.querySelectorAll("[data-tfill]").forEach(b => b.onclick = () => { fillGaps = !fillGaps; refreshTimeCard(); });
   document.querySelectorAll("[data-tnav]").forEach(b => b.onclick = () => {
     if(b.disabled) return;
-    const w = timeWindow(visibleMetingen()), span = w.end - w.start, dir = Number(b.dataset.tnav);
+    const w = timeWindow(timeList()), span = w.end - w.start, dir = Number(b.dataset.tnav);
     // Staat de periode op hele dagen, blader dan per kalenderdag (anders schuift hij rond de
     // zomer-/wintertijd een uur op).
     const aligned = dayStart(w.start) === w.start && dayStart(w.end) === w.end;
@@ -2381,7 +2453,7 @@ function wireTimeToolbar(){
 function refreshTimeCard(){
   const bar = document.getElementById("timeToolbar");
   if(bar){ bar.innerHTML = timeToolbarHTML(); wireTimeToolbar(); }
-  drawTimeChart(document.getElementById("timeChart"), visibleMetingen());
+  drawTimeChart(document.getElementById("timeChart"), timeList());
 }
 /* ---- Buitentemperatuur per uur (online) als achtergrondlijn bij inzoomen (≤ 7 dagen) ---- */
 const weatherResolved = {};
@@ -2411,13 +2483,13 @@ function wireTimeZoom(el){
   let g = null, raf = 0, lastTap = { t: 0, x: 0 };
   const geom = () => el._geom;
   const tsAt = clientX => { const G = geom(); if(!G) return null; const r = el.querySelector("svg").getBoundingClientRect(); const px = (clientX - r.left) * (G.W / r.width); return G.start + (px - G.m.l) / G.iw * (G.end - G.start); };
-  const redraw = () => { if(raf) return; raf = requestAnimationFrame(() => { raf = 0; drawTimeChart(el, visibleMetingen(), true); const lbl = document.getElementById("tnavLabel"); if(lbl) lbl.textContent = fmtWinLabel(timeWindow(visibleMetingen())); }); };
-  const finish = () => { const bar = document.getElementById("timeToolbar"); if(bar){ bar.innerHTML = timeToolbarHTML(); wireTimeToolbar(); } drawTimeChart(el, visibleMetingen()); };
+  const redraw = () => { if(raf) return; raf = requestAnimationFrame(() => { raf = 0; drawTimeChart(el, timeList(), true); const lbl = document.getElementById("tnavLabel"); if(lbl) lbl.textContent = fmtWinLabel(timeWindow(timeList())); }); };
+  const finish = () => { const bar = document.getElementById("timeToolbar"); if(bar){ bar.innerHTML = timeToolbarHTML(); wireTimeToolbar(); } drawTimeChart(el, timeList()); };
   el.addEventListener("pointerdown", e => {
     if(!e.target.closest || !e.target.closest("svg")) return;
     pts.set(e.pointerId, { x: e.clientX, y: e.clientY });
     try{ el.setPointerCapture(e.pointerId); }catch(err){}
-    const w = timeWindow(visibleMetingen());
+    const w = timeWindow(timeList());
     el._gesture = true;
     if(pts.size === 1) g = { type:"pan", x0: e.clientX, y0: e.clientY, w0: { start: w.start, end: w.end }, moved: false };
     else if(pts.size === 2){ const [a, b] = [...pts.values()]; g = { type:"pinch", d0: Math.abs(a.x - b.x) || 1, c0: tsAt((a.x + b.x) / 2), w0: { start: w.start, end: w.end }, moved: true }; }
@@ -2446,7 +2518,7 @@ function wireTimeZoom(el){
       // Tik/klik zonder slepen: dubbel = naar die dag (of verder inzoomen als je al op dagniveau zit).
       const now = Date.now();
       if(now - lastTap.t < 320 && Math.abs(e.clientX - lastTap.x) < 30){
-        const ts = tsAt(e.clientX), w = timeWindow(visibleMetingen());
+        const ts = tsAt(e.clientX), w = timeWindow(timeList());
         if(ts !== null){
           if(w.end - w.start > 1.5 * DAY){ const d0 = dayStart(ts); setZoom(d0, d0 + DAY); }
           else zoomAround(0.5, ts);
@@ -2456,7 +2528,7 @@ function wireTimeZoom(el){
       } else lastTap = { t: now, x: e.clientX };
     }
     if(pts.size === 0){ if(g && g.moved) finish(); g = null; el._gesture = false; }
-    else if(pts.size === 1 && g && g.type === "pinch"){ const [p] = [...pts.values()]; const w = timeWindow(visibleMetingen()); g = { type:"pan", x0: p.x, y0: p.y, w0: { start: w.start, end: w.end }, moved: true }; }
+    else if(pts.size === 1 && g && g.type === "pinch"){ const [p] = [...pts.values()]; const w = timeWindow(timeList()); g = { type:"pan", x0: p.x, y0: p.y, w0: { start: w.start, end: w.end }, moved: true }; }
   };
   el.addEventListener("pointerup", up); el.addEventListener("pointercancel", up);
   el.addEventListener("wheel", e => {
@@ -2490,6 +2562,8 @@ const FILL_MIN = 36 * HOUR, FILL_MAX = 14 * DAY;
 function fillTrain(a, b){
   const ph = phaseOf(a), ma = klimaatOf(a).mode, mb = klimaatOf(b).mode;
   let train = state.metingen.filter(m => !isRegulated(m) && phaseOf(m) === ph && isFinite(m.binnen));
+  const room = (a.ruimte || "").toLowerCase(), sameRoom = train.filter(m => (m.ruimte || "").toLowerCase() === room);
+  if(sameRoom.length >= 4) train = sameRoom;
   if(ma === mb && ma !== "onbekend" && ma !== "gemengd"){ const same = train.filter(m => klimaatOf(m).mode === ma); if(same.length >= 4) train = same; }
   return train;
 }
@@ -2544,7 +2618,7 @@ function estimateGap(a, b, onReady){
   pts.push({ ts: tb, v: b.binnen });
   return { a, b, ta, tb, pts, n: train.length, outdoor: !!O && bOut > 0 };
 }
-function fillsAllowed(){ return fillGaps && timeView === "temp" && dagdeelFilter === "all" && klimaatFilter === "all"; }
+function fillsAllowed(){ return fillGaps && timeView === "temp" && cfOf("time").dp === "all" && cfOf("time").kf === "all"; }
 function hasFillableGap(list){ for(let i = 1; i < list.length; i++){ const dt = tsOf(list[i]) - tsOf(list[i-1]); if(dt > FILL_MIN && dt <= FILL_MAX) return true; } return false; }
 /* Alle gaten die het venster raken; bij de dagweergave per lege dag het gemiddelde van de schatting. */
 function gapFills(listAll, w, daily, all, onReady){
@@ -2575,7 +2649,7 @@ function drawTimeChart(el, listAll, fast){
   wireTimeZoom(el);
   const w = timeWindow(listAll);
   const list = listAll.filter(m => { const ts = tsOf(m); return ts >= w.start && ts < w.end; });
-  const hourly = (!fast || el._hourlyOk) ? hourlyOnlineFor(w, () => { if(document.getElementById("timeChart") === el) drawTimeChart(el, visibleMetingen()); }) : null;
+  const hourly = (!fast || el._hourlyOk) ? hourlyOnlineFor(w, () => { if(document.getElementById("timeChart") === el) drawTimeChart(el, timeList()); }) : null;
   const span = (w.end - w.start) / DAY;
   const daily = span > 10.5;
   const diff = timeView === "diff";
@@ -2600,13 +2674,13 @@ function drawTimeChart(el, listAll, fast){
   if(before && !(firstIn && firstIn.ts - before.ts <= gap)) before = null;
   if(after && !(lastIn && after.ts - lastIn.ts <= gap)) after = null;
   const drawPts = (before ? [before] : []).concat(pts, after ? [after] : []);
-  const fills = (fast && el._fills && el._fillsDaily === daily) ? el._fills : gapFills(listAll, w, daily, all, () => { if(document.getElementById("timeChart") === el && !el._gesture) drawTimeChart(el, visibleMetingen()); });
+  const fills = (fast && el._fills && el._fillsDaily === daily) ? el._fills : gapFills(listAll, w, daily, all, () => { if(document.getElementById("timeChart") === el && !el._gesture) drawTimeChart(el, timeList()); });
   el._fills = fills; el._fillsDaily = daily;
   const fillsIn = fills.filter(f => f.tb > w.start && f.ta < w.end);
   if(!pts.length && !(before && after) && !(hourly && hourly.length) && !fillsIn.length){
     el._geom = null;
     const isToday = w.start <= Date.now() && Date.now() < w.end && w.end - w.start <= 1.05 * DAY;
-    el.innerHTML = `<div class="chart-empty">${escapeHtml(!listAll.length ? t("chartNeed") : isToday ? t("tpEmptyToday") : t("tpEmpty"))}</div>`;
+    el.innerHTML = `<div class="chart-empty">${escapeHtml(!listAll.length ? (cfActive("time") && state.metingen.length ? t("cfEmpty") : t("chartNeed")) : isToday ? t("tpEmptyToday") : t("tpEmpty"))}</div>`;
     return;
   }
   const segs = []; drawPts.forEach((p, i) => { if(!i || p.ts - drawPts[i-1].ts > gap) segs.push([]); segs[segs.length-1].push(p); });
@@ -2737,7 +2811,7 @@ function drawScatterChart(el, listAll){
   const basis = scatterBasis();
   const list = listAll.filter(p => xOf(p, basis) !== null);
   const missing = listAll.length - list.length;
-  if(list.length < 2){ el.innerHTML = `<div class="chart-empty">${escapeHtml(t("chartNeed"))}${missing ? "<br>" + escapeHtml(t("basis24Missing")(missing)) : ""}</div>`; return; }
+  if(list.length < 2){ el.innerHTML = `<div class="chart-empty">${escapeHtml(cfActive("scatter") ? t("cfEmpty") : t("chartNeed"))}${missing ? "<br>" + escapeHtml(t("basis24Missing")(missing)) : ""}</div>`; return; }
   const hasIso = !!state.settings.isolatieDatum;
   const groups = hasIso
     ? [{ key:"voor", label:t("lVoor"), color:"var(--c-voor)", pts:list.filter(p=>phaseOf(p)==="voor") }, { key:"na", label:t("lNa"), color:"var(--c-na)", pts:list.filter(p=>phaseOf(p)==="na") }].filter(g => g.pts.length)
@@ -2850,7 +2924,7 @@ function analyzeVoorNa(listIn, basis){
 /* Bij klimaatfilter "Alle": als er genoeg "alles uit"-metingen zijn, is dát het eerlijkste vergelijk
    (verwarmen/koelen vermengen anders het beeld). Anders alle metingen minus thermostaat-metingen. */
 function analyzeBest(list, basis){
-  if(klimaatFilter === "all"){
+  if(cfOf("scatter").kf === "all"){
     const v = analyzeVoorNa(list.filter(m => klimaatOf(m).mode === "vrij"), basis);
     if(v.status !== "insufficient"){ v.vrijOnly = true; return v; }
   }
@@ -2876,10 +2950,10 @@ function conclusionHTML(r, dpName){
 }
 function perDagdeelHTML(basis){
   const rows = DAGDELEN.map(k => {
-    const r = analyzeBest(applyKlimaat(state.metingen).filter(m => dagdeelOf(m.tijd) === k), basis);
+    const r = analyzeBest(cfApply("scatter", state.metingen, { skipDp: true }).filter(m => dagdeelOf(m.tijd) === k), basis);
     const icon = { good:"✓", bad:"✗", neutral:"≈", insufficient:"…" }[r.status];
     const val = r.status === "insufficient" ? t("conShortInsufficient")(r.nv, r.nn) : `${fmtDelta(r.diff)} · ${t("conShort_" + r.status)}`;
-    return `<button type="button" class="dp-con ${r.status} ${dagdeelFilter===k?"on":""}" data-dp="${k}"><span class="con-icon" aria-hidden="true">${icon}</span><span class="l">${escapeHtml(dpLabel(k))}</span><span class="v">${escapeHtml(val)}</span></button>`;
+    return `<button type="button" class="dp-con ${r.status} ${cfOf("scatter").dp===k?"on":""}" data-dp="${k}"><span class="con-icon" aria-hidden="true">${icon}</span><span class="l">${escapeHtml(dpLabel(k))}</span><span class="v">${escapeHtml(val)}</span></button>`;
   }).join("");
   return `<h3>${t("conPerDp")}</h3><div class="dp-con-list">${rows}</div>`;
 }
@@ -2891,7 +2965,7 @@ function renderSummary(){
   if(v.type === "afkoel"){ renderCoolSummary(el); return; }
   if(v.type === "klimaat"){ renderKlimaatSummary(el); return; }
   const list = v.type === "import" ? sortedMetingen(state.metingen) : visibleMetingen();
-  const title = (v.type === "month" ? monthLabel(v.key) : t("navAll")) + (dagdeelFilter !== "all" && v.type !== "import" ? " · " + dpLabel(dagdeelFilter) : "") + (klimaatFilter !== "all" && v.type !== "import" ? " · " + t("kStatus_" + klimaatFilter) : "");
+  const title = v.type === "month" ? monthLabel(v.key) : t("navAll");
   const deltas = list.map(p => p.binnen - p.buiten);
   const aD = avg(deltas);
   const last = list[list.length-1];
@@ -2913,7 +2987,9 @@ function renderSummary(){
   if(!state.settings.isolatieDatum){
     html += `<p class="summary-hint">${escapeHtml(t("sumNoIso"))}</p>`;
   } else {
-    const allS = sortedMetingen(v.type === "import" ? state.metingen : applyKlimaat(applyDagdeel(state.metingen)));
+    const allS = sortedMetingen(v.type === "import" ? state.metingen : cfApply("scatter", state.metingen));
+    const cfl = v.type === "import" ? "" : cfLabel("scatter");
+    if(cfl) html += `<p class="summary-hint" style="margin-top:0;">${escapeHtml(t("conFollows")(cfl))}</p>`;
     const basis = scatterBasis();
     const voor = allS.filter(p => phaseOf(p) === "voor"), na = allS.filter(p => phaseOf(p) === "na");
     const dv = avg(voor.map(p=>p.binnen-p.buiten)), dn = avg(na.map(p=>p.binnen-p.buiten));
@@ -2928,8 +3004,9 @@ function renderSummary(){
         <div class="summary-line"><span class="l">&nbsp;&nbsp;${t("lNa")}</span><span class="v"><i class="sw" style="background:var(--c-na)"></i>${fmtT(an.en)}</span></div>
         <div class="summary-line"><span class="l">&nbsp;&nbsp;${t("thVerschil")}</span><span class="v">${fmtDelta(an.diff)} <span class="pm">± ${fmtT(an.margin)}</span></span></div>`;
     }
-    html += `<h3>${t("conTitle")}${dagdeelFilter !== "all" && v.type !== "import" ? " · " + escapeHtml(dpLabel(dagdeelFilter)) : ""}</h3>`;
-    html += conclusionHTML(an, dagdeelFilter === "all" || v.type === "import" ? t("conAllDay") : dpLabel(dagdeelFilter).toLowerCase());
+    const sdp = cfOf("scatter").dp;
+    html += `<h3>${t("conTitle")}${sdp !== "all" && v.type !== "import" ? " · " + escapeHtml(dpLabel(sdp)) : ""}</h3>`;
+    html += conclusionHTML(an, sdp === "all" || v.type === "import" ? t("conAllDay") : dpLabel(sdp).toLowerCase());
     if(v.type !== "import") html += perDagdeelHTML(basis);
     html += `<p class="summary-hint">${escapeHtml(t("sumCaveat"))}</p>`;
   }
@@ -2948,7 +3025,7 @@ function actionsHTML(){
     <div class="save-status"></div>`;
 }
 function wireActions(){
-  document.querySelectorAll(".dp-con[data-dp]").forEach(b => b.onclick = () => { dagdeelFilter = dagdeelFilter === b.dataset.dp ? "all" : b.dataset.dp; renderAll({ skipProfile:true }); });
+  document.querySelectorAll(".dp-con[data-dp]").forEach(b => b.onclick = () => { const f = cfOf("scatter"); f.dp = f.dp === b.dataset.dp ? "all" : b.dataset.dp; cfChanged("scatter"); });
   const bulk = document.getElementById("bulkUitBtn"); if(bulk) bulk.onclick = bulkUnknownToUit;
   document.getElementById("saveNowBtn").onclick = saveNow;
   document.getElementById("logoutBtn").onclick = signOutCloud;
@@ -2983,8 +3060,8 @@ function findGrens(offVals, onVals, onBelow){
   const T = Math.round(((best.from + best.to) / 2) * 2) / 2;
   return { T, err: best.err, n: all.length };
 }
-function klimaatStats(){
-  const all = sortedMetingen(state.metingen);
+function klimaatStats(list){
+  const all = sortedMetingen(list || state.metingen);
   const withK = all.map(m => ({ m, k: klimaatOf(m) }));
   const vrij = withK.filter(x => x.k.mode === "vrij");
   const verw = withK.filter(x => x.k.mode === "verwarmen");
@@ -3055,7 +3132,7 @@ function renderKlimaatView(main){
   }
   koelBody += koelTestsHTML(KT);
   main.innerHTML =
-    cardHTML(ICONS.scatter, t("kpChart"), `<div id="klimaatChart"></div>${howtoHTML("howtoKlimaat", klimaatHowtoItems(S))}`, basisToggleHTML()) +
+    cardHTML(ICONS.scatter, t("kpChart"), `${cfBarHTML("klimaat")}<div id="klimaatChart"></div>${howtoHTML("howtoKlimaat", klimaatHowtoItems(S))}`, basisToggleHTML()) +
     cardHTML(ICONS.therm, t("kpVrijTitle"), `<p class="card-note" style="margin-bottom:10px;">${escapeHtml(t("kpVrijNote"))}</p>${vrijBody}`, String(S.vrij.length)) +
     cardHTML(ICONS.plus, t("kpVerwTitle"), `<p class="card-note" style="margin-bottom:10px;">${escapeHtml(t("kpVerwNote"))}</p>${verwBody}`, String(S.verw.length)) +
     cardHTML(ICONS.moon, t("kpKoelTitle"), `<p class="card-note" style="margin-bottom:10px;">${escapeHtml(t("kpKoelNote"))}</p>${koelBody}`, String(S.koel.length));
@@ -3066,9 +3143,9 @@ function renderKlimaatView(main){
 }
 function drawKlimaatChart(el){
   if(!el) return;
-  const S = klimaatStats();
+  const S = klimaatStats(cfApply("klimaat", state.metingen));
   const pts = S.withK.filter(x => x.k.mode !== "onbekend" && x.k.mode !== "gemengd");
-  if(pts.length < 2){ el.innerHTML = `<div class="chart-empty">${escapeHtml(t("chartNeed"))}</div>`; return; }
+  if(pts.length < 2){ el.innerHTML = cfActive("klimaat") ? cfEmptyHTML() : `<div class="chart-empty">${escapeHtml(t("chartNeed"))}</div>`; return; }
   const col = { vrij:"var(--k-vrij)", verwarmen:"var(--k-verw)", koelen:"var(--k-koel)" };
   const W = chartWidth(el), H = Math.round(Math.min(320, Math.max(220, W*0.42)));
   const m = { l:42, r:16, t:28, b:36 }, iw = W - m.l - m.r, ih = H - m.t - m.b;
@@ -3175,7 +3252,7 @@ function koelTestsHTML(KT){
       <td><button class="row-del kt-skip" title="${escapeHtml(t("coolCandSkip"))}" aria-label="${escapeHtml(t("coolCandSkip"))}">${ICONS.trash}</button></td>
     </tr>`).join("");
   html += `<div class="table-scroll" style="margin-top:8px;"><table class="rtable ktable"><thead><tr><th>${t("thDatum")}</th><th class="num">${t("thBinnen")}</th><th class="num">${t("ktDur")}</th><th class="num">${t("ktRate")}</th><th class="num">${t("thBuitenGem")}</th><th class="num">${t("ktSet")}</th>${iso ? `<th>${t("thFase")}</th>` : ""}<th></th></tr></thead><tbody>${rows}</tbody></table></div>`;
-  html += `<div id="koelChart" style="margin-top:14px;"></div>` + howtoHTML("howtoKoel");
+  html += `<div style="margin-top:14px;">${cfBarHTML("koel")}</div><div id="koelChart"></div>` + howtoHTML("howtoKoel");
   return html;
 }
 function wireKoelTests(){
@@ -3185,9 +3262,11 @@ function wireKoelTests(){
     scheduleAutoSave(); renderAll({ skipProfile:true });
   });
 }
-function drawKoelChart(el, KT){
+function drawKoelChart(el, KTall){
   if(!el) return;
-  if(!KT.length){ el.innerHTML = ""; return; }
+  if(!KTall.length){ el.innerHTML = ""; return; }
+  const KT = cfApply("koel", KTall, { ts: k => tsOf(k.a), room: k => k.a.ruimte, m: () => null });
+  if(!KT.length){ el.innerHTML = cfEmptyHTML(); return; }
   const hasIso = !!state.settings.isolatieDatum;
   const colorOf = k => !hasIso || !k.phase ? "var(--k-koel)" : k.phase === "voor" ? "var(--c-voor)" : "var(--c-na)";
   const W = chartWidth(el), H = Math.round(Math.min(280, Math.max(200, W*0.36)));
@@ -3203,7 +3282,7 @@ function drawKoelChart(el, KT){
   const groups = hasIso ? [["voor", t("lVoor"), "var(--c-voor)"], ["na", t("lNa"), "var(--c-na)"]].filter(([p]) => KT.some(k => k.phase === p)) : [["", t("ktTitle"), "var(--k-koel)"]];
   el.innerHTML = `<div class="chart-legend">${groups.map(([p, l, c]) => `<span class="key"><i class="sw dot" style="background:${c}"></i>${escapeHtml(l)} (${p ? KT.filter(k => k.phase === p).length : KT.length})</span>`).join("")}</div>
     <div class="chart-wrap"><svg viewBox="0 0 ${W} ${H}" role="img" aria-label="${escapeHtml(t("ktChart"))}">${xyClipDef("koel", m, iw, ih)}${g}<g clip-path="url(#xyc-koel)">${dots}</g></svg></div>${xyBarHTML(el)}`;
-  xyFinish(el, { W, m, iw, ih }, () => drawKoelChart(el, KT), KT.map(k => ({ x: k.out, y: k.rate })));
+  xyFinish(el, { W, m, iw, ih }, () => drawKoelChart(el, KTall), KT.map(k => ({ x: k.out, y: k.rate })));
   const wrap = el.querySelector(".chart-wrap"), svgEl = wrap.querySelector("svg"), tip = attachTooltip(wrap);
   svgEl.addEventListener("pointermove", ev => {
     const r = svgEl.getBoundingClientRect(), sc = W / r.width, px = (ev.clientX - r.left) * sc, py = (ev.clientY - r.top) * sc;
@@ -3793,7 +3872,7 @@ function renderCoolView(main){
       <span class="form-msg ${lastCoolMsg ? lastCoolMsg.cls : ""}" id="coolMsg">${lastCoolMsg ? escapeHtml(lastCoolMsg.text) : ""}</span>
     </div>`;
   let html = candidatesHTML() + cardHTML(ICONS.moon, t("coolNew"), form);
-  html += cardHTML(ICONS.therm, t("coolChart"), `<div id="coolChart"></div>${howtoHTML("howtoCool")}`);
+  html += cardHTML(ICONS.therm, t("coolChart"), `${cfBarHTML("afkoel")}<div id="coolChart"></div>${howtoHTML("howtoCool")}`);
   html += cardHTML(ICONS.list, t("coolTable"), coolTableHTML(), String(state.afkoeltests.length));
   main.innerHTML = html;
   lastCoolMsg = null;
@@ -3877,8 +3956,10 @@ function wireCoolTable(){
 }
 function drawCoolChart(el){
   if(!el) return;
-  const pts = sortedCool().map(a => ({ a, c: coolCalc(a) })).filter(p => p.c.tau);
-  if(!pts.length){ el.innerHTML = `<div class="chart-empty">${escapeHtml(t("coolNeed"))}</div>`; return; }
+  const ptsAll = sortedCool().map(a => ({ a, c: coolCalc(a) })).filter(p => p.c.tau);
+  if(!ptsAll.length){ el.innerHTML = `<div class="chart-empty">${escapeHtml(t("coolNeed"))}</div>`; return; }
+  const pts = cfApply("afkoel", ptsAll, { ts: p => coolStartTs(p.a), room: p => p.a.ruimte, m: () => null });
+  if(!pts.length){ el.innerHTML = cfEmptyHTML(); return; }
   const hasIso = !!state.settings.isolatieDatum;
   const colorOf = p => !hasIso ? "var(--accent)" : coolPhase(p.a) === "voor" ? "var(--c-voor)" : "var(--c-na)";
   const W = chartWidth(el), H = Math.round(Math.min(300, Math.max(210, W*0.38)));
@@ -4086,7 +4167,7 @@ function renderAll(opts){
 }
 function bootApp(){
   state.activeView = { type:"overview" };
-  dagdeelFilter = "all"; klimaatFilter = "all"; scatterBasisUser = null; timePeriod = "1"; timeZoom = null; timeView = "temp"; tableOpenMonths.clear(); formKlimaat = null; formDraft = null; formTimeTouched = false; lastImportMsg = ""; formModeTouched = false;
+  Object.keys(chartFilters).forEach(k => delete chartFilters[k]); scatterBasisUser = null; timePeriod = "1"; timeZoom = null; timeView = "temp"; tableOpenMonths.clear(); formKlimaat = null; formDraft = null; formTimeTouched = false; lastImportMsg = ""; formModeTouched = false;
   dirty = false; stateGeneration = 0; savedGeneration = 0;
   renderAll();
   backfillOnline();
@@ -4133,8 +4214,8 @@ setInterval(() => {
     lastClockMinute = hm;
     const el = document.getElementById("timeChart");
     if(el && el._geom && !el._gesture){
-      const w = timeWindow(visibleMetingen());
-      if(Date.now() >= w.start - 60000 && Date.now() <= w.end + 60000) drawTimeChart(el, visibleMetingen());
+      const w = timeWindow(timeList());
+      if(Date.now() >= w.start - 60000 && Date.now() <= w.end + 60000) drawTimeChart(el, timeList());
     }
   }
 }, 30000);
