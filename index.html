@@ -352,6 +352,12 @@
   .tc-zoom{touch-action:pan-y; cursor:grab; user-select:none; -webkit-user-select:none;}
   .tc-zoom:active{cursor:grabbing;}
   .zoom-hint{font-size:11px; color:var(--text-soft); margin:6px 0 0;}
+  .xy-zoom{touch-action:pan-y; cursor:zoom-in; user-select:none; -webkit-user-select:none;}
+  .xy-zoom.zoomed{touch-action:none; cursor:grab;}
+  .xy-zoom.zoomed:active{cursor:grabbing;}
+  .xy-bar{display:flex; align-items:center; gap:8px; flex-wrap:wrap; margin-top:6px;}
+  .xy-bar .zoom-hint{margin:0; flex:1 1 200px;}
+  .xy-bar .tnav{display:inline-flex; gap:4px; align-items:center;}
   .tnav-reset{font-family:inherit; font-size:11px; padding:4px 9px; border-radius:12px; border:1px solid var(--accent); background:color-mix(in srgb, var(--accent) 10%, transparent); color:var(--accent); cursor:pointer;}
   .chart-legend .sw.band{height:9px; border-radius:2px;}
   .table-section-title{font-size:11px; letter-spacing:.08em; text-transform:uppercase; color:var(--text-soft); font-weight:600; margin:0 0 6px;}
@@ -889,6 +895,7 @@ const I18N = {
     zoomIn: "Inzoomen", zoomOut: "Uitzoomen", zoomReset: "Herstel", zoomMax: "Maximaal ingezoomd (uurniveau)",
     nowLbl: "nu", tpEmptyToday: "Vandaag nog geen metingen. Voeg er hierboven één toe, of blader terug met ‹.",
     zoomHint: "Zoomen: knijp met twee vingers (telefoon) of Ctrl + scrollen (computer). Slepen = verschuiven. Dubbeltik op een dag = naar die dag.",
+    xyZoomHint: "Zoomen: knijp met twee vingers, Ctrl + scrollen of dubbeltik/dubbelklik op een plek. Ingezoomd: slepen = verschuiven.",
     tlHourly: "Buiten online (per uur)",
     tp7: "7 dagen", tp30: "30 dagen", tp90: "3 mnd", tpAll: "Alles",
     tpPrev: "Vorige periode", tpNext: "Volgende periode",
@@ -897,6 +904,9 @@ const I18N = {
     tpDailyNote: (n, d) => `Per dag samengevat: ${n} metingen op ${d} dagen. Kies '7 dagen' om elke meting apart te zien.`,
     tpN: n => `${n} meting${n===1?"":"en"}`,
     tlInAvg: "Binnen (daggemiddelde)", tlOutAvg: "Buiten (daggemiddelde)", tlOutBand: "Buiten laagste – hoogste",
+    tFill: "Gaten aanvullen", tlFill: "Binnen geschat (aangevuld)", ttFill: "Binnen geschat",
+    fillNote: (n, out) => `Gestippelde oranje lijn = geschat, waar je meer dan 36 uur niet gemeten hebt (tot 14 dagen). Berekend uit ${n} vergelijkbare metingen (zelfde fase vóór/na isolatie en zelfde klimaatstand): het gemiddelde dagverloop binnen${out ? " en de online buitentemperatuur per uur" : ""}, en altijd precies aansluitend op je echte meting ervóór en erna. Telt niet mee in conclusies, tabellen of export.`,
+    fillTtNote: n => `op basis van ${n} vergelijkbare metingen`,
     tlDiffAvg: "Verschil (daggemiddelde)", tlDiffBand: "Laagste – hoogste van de dag",
     tblRecent: n => `Laatste ${n} meting${n===1?"":"en"}`,
     tblOlder: n => `Oudere metingen (${n}) — per maand`,
@@ -1175,6 +1185,7 @@ const I18N = {
     zoomIn: "Zoom in", zoomOut: "Zoom out", zoomReset: "Reset", zoomMax: "Fully zoomed in (hour level)",
     nowLbl: "now", tpEmptyToday: "No readings today yet. Add one above, or go back with ‹.",
     zoomHint: "Zoom: pinch with two fingers (phone) or Ctrl + scroll (computer). Drag = pan. Double-tap a day = go to that day.",
+    xyZoomHint: "Zoom: pinch with two fingers, Ctrl + scroll, or double-tap/double-click a spot. When zoomed in: drag = pan.",
     tlHourly: "Outdoor online (hourly)",
     tp7: "7 days", tp30: "30 days", tp90: "3 mo", tpAll: "All",
     tpPrev: "Previous period", tpNext: "Next period",
@@ -1183,6 +1194,9 @@ const I18N = {
     tpDailyNote: (n, d) => `Summarised per day: ${n} readings on ${d} days. Pick '7 days' to see every reading.`,
     tpN: n => `${n} reading${n===1?"":"s"}`,
     tlInAvg: "Indoor (daily avg.)", tlOutAvg: "Outdoor (daily avg.)", tlOutBand: "Outdoor lowest – highest",
+    tFill: "Fill gaps", tlFill: "Indoor estimated (filled)", ttFill: "Indoor estimated",
+    fillNote: (n, out) => `Dotted orange line = estimated, where you did not measure for more than 36 hours (up to 14 days). Calculated from ${n} comparable readings (same phase before/after insulation and same climate mode): the average indoor daily pattern${out ? " and the hourly online outdoor temperature" : ""}, always joining your real reading before and after exactly. Not used in conclusions, tables or export.`,
+    fillTtNote: n => `based on ${n} comparable readings`,
     tlDiffAvg: "Difference (daily avg.)", tlDiffBand: "Lowest – highest of the day",
     tblRecent: n => `Latest ${n} reading${n===1?"":"s"}`,
     tblOlder: n => `Older readings (${n}) — per month`,
@@ -1655,7 +1669,7 @@ function setProfilePanel(open){
   document.getElementById("profileBtn").classList.toggle("active", open);
   if(open) renderProfilePanel();
 }
-function goTo(view){ state.activeView = view; timeZoom = null; setNavDrawer(false); renderAll(); window.scrollTo({ top:0 }); }
+function goTo(view){ state.activeView = view; timeZoom = null; Object.keys(xyZoom).forEach(k => delete xyZoom[k]); setNavDrawer(false); renderAll(); window.scrollTo({ top:0 }); }
 
 function renderTabs(){
   const v = state.activeView || {};
@@ -1994,6 +2008,135 @@ function attachTooltip(wrap){
 }
 function ttRow(color, label, val){ return `<div class="tt-row"><span><i class="tt-key" style="background:${color}"></i>${escapeHtml(label)}</span><span class="tt-val">${val}</span></div>`; }
 
+/* ---- Zoomen in de spreidingsgrafieken (binnen t.o.v. buiten, per klimaat, koelsnelheid) ----
+   Zelfde bediening als de tijdgrafiek: knijpen (telefoon), Ctrl + scrollen (computer), dubbeltik of
+   dubbelklik = 2× inzoomen op die plek, en ingezoomd slepen = verschuiven. Beide assen zoomen mee.
+   Je kunt niet verder uitzoomen dan het volledige bereik en niet verder inzoomen dan 1 °C breed
+   (x) en 0,5 °C hoog (y) — kleiner zegt bij een thermometer met ±0,3 °C niets meer. De zoomstand
+   per grafiek is een schermvoorkeur (niet opgeslagen) en wordt bij wisselen van pagina gewist. */
+const xyZoom = {};   // grafieksleutel → { x0, x1, y0, y1 } of afwezig (= volledig bereik)
+function ticksIn(lo, hi, count){
+  const span = hi - lo, step0 = span / count, mag = Math.pow(10, Math.floor(Math.log10(step0)));
+  const step = [1,2,2.5,5,10].map(s => s*mag).find(s => s >= step0) || 10*mag;
+  const ticks = []; for(let v = Math.ceil(lo/step - 1e-9)*step; v <= hi + 1e-9; v += step) ticks.push(Math.round(v*100)/100);
+  return { lo, hi, ticks };
+}
+function clampXY(z, base, mn){
+  if(!z) return null;
+  mn = mn || { x: 1, y: 0.5 };
+  const bx = base.x1 - base.x0, by = base.y1 - base.y0;
+  const sx = Math.min(bx, Math.max(Math.min(mn.x, bx), z.x1 - z.x0)), sy = Math.min(by, Math.max(Math.min(mn.y, by), z.y1 - z.y0));
+  if(sx >= bx - 1e-9 && sy >= by - 1e-9) return null;
+  const cx = (z.x0 + z.x1) / 2, cy = (z.y0 + z.y1) / 2;
+  const x0 = Math.max(base.x0, Math.min(base.x1 - sx, cx - sx/2)), y0 = Math.max(base.y0, Math.min(base.y1 - sy, cy - sy/2));
+  return { x0, x1: x0 + sx, y0, y1: y0 + sy };
+}
+/* Geeft de assen voor deze tekening: het volledige bereik, of de ingezoomde uitsnede. */
+/* min = kleinste uitsnede { x, y } in de eenheden van de as (standaard 1 °C × 0,5 °C). */
+function xyView(el, key, xt, yt, min){
+  const base = { x0: xt.lo, x1: xt.hi, y0: yt.lo, y1: yt.hi };
+  el._xyMin = min || { x: 1, y: 0.5 };
+  const z = clampXY(xyZoom[key], base, el._xyMin);
+  if(z) xyZoom[key] = z; else delete xyZoom[key];
+  el._xyKey = key; el._xyBase = base; el._xyView = z || base;
+  if(!z) return { xt, yt, zoomed:false };
+  return { xt: ticksIn(z.x0, z.x1, 6), yt: ticksIn(z.y0, z.y1, 5), zoomed:true };
+}
+function xyZoomAt(el, factor, cx, cy){
+  const v = el._xyView, b = el._xyBase; if(!v || !b) return;
+  if(cx == null){ cx = (v.x0 + v.x1) / 2; cy = (v.y0 + v.y1) / 2; }
+  const z = clampXY({ x0: cx - (cx - v.x0)*factor, x1: cx + (v.x1 - cx)*factor, y0: cy - (cy - v.y0)*factor, y1: cy + (v.y1 - cy)*factor }, b, el._xyMin);
+  if(z) xyZoom[el._xyKey] = z; else delete xyZoom[el._xyKey];
+}
+function xyClipDef(key, m, iw, ih){ return `<defs><clipPath id="xyc-${key}"><rect x="${m.l}" y="${m.t}" width="${iw}" height="${ih}"/></clipPath></defs>`; }
+function xyBarHTML(el){
+  const z = !!xyZoom[el._xyKey], v = el._xyView, b = el._xyBase;
+  const mn = el._xyMin || { x: 1, y: 0.5 };
+  const atMax = v && b && (v.x1 - v.x0) <= Math.min(mn.x, b.x1 - b.x0) * (1 + 1e-6) + 1e-9 && (v.y1 - v.y0) <= Math.min(mn.y, b.y1 - b.y0) * (1 + 1e-6) + 1e-9;
+  return `<div class="xy-bar"><span class="tnav"><button type="button" class="tnav-btn" data-xyz="out" aria-label="${escapeHtml(t("zoomOut"))}" title="${escapeHtml(t("zoomOut"))}" ${z ? "" : "disabled"}>−</button><button type="button" class="tnav-btn" data-xyz="in" aria-label="${escapeHtml(t("zoomIn"))}" title="${escapeHtml(t("zoomIn"))}" ${atMax ? "disabled" : ""}>+</button>${z ? `<button type="button" class="tnav-reset" data-xyz="reset">${t("zoomReset")}</button>` : ""}</span><p class="zoom-hint">${escapeHtml(t("xyZoomHint"))}</p></div>`;
+}
+/* Na elke tekening: knoppen koppelen, zoomstand op de container zetten, en (één keer per
+   container) de gebaren koppelen. redraw tekent dezelfde grafiek opnieuw. */
+function xyFinish(el, geom, redraw, data){
+  el._xyGeom = geom; el._xyRedraw = redraw; el._xyData = data || [];
+  const wrap = el.querySelector(".chart-wrap");
+  if(wrap){ wrap.classList.add("xy-zoom"); wrap.classList.toggle("zoomed", !!xyZoom[el._xyKey]); }
+  el.querySelectorAll("[data-xyz]").forEach(b => b.onclick = () => {
+    if(b.disabled) return;
+    const k = b.dataset.xyz;
+    if(k === "reset") delete xyZoom[el._xyKey];
+    else if(k === "out") xyZoomAt(el, 2);
+    else {
+      // "+" zoomt in op het midden van de stippen die nu in beeld zijn (niet op een lege plek).
+      const v = el._xyView, inV = el._xyData.filter(p => p.x >= v.x0 && p.x <= v.x1 && p.y >= v.y0 && p.y <= v.y1);
+      if(inV.length) xyZoomAt(el, 0.5, avg(inV.map(p => p.x)), avg(inV.map(p => p.y))); else xyZoomAt(el, 0.5);
+    }
+    el._xyRedraw();
+  });
+  wireXYZoom(el);
+}
+function xyInView(el, px, py){ const G = el._xyGeom; return G && px >= G.m.l - 2 && px <= G.m.l + G.iw + 2 && py >= G.m.t - 2 && py <= G.m.t + G.ih + 2; }
+function wireXYZoom(el){
+  if(!el || el.dataset.xyWired) return;
+  el.dataset.xyWired = "1";
+  const pts = new Map();
+  let g = null, raf = 0, lastTap = { t: 0, x: 0, y: 0 };
+  const geomPx = () => { const G = el._xyGeom, svg = el.querySelector(".chart-wrap svg"); if(!G || !svg) return null; const r = svg.getBoundingClientRect(); return { G, r, sc: G.W / r.width }; };
+  const dataAt = (cx, cy) => { const q = geomPx(); if(!q) return null; const v = el._xyView, px = (cx - q.r.left) * q.sc, py = (cy - q.r.top) * q.sc;
+    return { x: v.x0 + (px - q.G.m.l) / q.G.iw * (v.x1 - v.x0), y: v.y0 + (q.G.m.t + q.G.ih - py) / q.G.ih * (v.y1 - v.y0) }; };
+  const redraw = () => { if(raf) return; raf = requestAnimationFrame(() => { raf = 0; if(el._xyRedraw) el._xyRedraw(); }); };
+  const zoomAtClient = (f, cx, cy) => { const d = dataAt(cx, cy); if(!d) return; xyZoomAt(el, f, d.x, d.y); redraw(); };
+  el.addEventListener("pointerdown", e => {
+    if(!e.target.closest || !e.target.closest(".chart-wrap svg")) return;
+    pts.set(e.pointerId, { x: e.clientX, y: e.clientY });
+    try{ el.setPointerCapture(e.pointerId); }catch(err){}
+    const v0 = Object.assign({}, el._xyView);
+    if(pts.size === 1) g = { type:"pan", x0: e.clientX, y0: e.clientY, v0, moved: false };
+    else if(pts.size === 2){ const [a, b] = [...pts.values()]; g = { type:"pinch", d0: Math.hypot(a.x - b.x, a.y - b.y) || 1, c: dataAt((a.x + b.x) / 2, (a.y + b.y) / 2), v0, moved: true }; }
+  });
+  el.addEventListener("pointermove", e => {
+    if(!pts.has(e.pointerId) || !g) return;
+    pts.set(e.pointerId, { x: e.clientX, y: e.clientY });
+    const q = geomPx(); if(!q) return;
+    if(g.type === "pan" && pts.size === 1){
+      const dx = e.clientX - g.x0, dy = e.clientY - g.y0;
+      if(!g.moved && Math.hypot(dx, dy) < 6) return;
+      if(!xyZoom[el._xyKey]) return;                    // volledig uitgezoomd: niets te verschuiven
+      g.moved = true;
+      const ux = (g.v0.x1 - g.v0.x0) / (q.G.iw / q.sc), uy = (g.v0.y1 - g.v0.y0) / (q.G.ih / q.sc);
+      const z = clampXY({ x0: g.v0.x0 - dx*ux, x1: g.v0.x1 - dx*ux, y0: g.v0.y0 + dy*uy, y1: g.v0.y1 + dy*uy }, el._xyBase, el._xyMin);
+      if(z) xyZoom[el._xyKey] = z;
+      redraw();
+    } else if(g.type === "pinch" && pts.size === 2 && g.c){
+      const [a, b] = [...pts.values()], f = g.d0 / (Math.hypot(a.x - b.x, a.y - b.y) || 1), c = g.c, v = g.v0;
+      const z = clampXY({ x0: c.x - (c.x - v.x0)*f, x1: c.x + (v.x1 - c.x)*f, y0: c.y - (c.y - v.y0)*f, y1: c.y + (v.y1 - c.y)*f }, el._xyBase, el._xyMin);
+      if(z) xyZoom[el._xyKey] = z; else delete xyZoom[el._xyKey];
+      redraw();
+    }
+  });
+  const up = e => {
+    if(!pts.has(e.pointerId)) return;
+    pts.delete(e.pointerId);
+    if(g && g.type === "pan" && !g.moved && e.type === "pointerup"){
+      // Dubbeltik / dubbelklik = 2× inzoomen op die plek. (Zelf herkend: door de pointer-capture
+      // komt het dblclick-event op de container terecht in plaats van op de grafiek.)
+      const now = Date.now();
+      if(now - lastTap.t < 320 && Math.hypot(e.clientX - lastTap.x, e.clientY - lastTap.y) < 30){ zoomAtClient(0.5, e.clientX, e.clientY); lastTap = { t: 0, x: 0, y: 0 }; }
+      else lastTap = { t: now, x: e.clientX, y: e.clientY };
+    }
+    if(pts.size === 0) g = null;
+    else if(pts.size === 1 && g && g.type === "pinch"){ const [p] = [...pts.values()]; g = { type:"pan", x0: p.x, y0: p.y, v0: Object.assign({}, el._xyView), moved: true }; }
+  };
+  el.addEventListener("pointerup", up); el.addEventListener("pointercancel", up);
+  el.addEventListener("wheel", e => {
+    if(!(e.ctrlKey || e.metaKey)) return;
+    if(!e.target.closest || !e.target.closest(".chart-wrap svg")) return;
+    e.preventDefault();
+    zoomAtClient(Math.exp(Math.max(-3, Math.min(3, e.deltaY * 0.0022))), e.clientX, e.clientY);
+  }, { passive: false });
+  el.addEventListener("dblclick", e => e.preventDefault());
+}
+
 /* ---- Tijdgrafiek: periode, per-dag samenvatten, gaten, verschil-weergave ----
    Met veel metingen werd de grafiek een onleesbare zigzag (ochtend/middag/avond door elkaar), liep
    de lijn dwars over weken zonder metingen heen en verdween de kleine binnenvariatie op een as van
@@ -2060,6 +2203,7 @@ function timeToolbarHTML(){
     <span class="tnav"><button type="button" class="tnav-btn" data-tnav="-1" ${w.atFirst?"disabled":""} aria-label="${escapeHtml(t("tpPrev"))}">‹</button><span class="tnav-label" id="tnavLabel">${escapeHtml(fmtWinLabel(w))}</span><button type="button" class="tnav-btn" data-tnav="1" ${w.atLatest?"disabled":""} aria-label="${escapeHtml(t("tpNext"))}">›</button></span>
     <span class="tnav"><button type="button" class="tnav-btn" data-tzoom="out" aria-label="${escapeHtml(t("zoomOut"))}" title="${escapeHtml(t("zoomOut"))}">−</button><button type="button" class="tnav-btn" data-tzoom="in" aria-label="${escapeHtml(t("zoomIn"))}" title="${escapeHtml(t(w.end - w.start <= minSpanMs() + 60000 ? "zoomMax" : "zoomIn"))}" ${w.end - w.start <= minSpanMs() + 60000 ? "disabled" : ""}>+</button>${timeZoom ? `<button type="button" class="tnav-reset" data-tzoom="reset">${t("zoomReset")}</button>` : ""}</span>
     <span class="seg small">${["temp","diff"].map(k => `<button type="button" data-tview="${k}" class="${timeView===k?"on":""}">${t(k==="temp"?"tvTemp":"tvDiff")}</button>`).join("")}</span>
+    ${timeView === "temp" && dagdeelFilter === "all" && klimaatFilter === "all" && hasFillableGap(list) ? `<span class="seg small"><button type="button" data-tfill class="${fillGaps ? "on" : ""}" aria-pressed="${fillGaps}">${t("tFill")}</button></span>` : ""}
   </div>`;
 }
 function setZoom(start, end){
@@ -2076,6 +2220,7 @@ function zoomAround(factor, centerTs){
 function wireTimeToolbar(){
   document.querySelectorAll("[data-tp]").forEach(b => b.onclick = () => { timePeriod = b.dataset.tp; timeZoom = null; refreshTimeCard(); });
   document.querySelectorAll("[data-tview]").forEach(b => b.onclick = () => { timeView = b.dataset.tview; refreshTimeCard(); });
+  document.querySelectorAll("[data-tfill]").forEach(b => b.onclick = () => { fillGaps = !fillGaps; refreshTimeCard(); });
   document.querySelectorAll("[data-tnav]").forEach(b => b.onclick = () => {
     if(b.disabled) return;
     const w = timeWindow(visibleMetingen()), span = w.end - w.start, dir = Number(b.dataset.tnav);
@@ -2185,6 +2330,106 @@ function wireTimeZoom(el){
   }, { passive: false });
   el.addEventListener("dblclick", e => e.preventDefault());
 }
+
+/* ---- Gaten aanvullen (alleen weergave) ----
+   Waar de binnenlijn onderbroken is (meer dan 36 uur niet gemeten, tot 14 dagen), tekenen we een
+   gestippelde schatting. Opbouw, per uur:
+     schatting(t) = rechte lijn tussen de echte meting ervóór en erna
+                  + dagverloop(t)        − hetzelfde, rechtgetrokken tussen beide uiteinden
+                  + b · buiten-traag(t)  − hetzelfde, rechtgetrokken tussen beide uiteinden
+   - dagverloop: hoeveel het binnen per tijdvak van 3 uur gemiddeld boven/onder het daggemiddelde zit,
+     uit dagen met minstens 2 metingen (gekrompen naar 0 bij weinig metingen);
+   - buiten-traag: de online uurtemperatuur, vertraagd met ~12 uur (zo reageert een huis), met
+     b = helling binnen-t.o.v.-buiten van dezelfde metingen (0 – 0,5), alleen met een locatie;
+   - "vergelijkbaar" = zelfde fase vóór/na isolatie, geen thermostaat-metingen, en bij gelijke
+     klimaatstand aan beide kanten alleen metingen met die stand.
+   Door de correctietermen loopt de schatting altijd exact door beide echte meetpunten. Schattingen
+   zijn nooit data: ze tellen nergens mee (conclusies, tabellen, export). */
+let fillGaps = true;                        // schermvoorkeur, niet opgeslagen
+const FILL_MIN = 36 * HOUR, FILL_MAX = 14 * DAY;
+function fillTrain(a, b){
+  const ph = phaseOf(a), ma = klimaatOf(a).mode, mb = klimaatOf(b).mode;
+  let train = state.metingen.filter(m => !isRegulated(m) && phaseOf(m) === ph && isFinite(m.binnen));
+  if(ma === mb && ma !== "onbekend" && ma !== "gemengd"){ const same = train.filter(m => klimaatOf(m).mode === ma); if(same.length >= 4) train = same; }
+  return train;
+}
+function hourFrac(ts){ const d = new Date(ts); return d.getHours() + d.getMinutes() / 60; }
+function diurnalProfile(train){
+  const byDay = {}; train.forEach(m => { (byDay[m.datum] = byDay[m.datum] || []).push(m); });
+  const sum = Array(8).fill(0), n = Array(8).fill(0);
+  let days = 0;
+  Object.values(byDay).forEach(arr => {
+    if(arr.length < 2) return;
+    days++;
+    const mu = avg(arr.map(x => x.binnen));
+    arr.forEach(x => { const k = Math.min(7, Math.floor(hourFrac(tsOf(x)) / 3)); sum[k] += x.binnen - mu; n[k]++; });
+  });
+  const P = sum.map((v, k) => v / (n[k] + 2));     // krimp: 1 meting telt maar voor een derde
+  const at = ts => { const pos = (hourFrac(ts) - 1.5) / 3, k0 = Math.floor(pos), f = pos - k0; return P[((k0 % 8) + 8) % 8] * (1 - f) + P[(((k0 + 1) % 8) + 8) % 8] * f; };
+  return { at, days };
+}
+/* Vertraagde buitentemperatuur per uur rond het gat; null als (nog) niet beschikbaar. */
+function laggedOutdoor(t0, t1, onReady){
+  const loc = state.settings.locatie;
+  if(!loc) return null;
+  const hours = {}; let missing = false;
+  for(let d = tsToISO(t0 - DAY); tsFrom(d, "00:00") <= t1; d = addDaysISO(d, 1)){
+    if(daysBetween(d, todayISO()) < 0) break;
+    const key = `${loc.lat.toFixed(3)},${loc.lon.toFixed(3)},${d}`, map = weatherResolved[key];
+    if(map) Object.keys(map).forEach(k => { hours[keyToTs(k)] = map[k]; });
+    else { missing = true; if(!weatherCache[key]) fetchHourly(loc, d).then(onReady).catch(() => { weatherResolved[key] = {}; }); }
+  }
+  if(missing) return null;
+  const alpha = 1 - Math.exp(-1 / 12), out = [];
+  let ema = null;
+  for(let ts = Math.floor((t0 - DAY) / HOUR) * HOUR; ts <= t1 + HOUR; ts += HOUR){
+    const v = hours[ts];
+    if(v === undefined) return null;               // gat in de weerdata: dan zonder buiten
+    ema = ema === null ? v : ema + alpha * (v - ema);
+    out.push({ ts, v: ema });
+  }
+  const at = ts => { const i = Math.max(0, Math.min(out.length - 2, Math.floor((ts - out[0].ts) / HOUR))), p = out[i], q = out[i + 1]; return p.v + (q.v - p.v) * Math.max(0, Math.min(1, (ts - p.ts) / HOUR)); };
+  return { at };
+}
+function estimateGap(a, b, onReady){
+  const ta = tsOf(a), tb = tsOf(b), train = fillTrain(a, b), prof = diurnalProfile(train);
+  let bOut = 0, O = null;
+  const reg = linReg(train.map(m => ({ x: m.buiten, y: m.binnen })));
+  if(reg && reg.n >= 5 && reg.spread >= 3){ O = laggedOutdoor(ta, tb, onReady); if(O) bOut = Math.max(0, Math.min(0.5, reg.b)); }
+  const lin = (ts, va, vb) => va + (vb - va) * (ts - ta) / (tb - ta);
+  const Pa = prof.at(ta), Pb = prof.at(tb), Oa = O ? O.at(ta) : 0, Ob = O ? O.at(tb) : 0;
+  const est = ts => lin(ts, a.binnen, b.binnen) + (prof.at(ts) - lin(ts, Pa, Pb)) + (O ? bOut * (O.at(ts) - lin(ts, Oa, Ob)) : 0);
+  const pts = [{ ts: ta, v: a.binnen }];
+  for(let ts = Math.ceil(ta / HOUR) * HOUR; ts < tb; ts += HOUR) if(ts > ta) pts.push({ ts, v: est(ts) });
+  pts.push({ ts: tb, v: b.binnen });
+  return { a, b, ta, tb, pts, n: train.length, outdoor: !!O && bOut > 0 };
+}
+function fillsAllowed(){ return fillGaps && timeView === "temp" && dagdeelFilter === "all" && klimaatFilter === "all"; }
+function hasFillableGap(list){ for(let i = 1; i < list.length; i++){ const dt = tsOf(list[i]) - tsOf(list[i-1]); if(dt > FILL_MIN && dt <= FILL_MAX) return true; } return false; }
+/* Alle gaten die het venster raken; bij de dagweergave per lege dag het gemiddelde van de schatting. */
+function gapFills(listAll, w, daily, all, onReady){
+  if(!fillsAllowed()) return [];
+  const out = [];
+  for(let i = 1; i < listAll.length; i++){
+    const a = listAll[i-1], b = listAll[i], ta = tsOf(a), tb = tsOf(b), dt = tb - ta;
+    if(dt > FILL_MAX || tb < w.start - DAY || ta > w.end + DAY) continue;
+    if(daily ? daysBetween(a.datum, b.datum) < 2 : dt <= FILL_MIN) continue;
+    const f = estimateGap(a, b, onReady);
+    if(daily){
+      const pa = all.find(p => p.datum === a.datum), pb = all.find(p => p.datum === b.datum);
+      if(!pa || !pb) continue;
+      const days = [];
+      for(let d = addDaysISO(a.datum, 1); d < b.datum; d = addDaysISO(d, 1)){
+        const vals = f.pts.filter(p => tsToISO(p.ts) === d).map(p => p.v);
+        if(vals.length) days.push({ ts: tsFrom(d, "12:00"), v: avg(vals), datum: d });
+      }
+      f.path = [{ ts: pa.ts, v: pa.bin }].concat(days, [{ ts: pb.ts, v: pb.bin }]);
+      f.days = days;
+    } else f.path = f.pts;
+    out.push(f);
+  }
+  return out;
+}
 function drawTimeChart(el, listAll, fast){
   if(!el) return;
   wireTimeZoom(el);
@@ -2215,7 +2460,10 @@ function drawTimeChart(el, listAll, fast){
   if(before && !(firstIn && firstIn.ts - before.ts <= gap)) before = null;
   if(after && !(lastIn && after.ts - lastIn.ts <= gap)) after = null;
   const drawPts = (before ? [before] : []).concat(pts, after ? [after] : []);
-  if(!pts.length && !(before && after) && !(hourly && hourly.length)){
+  const fills = (fast && el._fills && el._fillsDaily === daily) ? el._fills : gapFills(listAll, w, daily, all, () => { if(document.getElementById("timeChart") === el && !el._gesture) drawTimeChart(el, visibleMetingen()); });
+  el._fills = fills; el._fillsDaily = daily;
+  const fillsIn = fills.filter(f => f.tb > w.start && f.ta < w.end);
+  if(!pts.length && !(before && after) && !(hourly && hourly.length) && !fillsIn.length){
     el._geom = null;
     const isToday = w.start <= Date.now() && Date.now() < w.end && w.end - w.start <= 1.05 * DAY;
     el.innerHTML = `<div class="chart-empty">${escapeHtml(!listAll.length ? t("chartNeed") : isToday ? t("tpEmptyToday") : t("tpEmpty"))}</div>`;
@@ -2236,6 +2484,7 @@ function drawTimeChart(el, listAll, fast){
   const edgeVals = (outP, inP, edgeTs) => { if(!outP || !inP) return []; const f = (edgeTs - outP.ts) / (inP.ts - outP.ts); const a = valsOf(outP), b = valsOf(inP); return a.map((v, k) => v + (b[k] - v) * f); };
   yVals = yVals.concat(edgeVals(before, pts[0] || after, w.start), edgeVals(after, pts[pts.length-1] || before, w.end));
   if(showHourly) yVals = yVals.concat(hourly.filter(h => h.ts >= w.start && h.ts <= w.end).map(h => h.v));
+  fillsIn.forEach(f => { const inW = f.path.filter(p => p.ts >= w.start && p.ts <= w.end); yVals = yVals.concat((inW.length ? inW : f.path).map(p => p.v)); });
   if(!yVals.length) yVals = [0, 20];
   const yt = niceTicks(Math.min(...yVals), Math.max(...yVals), 5);
   const Y = v => m.t + ih - (v - yt.lo) / (yt.hi - yt.lo) * ih;
@@ -2277,6 +2526,7 @@ function drawTimeChart(el, listAll, fast){
   const r = daily ? 3 : 4;
   let marks = "";
   if(showHourly) marks += `<path d="${hourly.map((h, i) => `${i?"L":"M"}${X(h.ts).toFixed(1)},${Y(h.v).toFixed(1)}`).join("")}" fill="none" stroke="${cOut}" stroke-width="1.5" stroke-dasharray="2 3" opacity=".75"/>`;
+  fillsIn.forEach(f => { marks += `<path class="fill-est" d="${f.path.map((p, i) => `${i?"L":"M"}${X(p.ts).toFixed(1)},${Y(p.v).toFixed(1)}`).join("")}" fill="none" stroke="${cIn}" stroke-width="1.8" stroke-dasharray="2 4" stroke-linecap="round" opacity=".85"/>`; });
   segs.forEach(seg => {
     if(diff){
       if(daily) marks += `<path d="${bandOf(seg, "dMin", "dMax")}" fill="color-mix(in srgb, ${cDiff} 16%, transparent)" stroke="none"/>`;
@@ -2290,7 +2540,7 @@ function drawTimeChart(el, listAll, fast){
     }
   });
   let labels = "";
-  if(!diff && (pts.length || (before && after))){
+  if(!diff && (pts.length || (before && after)) && !(fillsIn.length && !pts.length)){
     // Loopt de lijn rechts door buiten beeld, dan de labels aan de rechterrand op de hoogte waar de
     // lijn die rand kruist; anders naast het laatste punt in beeld.
     const last = pts.length ? pts[pts.length-1] : before;
@@ -2306,15 +2556,27 @@ function drawTimeChart(el, listAll, fast){
   const sw = (c, lbl, band, dash) => `<span class="key"><i class="sw${band ? " band" : ""}${dash ? " dashc" : ""}" style="${dash ? `border-color:${c}; border-top-style:dotted` : `background:${band ? `color-mix(in srgb, ${c} 25%, transparent)` : c}`}"></i>${escapeHtml(lbl)}</span>`;
   const legend = diff
     ? sw(cDiff, daily ? t("tlDiffAvg") : t("tvDiff")) + (daily ? sw(cDiff, t("tlDiffBand"), true) : "")
-    : sw(cIn, daily ? t("tlInAvg") : t("lBinnen")) + sw(cOut, daily ? t("tlOutAvg") : t("lBuiten")) + (daily ? sw(cOut, t("tlOutBand"), true) : "") + (showHourly ? sw(cOut, t("tlHourly"), false, true) : "");
-  el.innerHTML = `<div class="chart-legend">${legend}${iso ? `<span class="key"><i class="sw dash"></i>${t("lIsolatie")}</span>` : ""}</div><div class="chart-wrap tc-zoom">${svg}</div><p class="zoom-hint">${escapeHtml(t("zoomHint"))}</p>${daily ? `<p class="card-note" style="margin-top:4px;">${escapeHtml(t("tpDailyNote")(list.length, pts.length))}</p>` : ""}`;
+    : sw(cIn, daily ? t("tlInAvg") : t("lBinnen")) + sw(cOut, daily ? t("tlOutAvg") : t("lBuiten")) + (daily ? sw(cOut, t("tlOutBand"), true) : "") + (showHourly ? sw(cOut, t("tlHourly"), false, true) : "") + (fillsIn.length ? sw(cIn, t("tlFill"), false, true) : "");
+  el.innerHTML = `<div class="chart-legend">${legend}${iso ? `<span class="key"><i class="sw dash"></i>${t("lIsolatie")}</span>` : ""}</div><div class="chart-wrap tc-zoom">${svg}</div><p class="zoom-hint">${escapeHtml(t("zoomHint"))}</p>${fillsIn.length ? `<p class="card-note" style="margin-top:4px;">${escapeHtml(t("fillNote")(Math.max(...fillsIn.map(f => f.n)), fillsIn.some(f => f.outdoor)))}</p>` : ""}${daily ? `<p class="card-note" style="margin-top:4px;">${escapeHtml(t("tpDailyNote")(list.length, pts.length))}</p>` : ""}`;
   el._hourlyOk = true;
   const wrap = el.querySelector(".chart-wrap"), svgEl = wrap.querySelector("svg"), tip = attachTooltip(wrap), xh = svgEl.querySelector(".xhair");
   const showAt = clientX => {
-    if(!pts.length) return;
     const rc = svgEl.getBoundingClientRect(), sc = W / rc.width, px = (clientX - rc.left) * sc;
     let best = pts[0], bd = Infinity;
     pts.forEach(p => { const d = Math.abs(X(p.ts) - px); if(d < bd){ bd = d; best = p; } });
+    // In een aangevuld gat, ver van een echte meting: de schatting op die plek tonen.
+    const tsC = w.start + (px - m.l) / iw * (w.end - w.start);
+    const fg = bd > 24 && fillsIn.find(f => f.ta < tsC && tsC < f.tb);
+    if(fg){
+      const path = fg.path; let j = path.findIndex(p => p.ts >= tsC); if(j < 1) j = 1;
+      const p0 = path[j-1], p1 = path[j], v = p0.v + (p1.v - p0.v) * (tsC - p0.ts) / Math.max(1, p1.ts - p0.ts);
+      const pick = daily ? (Math.abs(p0.ts - tsC) < Math.abs(p1.ts - tsC) ? p0 : p1) : null;
+      const ts = daily ? pick.ts : tsC, val = daily ? pick.v : v, d0 = new Date(ts);
+      xh.setAttribute("x1", X(ts)); xh.setAttribute("x2", X(ts)); xh.setAttribute("opacity", "0.5");
+      tip.show(`<div class="tt-head">${escapeHtml(fmtDate(tsToISO(ts), true))}${daily ? "" : " · ~" + pad2(d0.getHours()) + ":00"}</div>${ttRow(cIn, t("ttFill"), "~" + fmtT(val))}<div class="tt-row"><span>${escapeHtml(t("fillTtNote")(fg.n))}</span></div>`, X(ts) / sc, Y(val) / sc);
+      return;
+    }
+    if(!pts.length){ tip.hide(); return; }
     const bx = X(best.ts);
     if(bx < m.l || bx > m.l + iw){ tip.hide(); return; }
     xh.setAttribute("x1", bx); xh.setAttribute("x2", bx); xh.setAttribute("opacity", "0.5");
@@ -2343,8 +2605,8 @@ function drawScatterChart(el, listAll){
   const W = chartWidth(el), H = Math.round(Math.min(320, Math.max(220, W*0.42)));
   const m = { l:42, r:16, t:28, b:36 };
   const iw = W - m.l - m.r, ih = H - m.t - m.b;
-  const xt = niceTicks(Math.min(...list.map(p=>xOf(p,basis))), Math.max(...list.map(p=>xOf(p,basis))), 6);
-  const yt = niceTicks(Math.min(...list.map(p=>p.binnen)), Math.max(...list.map(p=>p.binnen)), 5);
+  const V = xyView(el, "scatter", niceTicks(Math.min(...list.map(p=>xOf(p,basis))), Math.max(...list.map(p=>xOf(p,basis))), 6), niceTicks(Math.min(...list.map(p=>p.binnen)), Math.max(...list.map(p=>p.binnen)), 5));
+  const xt = V.xt, yt = V.yt;
   const X = v => m.l + (v - xt.lo) / (xt.hi - xt.lo) * iw;
   const Y = v => m.t + ih - (v - yt.lo) / (yt.hi - yt.lo) * ih;
   const nf = v => v.toLocaleString(state.lang==="en"?"en-GB":"nl-NL");
@@ -2356,7 +2618,7 @@ function drawScatterChart(el, listAll){
   // conclusie altijd hetzelfde verhaal vertellen.
   const an = hasIso ? analyzeBest(listAll, basis) : null;
   const trendSet = p => !isRegulated(p) && (!an || !an.vrijOnly || klimaatOf(p).mode === "vrij");
-  let lines = "", dots = "", marker = "";
+  let lines = "", dots = "", marker = "", markerTop = "";
   const trendKeys = [];
   groups.forEach(g => {
     const free = g.pts.filter(trendSet);
@@ -2378,17 +2640,19 @@ function drawScatterChart(el, listAll){
       <line x1="${xr}" x2="${xr}" y1="${Math.min(yv,yn)}" y2="${Math.max(yv,yn)}" stroke="var(--text)" stroke-width="2"/>
       <circle cx="${xr}" cy="${yv}" r="4" fill="var(--c-voor)" stroke="var(--paper)" stroke-width="1.5"/>
       <circle cx="${xr}" cy="${yn}" r="4" fill="var(--c-na)" stroke="var(--paper)" stroke-width="1.5"/>
-      <text x="${lx}" y="${(yv+yn)/2 + 4}" text-anchor="${anchor}" class="lbl-strong">${escapeHtml(fmtDelta(an.diff).replace(" °C","°"))}</text>
-      <text x="${xr}" y="${m.t - 4}" text-anchor="middle">${escapeHtml(t("scatterRef")(nf(an.ref)))}</text>`;
+      <text x="${lx}" y="${(yv+yn)/2 + 4}" text-anchor="${anchor}" class="lbl-strong">${escapeHtml(fmtDelta(an.diff).replace(" °C","°"))}</text>`;
+    markerTop = `<text x="${xr}" y="${m.t - 4}" text-anchor="middle">${escapeHtml(t("scatterRef")(nf(an.ref)))}</text>`;
   }
   const legendTrend = trendKeys.map(g => `<span class="key"><i class="sw dashc" style="border-color:${g.color}"></i>${escapeHtml(t("scatterTrend")(g.key === "voor" ? t("lVoor") : g.key === "na" ? t("lNa") : t("lAlle")))}${an && an.vrijOnly ? " · " + escapeHtml(t("kStatus_vrij").toLowerCase()) : ""}</span>`).join("");
   el.innerHTML = `<div class="chart-legend">${groups.map(g => `<span class="key"><i class="sw dot" style="background:${g.color}"></i>${escapeHtml(g.label)} (${g.pts.length})</span>`).join("")}${legendTrend}${showMarker ? `<span class="key"><i class="sw dashc" style="border-color:var(--text-soft); border-top-style:dotted"></i>${escapeHtml(t("scatterRefLegend"))}</span>` : ""}${list.some(isRegulated) ? `<span class="key"><i class="sw dot hollow"></i>${escapeHtml(t("scatterHollow"))}</span>` : ""}</div>
-    <div class="chart-wrap"><svg viewBox="0 0 ${W} ${H}" role="img" aria-label="${escapeHtml(t("chartScatter"))}">${grid}${lines}${marker}${dots}</svg></div>${missing ? `<p class="card-note" style="margin-top:6px;">${escapeHtml(t("basis24Missing")(missing))}</p>` : ""}`;
+    <div class="chart-wrap"><svg viewBox="0 0 ${W} ${H}" role="img" aria-label="${escapeHtml(t("chartScatter"))}">${xyClipDef("scatter", m, iw, ih)}${grid}${markerTop}<g clip-path="url(#xyc-scatter)">${lines}${marker}${dots}</g></svg></div>${xyBarHTML(el)}${missing ? `<p class="card-note" style="margin-top:6px;">${escapeHtml(t("basis24Missing")(missing))}</p>` : ""}`;
+  xyFinish(el, { W, m, iw, ih }, () => drawScatterChart(el, listAll), list.map(p => ({ x: xOf(p, basis), y: p.binnen })));
   const wrap = el.querySelector(".chart-wrap"), svgEl = wrap.querySelector("svg"), tip = attachTooltip(wrap);
   svgEl.addEventListener("pointermove", ev => {
     const r = svgEl.getBoundingClientRect(), scale = W / r.width;
     const px = (ev.clientX - r.left) * scale, py = (ev.clientY - r.top) * scale;
     let best = null, bd = 18;
+    if(!xyInView(el, px, py)){ tip.hide(); return; }
     list.forEach(p => { const d = Math.hypot(X(xOf(p,basis)) - px, Y(p.binnen) - py); if(d < bd){ bd = d; best = p; } });
     if(!best){ tip.hide(); return; }
     const g = groups.find(gg => gg.pts.includes(best));
@@ -2669,7 +2933,7 @@ function drawKlimaatChart(el){
   const W = chartWidth(el), H = Math.round(Math.min(320, Math.max(220, W*0.42)));
   const m = { l:42, r:16, t:28, b:36 }, iw = W - m.l - m.r, ih = H - m.t - m.b;
   const xs = pts.map(x => kx(x.m)), ys = pts.map(x => x.m.binnen).concat(pts.filter(x => x.k.sp !== null).map(x => x.k.sp));
-  const xt = niceTicks(Math.min(...xs), Math.max(...xs), 6), yt = niceTicks(Math.min(...ys), Math.max(...ys), 5);
+  const V = xyView(el, "klimaat", niceTicks(Math.min(...xs), Math.max(...xs), 6), niceTicks(Math.min(...ys), Math.max(...ys), 5)), xt = V.xt, yt = V.yt;
   const X = v => m.l + (v - xt.lo) / (xt.hi - xt.lo) * iw, Y = v => m.t + ih - (v - yt.lo) / (yt.hi - yt.lo) * ih;
   const nfv = v => v.toLocaleString(state.lang==="en"?"en-GB":"nl-NL");
   let g = yt.ticks.map(v => `<line x1="${m.l}" x2="${m.l+iw}" y1="${Y(v)}" y2="${Y(v)}" stroke="var(--grid)"/><text x="${m.l-8}" y="${Y(v)+4}" text-anchor="end">${nfv(v)}°</text>`).join("");
@@ -2682,11 +2946,13 @@ function drawKlimaatChart(el){
     : `<circle cx="${X(kx(x.m))}" cy="${Y(x.m.binnen)}" r="5" fill="${c}" stroke="var(--paper)" stroke-width="2"/>`; }).join("");
   const present = ["vrij","verwarmen","koelen"].filter(k => pts.some(x => x.k.mode === k));
   el.innerHTML = `<div class="chart-legend">${present.map(k => `<span class="key"><i class="sw dot" style="background:${col[k]}"></i>${t("kStatus_"+k)} (${pts.filter(x => x.k.mode===k).length})</span>`).join("")}${pts.some(x => x.k.reg==="gehaald") ? `<span class="key"><i class="sw dot hollow"></i>${escapeHtml(t("kReg_gehaald"))}</span>` : ""}</div>
-    <div class="chart-wrap"><svg viewBox="0 0 ${W} ${H}" role="img" aria-label="${escapeHtml(t("kpChart"))}">${g}${dots}</svg></div>`;
+    <div class="chart-wrap"><svg viewBox="0 0 ${W} ${H}" role="img" aria-label="${escapeHtml(t("kpChart"))}">${xyClipDef("klimaat", m, iw, ih)}${g}<g clip-path="url(#xyc-klimaat)">${dots}</g></svg></div>${xyBarHTML(el)}`;
+  xyFinish(el, { W, m, iw, ih }, () => drawKlimaatChart(el), pts.map(x => ({ x: kx(x.m), y: x.m.binnen })));
   const wrap = el.querySelector(".chart-wrap"), svgEl = wrap.querySelector("svg"), tip = attachTooltip(wrap);
   svgEl.addEventListener("pointermove", ev => {
     const r = svgEl.getBoundingClientRect(), sc = W / r.width, px = (ev.clientX - r.left) * sc, py = (ev.clientY - r.top) * sc;
     let best = null, bd = 18;
+    if(!xyInView(el, px, py)){ tip.hide(); return; }
     pts.forEach(x => { const d = Math.hypot(X(kx(x.m)) - px, Y(x.m.binnen) - py); if(d < bd){ bd = d; best = x; } });
     if(!best){ tip.hide(); return; }
     const c = col[best.k.mode], tag = klimaatTag(best.m);
@@ -2787,7 +3053,7 @@ function drawKoelChart(el, KT){
   const W = chartWidth(el), H = Math.round(Math.min(280, Math.max(200, W*0.36)));
   const m = { l:52, r:16, t:24, b:36 }, iw = W - m.l - m.r, ih = H - m.t - m.b;
   const xs = KT.map(k => k.out), ys = KT.map(k => k.rate);
-  const xt = niceTicks(Math.min(...xs) - (xs.length === 1 ? 2 : 0), Math.max(...xs) + (xs.length === 1 ? 2 : 0), 5), yt = niceTicks(0, Math.max(...ys) * 1.15, 4);
+  const V = xyView(el, "koel", niceTicks(Math.min(...xs) - (xs.length === 1 ? 2 : 0), Math.max(...xs) + (xs.length === 1 ? 2 : 0), 5), niceTicks(0, Math.max(...ys) * 1.15, 4)), xt = V.xt, yt = V.yt;
   const X = v => m.l + (v - xt.lo) / (xt.hi - xt.lo) * iw, Y = v => m.t + ih - (v - yt.lo) / (yt.hi - yt.lo) * ih;
   const nfv = v => v.toLocaleString(state.lang==="en"?"en-GB":"nl-NL");
   let g = yt.ticks.map(v => `<line x1="${m.l}" x2="${m.l+iw}" y1="${Y(v)}" y2="${Y(v)}" stroke="var(--grid)"/><text x="${m.l-8}" y="${Y(v)+4}" text-anchor="end">${nfv(v)}</text>`).join("");
@@ -2796,11 +3062,13 @@ function drawKoelChart(el, KT){
   const dots = KT.map(k => `<circle cx="${X(k.out)}" cy="${Y(k.rate)}" r="6" fill="${colorOf(k)}" stroke="var(--paper)" stroke-width="2"/>`).join("");
   const groups = hasIso ? [["voor", t("lVoor"), "var(--c-voor)"], ["na", t("lNa"), "var(--c-na)"]].filter(([p]) => KT.some(k => k.phase === p)) : [["", t("ktTitle"), "var(--k-koel)"]];
   el.innerHTML = `<div class="chart-legend">${groups.map(([p, l, c]) => `<span class="key"><i class="sw dot" style="background:${c}"></i>${escapeHtml(l)} (${p ? KT.filter(k => k.phase === p).length : KT.length})</span>`).join("")}</div>
-    <div class="chart-wrap"><svg viewBox="0 0 ${W} ${H}" role="img" aria-label="${escapeHtml(t("ktChart"))}">${g}${dots}</svg></div>`;
+    <div class="chart-wrap"><svg viewBox="0 0 ${W} ${H}" role="img" aria-label="${escapeHtml(t("ktChart"))}">${xyClipDef("koel", m, iw, ih)}${g}<g clip-path="url(#xyc-koel)">${dots}</g></svg></div>${xyBarHTML(el)}`;
+  xyFinish(el, { W, m, iw, ih }, () => drawKoelChart(el, KT), KT.map(k => ({ x: k.out, y: k.rate })));
   const wrap = el.querySelector(".chart-wrap"), svgEl = wrap.querySelector("svg"), tip = attachTooltip(wrap);
   svgEl.addEventListener("pointermove", ev => {
     const r = svgEl.getBoundingClientRect(), sc = W / r.width, px = (ev.clientX - r.left) * sc, py = (ev.clientY - r.top) * sc;
     let best = null, bd = 20;
+    if(!xyInView(el, px, py)){ tip.hide(); return; }
     KT.forEach(k => { const d = Math.hypot(X(k.out) - px, Y(k.rate) - py); if(d < bd){ bd = d; best = k; } });
     if(!best){ tip.hide(); return; }
     const c = colorOf(best), nf1 = v => v.toLocaleString(state.lang==="en"?"en-GB":"nl-NL", { maximumFractionDigits: 1 });
@@ -3478,31 +3746,39 @@ function drawCoolChart(el){
   const m = { l:46, r:20, t:18, b:30 };
   const iw = W - m.l - m.r, ih = H - m.t - m.b;
   const xs = pts.map(p => coolStartTs(p.a));
-  let x0 = Math.min(...xs), x1 = Math.max(...xs);
-  if(x1 - x0 < 2*86400000){ x0 -= 86400000; x1 += 86400000; }
-  const yt = niceTicks(0, Math.max(...pts.map(p => p.c.tau)) * 1.15, 5);
+  let bx0 = Math.min(...xs), bx1 = Math.max(...xs);
+  if(bx1 - bx0 < 2*86400000){ bx0 -= 86400000; bx1 += 86400000; }
+  // Zoombaar zoals de andere grafieken; kleinste uitsnede 1 dag × 5 uur afkoeltijd (labels in hele uren).
+  const V = xyView(el, "afkoel", { lo: bx0, hi: bx1 }, niceTicks(0, Math.max(...pts.map(p => p.c.tau)) * 1.15, 5), { x: DAY, y: 5 });
+  const x0 = V.xt.lo, x1 = V.xt.hi, yt = V.yt;
   const X = v => m.l + (v - x0) / (x1 - x0) * iw;
   const Y = v => m.t + ih - (v - yt.lo) / (yt.hi - yt.lo) * ih;
   let grid = yt.ticks.map(v => `<line x1="${m.l}" x2="${m.l+iw}" y1="${Y(v)}" y2="${Y(v)}" stroke="var(--grid)"/><text x="${m.l-8}" y="${Y(v)+4}" text-anchor="end">${escapeHtml(t("hours")(fmtH(v)))}</text>`).join("");
   // Eén label per dag (om de zoveel dagen als het er veel zijn), op middernacht.
   const dayTs = []; for(let d = tsToISO(x0); tsFrom(d, "00:00") <= x1; d = addDaysISO(d, 1)){ const ts = tsFrom(d, "00:00"); if(ts >= x0) dayTs.push(ts); }
   const every = Math.max(1, Math.ceil(dayTs.length / Math.max(2, Math.floor(iw / 70))));
-  dayTs.forEach((ts, i) => { if(i % every) return; grid += `<line x1="${X(ts)}" x2="${X(ts)}" y1="${m.t}" y2="${m.t+ih}" stroke="var(--grid)"/><text x="${X(ts)}" y="${H-8}" text-anchor="middle">${escapeHtml(fmtDate(tsToISO(ts)))}</text>`; });
+  dayTs.forEach((ts, i) => { if(i % every) return; const x = X(ts); grid += `<line x1="${x}" x2="${x}" y1="${m.t}" y2="${m.t+ih}" stroke="var(--grid)"/><text x="${x}" y="${H-8}" text-anchor="${x < m.l + 24 ? "start" : x > m.l + iw - 24 ? "end" : "middle"}">${escapeHtml(fmtDate(tsToISO(ts)))}</text>`; });
+  // Sterk ingezoomd (< 3 dagen): ook uurlabels tussen de dagen.
+  if(x1 - x0 < 3 * DAY){ const stepH = [3, 6, 12].find(h => h * HOUR / (x1 - x0) * iw >= 52) || 24;
+    for(let ts = Math.ceil(x0 / HOUR) * HOUR; ts <= x1; ts += HOUR){ const h = new Date(ts).getHours(); if(!h || h % stepH) continue; const x = X(ts); if(x < m.l + 24 || x > m.l + iw - 24) continue; grid += `<line x1="${x}" x2="${x}" y1="${m.t}" y2="${m.t+ih}" stroke="var(--grid)" stroke-dasharray="2 3"/><text x="${x}" y="${H-8}" text-anchor="middle">${pad2(h)}:00</text>`; } }
   let iso = "";
-  if(hasIso){ const it = tsFrom(state.settings.isolatieDatum, "00:00"); if(it >= x0 && it <= x1) iso = `<line x1="${X(it)}" x2="${X(it)}" y1="${m.t}" y2="${m.t+ih}" stroke="var(--text-soft)" stroke-width="1.5" stroke-dasharray="4 4"/><text x="${X(it)+5}" y="${m.t+11}" class="lbl-strong">${escapeHtml(t("lIsolatie"))}</text>`; }
+  if(hasIso){ const it = tsFrom(state.settings.isolatieDatum, "00:00"); if(it >= x0 && it <= x1){ const right = X(it) > m.l + iw - 70; iso = `<line x1="${X(it)}" x2="${X(it)}" y1="${m.t}" y2="${m.t+ih}" stroke="var(--text-soft)" stroke-width="1.5" stroke-dasharray="4 4"/><text x="${right ? X(it)-5 : X(it)+5}" y="${m.t+11}" text-anchor="${right ? "end" : "start"}" class="lbl-strong">${escapeHtml(t("lIsolatie"))}</text>`; } }
   const line = pts.length > 1 ? `<path d="${pts.map((p,i) => `${i?"L":"M"}${X(coolStartTs(p.a)).toFixed(1)},${Y(p.c.tau).toFixed(1)}`).join("")}" fill="none" stroke="var(--text-soft)" stroke-width="1.5" opacity=".45"/>` : "";
   const dots = pts.map(p => `<circle cx="${X(coolStartTs(p.a))}" cy="${Y(p.c.tau)}" r="6" fill="${colorOf(p)}" stroke="var(--paper)" stroke-width="2"/>`).join("");
-  const last = pts[pts.length-1];
-  const lbl = `<text x="${Math.min(X(coolStartTs(last.a)) + 10, m.l+iw-4)}" y="${Y(last.c.tau) - 10}" text-anchor="${X(coolStartTs(last.a)) > m.l+iw-60 ? "end" : "start"}" class="lbl-strong">${escapeHtml(t("coolTau"))} ${escapeHtml(t("hours")(fmtH(last.c.tau)))}</text>`;
+  const inV = pts.filter(p => { const x = coolStartTs(p.a); return x >= x0 && x <= x1 && p.c.tau >= yt.lo && p.c.tau <= yt.hi; });
+  const last = inV.length ? inV[inV.length-1] : null;
+  const lbl = !last ? "" : `<text x="${Math.min(X(coolStartTs(last.a)) + 10, m.l+iw-4)}" y="${Y(last.c.tau) - 10}" text-anchor="${X(coolStartTs(last.a)) > m.l+iw-60 ? "end" : "start"}" class="lbl-strong">${escapeHtml(t("coolTau"))} ${escapeHtml(t("hours")(fmtH(last.c.tau)))}</text>`;
   const legend = hasIso
     ? `<span class="key"><i class="sw dot" style="background:var(--c-voor)"></i>${t("lVoor")}</span><span class="key"><i class="sw dot" style="background:var(--c-na)"></i>${t("lNa")}</span><span class="key"><i class="sw dash"></i>${t("lIsolatie")}</span>`
     : `<span class="key"><i class="sw dot" style="background:var(--accent)"></i>${t("coolTable")} (${pts.length})</span>`;
-  el.innerHTML = `<div class="chart-legend">${legend}</div><div class="chart-wrap"><svg viewBox="0 0 ${W} ${H}" role="img" aria-label="${escapeHtml(t("coolChart"))}">${grid}${iso}${line}${dots}${lbl}</svg></div>`;
+  el.innerHTML = `<div class="chart-legend">${legend}</div><div class="chart-wrap"><svg viewBox="0 0 ${W} ${H}" role="img" aria-label="${escapeHtml(t("coolChart"))}">${xyClipDef("afkoel", m, iw, ih)}${grid}<g clip-path="url(#xyc-afkoel)">${iso}${line}${dots}</g>${lbl}</svg></div>${xyBarHTML(el)}`;
+  xyFinish(el, { W, m, iw, ih }, () => drawCoolChart(el), pts.map(p => ({ x: coolStartTs(p.a), y: p.c.tau })));
   const wrap = el.querySelector(".chart-wrap"), svgEl = wrap.querySelector("svg"), tip = attachTooltip(wrap);
   svgEl.addEventListener("pointermove", ev => {
     const r = svgEl.getBoundingClientRect(), scale = W / r.width;
     const px = (ev.clientX - r.left) * scale, py = (ev.clientY - r.top) * scale;
     let best = null, bd = 22;
+    if(!xyInView(el, px, py)){ tip.hide(); return; }
     pts.forEach(p => { const d = Math.hypot(X(coolStartTs(p.a)) - px, Y(p.c.tau) - py); if(d < bd){ bd = d; best = p; } });
     if(!best){ tip.hide(); return; }
     const a = best.a, c = best.c, col = colorOf(best);
