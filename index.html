@@ -230,6 +230,19 @@
   .loc-btn-row{display:flex; gap:8px; flex-wrap:wrap;}
   .profile-check{display:flex; gap:8px; align-items:flex-start; font-size:13px; color:var(--text); margin-top:12px; line-height:1.4;}
   .neg-wrap{display:flex; gap:4px;}
+  .room-list{list-style:none; margin:8px 0 0; padding:0; display:flex; flex-direction:column; gap:4px;}
+  .room-row{display:flex; align-items:center; gap:6px; padding:4px 6px; border:1px solid var(--rule); border-radius:6px; background:var(--paper);}
+  .room-row.dragging{border-color:var(--accent); box-shadow:0 4px 14px rgba(0,0,0,.15); position:relative; z-index:2;}
+  .profile-panel-body button.room-handle{margin:0; padding:0; width:28px; height:30px; border:none; color:var(--text-soft); cursor:grab; touch-action:none; font-size:16px; line-height:1; flex:none;}
+  .profile-panel-body button.room-handle:active{cursor:grabbing;}
+  .room-lock{width:28px; text-align:center; color:var(--text-soft); flex:none; font-size:13px;}
+  .room-row input{flex:1; min-width:0; font-family:inherit; font-size:14px; padding:6px 8px; border:1px solid transparent; border-radius:4px; background:transparent; color:var(--text);}
+  .room-row input:hover{border-color:var(--rule);} .room-row input:focus{outline:none; border-color:var(--accent);}
+  .room-name{flex:1; font-size:14px; padding:6px 8px; color:var(--text);}
+  .room-count{font-size:11px; color:var(--text-soft); white-space:nowrap; flex:none;}
+  .profile-panel-body button.room-del{margin:0; padding:0; width:28px; height:28px; flex:none; border-color:transparent; display:flex; align-items:center; justify-content:center;}
+  .profile-panel-body button.room-del:hover{border-color:var(--debit); color:var(--debit);}
+  .room-msg{font-size:12px; color:var(--debit); margin-top:6px; min-height:0;}
   .neg-wrap input{flex:1; min-width:0;}
   .neg-btn{flex:0 0 34px; font-family:inherit; font-size:15px; border:1px solid var(--rule); border-radius:4px; background:var(--paper-2); color:var(--text-soft); cursor:pointer;}
   .neg-btn:hover{border-color:var(--accent); color:var(--accent);}
@@ -716,6 +729,12 @@ const I18N = {
     setIso: "Datum spouwmuurisolatie",
     setIsoHint: "Metingen vóór deze datum tellen als 'vóór isolatie', vanaf deze datum als 'na isolatie'. Leeg laten = geen vergelijk.",
     setRuimte: "Standaard ruimte",
+    setRooms: "Ruimtes",
+    roomsHint: "Deze lijst is de keuzelijst bij 'Ruimte' als je een meting invoert. Sleep ⠿ om de volgorde te bepalen. Woonkamer staat altijd bovenaan en is de standaard. Een naam wijzigen past ook alle bestaande metingen en afkoeltests met die ruimte aan.",
+    roomNewPh: "Nieuwe ruimte, bijv. Slaapkamer", roomAdd: "Toevoegen", roomDrag: "Sleep om de volgorde te wijzigen (of gebruik pijltje omhoog/omlaag)",
+    roomFixed: "Vaste standaardruimte", roomDel: "Ruimte verwijderen", roomCount: n => n === 1 ? "1 meting" : `${n} metingen`,
+    roomDup: n => `'${n}' staat al in de lijst.`, roomEmpty: "Vul een naam in.",
+    roomDelConfirm: (r, n) => `Ruimte '${r}' verwijderen? ${n} meting(en)/afkoeltest(s) met deze ruimte worden op Woonkamer gezet.`,
     setLoc: "Locatie voor buitentemperatuur",
     setLocHint: "Adres, postcode (met huisnummer), straat, wijk of plaats. Nederlandse adressen via PDOK (overheid), plaatsen elders via Open-Meteo. Tembo haalt dan bij elke nieuwe meting de buitentemperatuur voor dat uur online op (Open-Meteo, gratis weermodel). Naar Open-Meteo gaan alleen datum, tijd en de locatie afgerond op ~1 km, nooit je exacte adres.",
     locSrcPlace: "Plaats",
@@ -1006,6 +1025,12 @@ const I18N = {
     setIso: "Cavity wall insulation date",
     setIsoHint: "Readings before this date count as 'before insulation', from this date as 'after'. Leave empty = no comparison.",
     setRuimte: "Default room",
+    setRooms: "Rooms",
+    roomsHint: "This list is the drop-down for 'Room' when you enter a reading. Drag ⠿ to set the order. Woonkamer (living room) is always at the top and is the default. Renaming a room also updates all existing readings and cool-down tests with that room.",
+    roomNewPh: "New room, e.g. Bedroom", roomAdd: "Add", roomDrag: "Drag to change the order (or use arrow up/down)",
+    roomFixed: "Fixed default room", roomDel: "Delete room", roomCount: n => n === 1 ? "1 reading" : `${n} readings`,
+    roomDup: n => `'${n}' is already in the list.`, roomEmpty: "Enter a name.",
+    roomDelConfirm: (r, n) => `Delete room '${r}'? ${n} reading(s)/cool-down test(s) with this room will be set to Woonkamer.`,
     setLoc: "Location for outdoor temperature",
     setLocHint: "Address, postcode (with house number), street, district or town. Dutch addresses via PDOK (government), places elsewhere via Open-Meteo. Tembo then fetches the outdoor temperature for that hour online with every new reading (Open-Meteo, free weather model). Open-Meteo only receives the date, time and your location rounded to ~1 km, never your exact address.",
     locSrcPlace: "Place",
@@ -1227,7 +1252,7 @@ function newId(){ return "m" + Date.now().toString(36) + Math.random().toString(
 function emptyState(){
   return {
     version: 1, lang: "nl", darkMode: false,
-    settings: { isolatieDatum: "", defaultRuimte: "Woonkamer", refBuiten: 10, locatie: null, autoBuiten: true, lastKlimaat: { cv:"uit", cvTemp:20, airco:"uit", aircoTemp:21 } },
+    settings: { isolatieDatum: "", defaultRuimte: "Woonkamer", ruimtes: ["Woonkamer"], refBuiten: 10, locatie: null, autoBuiten: true, lastKlimaat: { cv:"uit", cvTemp:20, airco:"uit", aircoTemp:21 } },
     metingen: [],
     afkoeltests: [],
     activeView: { type: "overview" },
@@ -1262,7 +1287,123 @@ function migrateState(){
     if(typeof m.buiten !== "number") m.buiten = parseNum(m.buiten);
     return m;
   }).filter(m => validISODate(m.datum) && m.binnen !== null && m.buiten !== null);
+  migrateRuimtes();
   state.metingen.forEach(m => { if(!m.id) m.id = newId(); if(m.ruimte === undefined) m.ruimte = state.settings.defaultRuimte; if(m.verwarming === undefined) m.verwarming = ""; if(m.notitie === undefined) m.notitie = ""; if(!m.buitenBron) m.buitenBron = "handmatig"; if(m.cv === undefined){ m.cv = m.verwarming === "uit" ? "uit" : ""; m.airco = m.verwarming === "uit" ? "uit" : ""; m.cvTemp = null; m.aircoTemp = null; } });
+}
+
+/* ================= RUIMTES =================
+   Vaste lijst onder Instellingen; die volgorde is de keuzelijst bij invoer. "Woonkamer" staat altijd
+   bovenaan (vast, niet te verwijderen of te hernoemen) en is de standaard: bestaande metingen zonder
+   ruimte komen daar terecht. Namen worden hoofdletter-ongevoelig vergeleken. Bij het laden komen
+   ruimtes die al in metingen/afkoeltests voorkomen automatisch in de lijst (achter de bestaande). */
+const ROOM_DEFAULT = "Woonkamer";
+function migrateRuimtes(){
+  const S = state.settings;
+  S.defaultRuimte = ROOM_DEFAULT;
+  const seen = new Map();
+  const add = r => { if(typeof r !== "string") return; const v = r.trim(); if(!v) return; const k = v.toLowerCase(); if(!seen.has(k)) seen.set(k, v); };
+  add(ROOM_DEFAULT);
+  (Array.isArray(S.ruimtes) ? S.ruimtes : []).forEach(add);
+  state.metingen.forEach(m => add(m.ruimte));
+  (state.afkoeltests || []).forEach(a => add(a.ruimte));
+  S.ruimtes = [...seen.values()];
+  const canon = r => (typeof r === "string" && r.trim() && seen.get(r.trim().toLowerCase())) || ROOM_DEFAULT;
+  state.metingen.forEach(m => { m.ruimte = canon(m.ruimte); });
+  (state.afkoeltests || []).forEach(a => { a.ruimte = canon(a.ruimte); });
+}
+function ruimteList(){ const R = state.settings.ruimtes; return Array.isArray(R) && R.length ? R : [ROOM_DEFAULT]; }
+/* Bestaande naam in de lijst (zelfde schrijfwijze als de lijst), of de naam toevoegen achteraan. */
+function ensureRuimte(name){
+  const v = String(name || "").trim(); if(!v) return ROOM_DEFAULT;
+  const hit = ruimteList().find(r => r.toLowerCase() === v.toLowerCase());
+  if(hit) return hit;
+  state.settings.ruimtes = ruimteList().concat([v]);
+  return v;
+}
+function ruimteOptions(sel){
+  const R = ruimteList().slice();
+  if(sel && !R.some(r => r.toLowerCase() === String(sel).toLowerCase())) R.push(sel);
+  return R.map(r => `<option value="${escapeHtml(r)}" ${sel && r.toLowerCase() === String(sel).toLowerCase() ? "selected" : ""}>${escapeHtml(r)}</option>`).join("");
+}
+function roomUseCount(r){ const k = r.toLowerCase(); return state.metingen.filter(m => (m.ruimte || "").toLowerCase() === k).length + (state.afkoeltests || []).filter(a => (a.ruimte || "").toLowerCase() === k).length; }
+function roomListHTML(){
+  return ruimteList().map((r, i) => i === 0
+    ? `<li class="room-row locked" data-room="${escapeHtml(r)}"><span class="room-lock" title="${escapeHtml(t("roomFixed"))}" aria-label="${escapeHtml(t("roomFixed"))}">🔒</span><span class="room-name">${escapeHtml(r)}</span><span class="room-count">${escapeHtml(t("roomCount")(roomUseCount(r)))}</span><span style="width:26px"></span></li>`
+    : `<li class="room-row" data-room="${escapeHtml(r)}"><button type="button" class="room-handle" title="${escapeHtml(t("roomDrag"))}" aria-label="${escapeHtml(t("roomDrag"))}">⠿</button><input type="text" class="room-input" maxlength="40" value="${escapeHtml(r)}" aria-label="${escapeHtml(t("fRuimte"))}" /><span class="room-count">${escapeHtml(t("roomCount")(roomUseCount(r)))}</span><button type="button" class="row-del room-del" title="${escapeHtml(t("roomDel"))}" aria-label="${escapeHtml(t("roomDel"))}">${ICONS.trash}</button></li>`).join("");
+}
+function roomsChanged(){ scheduleAutoSave(); renderAll({ skipProfile: true }); renderRoomSection(); }
+function renderRoomSection(focusRoom){
+  const box = document.getElementById("roomSection"); if(!box) return;
+  const ul = box.querySelector("#roomList"); ul.innerHTML = roomListHTML();
+  const msg = box.querySelector("#roomMsg"); const say = txt => { msg.textContent = txt || ""; };
+  ul.querySelectorAll(".room-row:not(.locked)").forEach(li => {
+    const old = li.dataset.room, inp = li.querySelector(".room-input");
+    inp.addEventListener("change", () => {
+      const v = inp.value.trim();
+      if(!v){ inp.value = old; say(t("roomEmpty")); return; }
+      if(v === old) return;
+      if(ruimteList().some(r => r !== old && r.toLowerCase() === v.toLowerCase())){ inp.value = old; say(t("roomDup")(v)); return; }
+      say("");
+      state.settings.ruimtes = ruimteList().map(r => r === old ? v : r);
+      state.metingen.forEach(m => { if((m.ruimte || "").toLowerCase() === old.toLowerCase()) m.ruimte = v; });
+      (state.afkoeltests || []).forEach(a => { if((a.ruimte || "").toLowerCase() === old.toLowerCase()) a.ruimte = v; });
+      roomsChanged();
+    });
+    inp.addEventListener("keydown", e => { if(e.key === "Enter"){ e.preventDefault(); e.stopPropagation(); inp.blur(); } });
+    li.querySelector(".room-del").onclick = () => {
+      const n = roomUseCount(old);
+      if(n && !confirm(t("roomDelConfirm")(old, n))) return;
+      state.settings.ruimtes = ruimteList().filter(r => r !== old);
+      state.metingen.forEach(m => { if((m.ruimte || "").toLowerCase() === old.toLowerCase()) m.ruimte = ROOM_DEFAULT; });
+      (state.afkoeltests || []).forEach(a => { if((a.ruimte || "").toLowerCase() === old.toLowerCase()) a.ruimte = ROOM_DEFAULT; });
+      say(""); roomsChanged();
+    };
+    const h = li.querySelector(".room-handle");
+    // Toetsenbord: pijltje omhoog/omlaag verplaatst (niet boven Woonkamer).
+    h.addEventListener("keydown", e => {
+      if(e.key !== "ArrowUp" && e.key !== "ArrowDown") return;
+      e.preventDefault();
+      const R = ruimteList().slice(), i = R.indexOf(old), j = i + (e.key === "ArrowUp" ? -1 : 1);
+      if(j < 1 || j >= R.length) return;
+      [R[i], R[j]] = [R[j], R[i]]; state.settings.ruimtes = R;
+      roomsChanged();
+      const nh = document.querySelector(`#roomList .room-row[data-room="${CSS.escape(old)}"] .room-handle`); if(nh) nh.focus();
+    });
+    // Slepen met muis of vinger (pointer events werken op telefoon én computer).
+    // Luisteren op window (niet op de greep): bij het verplaatsen van de regel in de DOM raakt de
+    // greep zijn pointer-capture kwijt en zou het loslaten anders gemist worden.
+    h.addEventListener("pointerdown", e => {
+      e.preventDefault();
+      const pid = e.pointerId;
+      li.classList.add("dragging");
+      const move = ev => {
+        if(ev.pointerId !== pid) return;
+        ev.preventDefault();
+        const others = [...ul.querySelectorAll(".room-row:not(.locked)")].filter(r => r !== li);
+        const idx = others.findIndex(r => { const b = r.getBoundingClientRect(); return ev.clientY < b.top + b.height / 2; });
+        if(idx < 0){ if(ul.lastElementChild !== li) ul.appendChild(li); }
+        else if(others[idx] !== li.nextElementSibling) ul.insertBefore(li, others[idx]);
+      };
+      const end = ev => {
+        if(ev.pointerId !== pid) return;
+        window.removeEventListener("pointermove", move); window.removeEventListener("pointerup", end); window.removeEventListener("pointercancel", end);
+        li.classList.remove("dragging");
+        const order = [ROOM_DEFAULT].concat([...ul.querySelectorAll(".room-row:not(.locked)")].map(r => r.dataset.room));
+        if(order.join("\u0001") !== ruimteList().join("\u0001")){ state.settings.ruimtes = order; roomsChanged(); }
+      };
+      window.addEventListener("pointermove", move, { passive: false }); window.addEventListener("pointerup", end); window.addEventListener("pointercancel", end);
+    });
+  });
+  const addInp = box.querySelector("#roomNew"), addBtn = box.querySelector("#roomAddBtn");
+  const doAdd = () => {
+    const v = addInp.value.trim();
+    if(!v){ say(t("roomEmpty")); return; }
+    if(ruimteList().some(r => r.toLowerCase() === v.toLowerCase())){ say(t("roomDup")(v)); return; }
+    say(""); state.settings.ruimtes = ruimteList().concat([v]); addInp.value = "";
+    roomsChanged(); const ni = document.getElementById("roomNew"); if(ni) ni.focus();
+  };
+  addBtn.onclick = doAdd;
+  addInp.onkeydown = e => { if(e.key === "Enter"){ e.preventDefault(); e.stopPropagation(); doAdd(); } };
 }
 
 /* ================= HULPFUNCTIES ================= */
@@ -1810,7 +1951,7 @@ function entryFormHTML(){
           <button type="button" data-src="online" class="${formBuitenMode==="online"?"on":""}">${t("srcOptOnline")}</button>
           <button type="button" data-src="eigen" class="${formBuitenMode==="eigen"?"on":""}">${t("srcOptOwn")}</button>
         </span>` : ""}<span class="src-hint" id="fBuitenSrc"></span></label>
-      <label>${t("fRuimte")}<input type="text" id="fRuimte" value="${escapeHtml(state.settings.defaultRuimte)}" list="ruimteList" /></label>
+      <label>${t("fRuimte")}<select id="fRuimte">${ruimteOptions(ruimteList()[0])}</select></label>
       <div class="klimaat-box wide">
         <div class="klimaat-title">${t("fKlimaat")}</div>
         <div class="klimaat-row"><span class="klimaat-sys">${t("kCv")}</span>
@@ -1824,7 +1965,6 @@ function entryFormHTML(){
         <p class="klimaat-hint">${escapeHtml(t("kFormHint"))}</p>
       </div>
       <label class="wide">${t("fNotitie")}<input type="text" id="fNotitie" maxlength="200" /></label>
-      <datalist id="ruimteList">${[...new Set(state.metingen.map(m=>m.ruimte).filter(Boolean))].map(r=>`<option value="${escapeHtml(r)}">`).join("")}</datalist>
     </div>
     <div class="entry-actions" data-submit-block>
       <button class="btn primary" id="addBtn">${t("addBtn")}</button>
@@ -1868,7 +2008,7 @@ function wireEntryForm(){
       binnen, buiten,
       buitenBron: (formBuitenMode === "online" && formBuitenFetched !== null && buiten === formBuitenFetched) ? "online" : "handmatig",
       buitenOnline: formBuitenFetched,
-      ruimte: document.getElementById("fRuimte").value.trim() || state.settings.defaultRuimte,
+      ruimte: ensureRuimte(document.getElementById("fRuimte").value),
       cv: formKlimaat.cv, airco: formKlimaat.airco,
       cvTemp: formKlimaat.cv === "aan" ? parseNum(document.getElementById("fCvTemp").value) : null,
       aircoTemp: (formKlimaat.airco === "verwarmen" || formKlimaat.airco === "koelen") ? parseNum(document.getElementById("fAirTemp").value) : null,
@@ -1913,7 +2053,7 @@ function tableRowHTML(m, iso){
       <td class="num"><span class="delta">${fmtDelta(d)}</span></td>
       <td><span class="dp-tag">${m.tijd ? escapeHtml(dpLabel(dagdeelOf(m.tijd))) : "—"}</span></td>
       ${iso ? `<td><span class="phase ${ph}">${t(ph==="voor"?"phaseVoor":"phaseNa")}</span></td>` : ""}
-      <td><input type="text" data-f="ruimte" value="${escapeHtml(m.ruimte)}" style="width:110px" /></td>
+      <td><select data-f="ruimte" style="width:120px" aria-label="${escapeHtml(t("thRuimte"))}">${ruimteOptions(m.ruimte)}</select></td>
       <td class="kcell">${klimaatCellHTML(m)}</td>
       <td><input type="text" data-f="notitie" value="${escapeHtml(m.notitie)}" /></td>
       <td><button class="row-del" title="×" aria-label="delete">${ICONS.trash}</button></td>
@@ -3140,7 +3280,7 @@ function importRows(rows){
     const binnen = parseNum(r[cols.binnen]), buiten = parseNum(r[cols.buiten]);
     if(!datum || binnen === null || buiten === null){ empty++; return; }
     const tijd = cols.tijd >= 0 ? normTime(r[cols.tijd]) : "";
-    const ruimte = (cols.ruimte >= 0 && r[cols.ruimte]) ? String(r[cols.ruimte]).trim() : defRuimte;
+    const ruimte = ensureRuimte((cols.ruimte >= 0 && r[cols.ruimte]) ? String(r[cols.ruimte]).trim() : defRuimte);
     const key = `${datum}|${tijd}|${ruimte.toLowerCase()}`;
     if(existing.has(key)){ dup++; return; }
     existing.add(key);
@@ -3645,8 +3785,7 @@ function renderCoolView(main){
           <label>${t("fTijd")}<input type="time" id="cEindTijd" value="07:00" /></label>
           <label>${t("fBinnen")}<input type="text" inputmode="decimal" id="cEindBinnen" placeholder="20,3" /></label>
         </div></div>
-      <label class="cool-note">${t("fRuimte")}<input type="text" id="cRuimte" value="${escapeHtml(state.settings.defaultRuimte)}" list="ruimteListC" /></label>
-      <datalist id="ruimteListC">${[...new Set(state.metingen.map(m=>m.ruimte).filter(Boolean))].map(r=>`<option value="${escapeHtml(r)}">`).join("")}</datalist>
+      <label class="cool-note">${t("fRuimte")}<select id="cRuimte">${ruimteOptions(ruimteList()[0])}</select></label>
       <label class="cool-note">${t("fNotitie")}<input type="text" id="cNotitie" maxlength="200" /></label>
     </div>
     <div class="entry-actions" data-submit-block>
@@ -3665,7 +3804,7 @@ function renderCoolView(main){
     const a = {
       id: newId(), startDatum: g("cStartDatum"), startTijd: g("cStartTijd"), startBinnen: parseNum(g("cStartBinnen")),
       eindDatum: g("cEindDatum"), eindTijd: g("cEindTijd"), eindBinnen: parseNum(g("cEindBinnen")),
-      buitenGem: null, buitenGemBron: null, notitie: g("cNotitie").trim(), ruimte: g("cRuimte").trim() || state.settings.defaultRuimte, bron: "handmatig",
+      buitenGem: null, buitenGemBron: null, notitie: g("cNotitie").trim(), ruimte: ensureRuimte(g("cRuimte")), bron: "handmatig",
     };
     if(!validISODate(a.startDatum) || !a.startTijd || a.startBinnen === null){ msg.textContent = t("coolErrStart"); msg.className = "form-msg err"; return; }
     if(a.eindBinnen !== null && validISODate(a.eindDatum) && a.eindTijd && coolEndTs(a) <= coolStartTs(a)){ msg.textContent = t("coolErrOrder"); msg.className = "form-msg err"; return; }
@@ -3694,7 +3833,7 @@ function coolTableHTML(){
       <td class="num"><span class="mono">${c.status==="running" ? "—" : fmtDelta(-c.drop)}</span></td>
       <td class="num"><span class="mono">${c.tau ? "− " + fmtT(c.drop8at10) : "—"}</span></td>
       ${iso ? `<td><span class="phase ${ph}">${t(ph==="voor"?"phaseVoor":"phaseNa")}</span></td>` : ""}
-      <td><input type="text" data-f="ruimte" value="${escapeHtml(a.ruimte || state.settings.defaultRuimte)}" style="width:100px" /></td>
+      <td><select data-f="ruimte" style="width:115px" aria-label="${escapeHtml(t("thRuimte"))}">${ruimteOptions(a.ruimte || ROOM_DEFAULT)}</select></td>
       <td><input type="text" data-f="notitie" value="${escapeHtml(a.notitie||"")}" />${a.bron === "auto" ? `<div class="pts">${escapeHtml(t("coolAutoTag"))}</div>` : ""}</td>
       <td><button class="row-del" aria-label="delete">${ICONS.trash}</button></td>
     </tr>`;
@@ -3864,7 +4003,13 @@ function renderProfilePanel(){
         <label class="profile-field">${t("setRef")}<input type="number" step="1" id="setRef" value="${escapeHtml(state.settings.refBuiten)}" /></label>
         <p class="profile-hint">${escapeHtml(t("setRefHint"))}</p>
       </div>
-      <div><label class="profile-field">${t("setRuimte")}<input type="text" id="setRuimte" value="${escapeHtml(state.settings.defaultRuimte)}" /></label></div>
+      <div id="roomSection" data-submit-block>
+        <div class="profile-section-title">${t("setRooms")}</div>
+        <ul class="room-list" id="roomList"></ul>
+        <div class="loc-search-row"><input type="text" id="roomNew" maxlength="40" placeholder="${escapeHtml(t("roomNewPh"))}" /><button class="primary" id="roomAddBtn">${t("roomAdd")}</button></div>
+        <div class="room-msg" id="roomMsg" role="status"></div>
+        <p class="profile-hint">${escapeHtml(t("roomsHint"))}</p>
+      </div>
       <hr class="profile-divider">
       <div data-submit-block>
         <div class="profile-section-title">${t("setLoc")}</div>
@@ -3886,7 +4031,7 @@ function renderProfilePanel(){
     isoInp.addEventListener("change", commitIso);
     isoInp.addEventListener("blur", commitIso);
     document.getElementById("setRef").onchange = e => { const n = parseNum(e.target.value); if(n !== null){ state.settings.refBuiten = n; scheduleAutoSave(); renderAll(); } };
-    document.getElementById("setRuimte").onchange = e => { state.settings.defaultRuimte = e.target.value.trim() || "Woonkamer"; scheduleAutoSave(); renderAll(); };
+    renderRoomSection();
   } else {
     const email = cloudSession ? cloudSession.user.email : "";
     body.innerHTML = `
