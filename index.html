@@ -430,6 +430,7 @@
   .con-facts .l{display:block; font-size:10.5px; color:var(--text-onink-soft);}
   .con-facts .v{display:block; font-family:"Courier New",monospace; font-weight:700; font-size:13px; color:var(--text-onink);}
   .conclusion.compact p{display:none;}
+  .seg.seg-wrap{flex-wrap:wrap;}
   .dq-list{display:flex; flex-direction:column; gap:6px; margin-top:8px;}
   .dq-row{display:flex; gap:10px; align-items:center; justify-content:space-between; border:1px solid var(--rule); border-radius:6px; padding:7px 10px; font-size:13px;}
   .dq-txt{flex:1; min-width:0;}
@@ -1034,6 +1035,17 @@ const I18N = {
     coolRangeTip: (lo, hi) => `waarschijnlijk tussen ${lo} en ${hi} (bij ±0,1 °C meetonzekerheid op begin en eind)`,
     coolWeakN: n => `${n} test(s) met een te kleine daling of te klein verschil binnen–buiten tellen niet mee (te gevoelig voor meetfouten).`,
     coolRange: (lo, hi) => `Rekening houdend met ±0,1 °C meetonzekerheid ligt τ waarschijnlijk tussen ${lo} en ${hi}.`,
+    vent: {
+      title: "Ventilatie", short: "Vent.", dicht: "Dicht", rooster: "Rooster/kiep", raam: "Raam open", pui: "Pui/deur open", onbekend: "Onbekend", none: "—",
+      hint: "Een open raam of schuifpui laat binnen meebewegen met buiten — dat zegt dan weinig over de isolatie. Tembo laat zulke metingen weg uit de isolatie-conclusies zolang er genoeg metingen met ramen dicht (of alleen een rooster/kiepraam) zijn.",
+      excl: n => `${n} meting(en) met een raam of de pui open tellen niet mee: dan bepaalt de buitenlucht de binnentemperatuur, niet de isolatie.`,
+      mostly: "Let op: (bijna) al je metingen zijn met een raam of de pui open gedaan. Dan beweegt binnen mee met buiten en zegt de lijn weinig over de isolatie; de zekerheid is verlaagd. Meet af en toe met alles dicht (bijv. 's ochtends voor je ventileert).",
+      dampExcl: n => `${n} meting(en) met raam/pui open zijn weggelaten voor de demping.`,
+      cool: "Ventilatie die nacht", coolN: (n, tot) => n === tot ? `Bij alle ${tot} test(s) stond een raam of de pui open. Daarmee meet je vooral ventilatie, niet de isolatie: doe een test met alles dicht.` : `${n} van de ${tot} test(s) had een raam of de pui open en telt niet mee.`, coolVented: "raam of pui open tijdens de test — zegt weinig over de isolatie",
+      tot: p => `${p}% van je metingen van de laatste 30 dagen is gedaan met een raam of de pui open. Dat drukt de demping en de stookgrens-schatting: met open ramen meet je vooral de buitenlucht.`,
+      nTot: "Doe een deel van je metingen met ramen en pui dicht (bijv. 's ochtends vóór het luchten en 's avonds na het sluiten), dan kan Tembo de isolatie zuiver beoordelen.",
+      tt: "Ventilatie",
+    },
     setComfort: "Comfortgrens binnen (°C)",
     setComfortHint: "Onder deze binnentemperatuur vind je het te koud. Tembo gebruikt dit voor de geschatte stookgrens en de conclusies. Ter referentie: de WHO noemt 18 °C als veilige minimum-binnentemperatuur in het stookseizoen.",
     sumHouse: "Hoe houdt je huis zich?",
@@ -1096,7 +1108,7 @@ const I18N = {
         bench: "IJkpunt: in een onderzoek naar ruim 10.000 woningen lag τ in de winter meestal tussen 15 en 55 uur (Syracuse Univ./IBPC); passiefhuizen halen 90–200 uur (EMU Passive). Onder 15 uur koelt een huis sneller af dan gangbaar, boven 55 uur beter dan de meeste woningen.",
         spread: (lo, hi) => `De tests liggen tussen ${lo} en ${hi}; wind, zon en ventilatie zorgen voor spreiding.`,
         excluded: n => `${n} test(s) met verwarming/koeling aan, een stijging of een rommelige meting tellen niet mee.`,
-        allFlagged: "Let op: alle tests in deze selectie hebben een waarschuwing (verwarming/koeling aan, tussentijdse stijging, rommelige meting of te weinig verschil binnen–buiten). De uitkomst is daarom onzeker.",
+        allFlagged: "Let op: alle tests in deze selectie hebben een waarschuwing (verwarming/koeling aan, raam of pui open, tussentijdse stijging, rommelige meting of te weinig verschil binnen–buiten). De uitkomst is daarom onzeker.",
         need: "Nog geen afgeronde afkoeltest in deze selectie. Doe er één: 's avonds alles uit, de volgende ochtend opnieuw meten.",
         fTau: "τ (mediaan)", fNight: "Daling per nacht", fN: "Tests",
       },
@@ -1592,6 +1604,17 @@ const I18N = {
     coolRangeTip: (lo, hi) => `probably between ${lo} and ${hi} (with ±0.1 °C measuring uncertainty at start and end)`,
     coolWeakN: n => `${n} test(s) with too small a drop or indoor–outdoor difference are left out (too sensitive to measuring errors).`,
     coolRange: (lo, hi) => `Allowing for ±0.1 °C measuring uncertainty, τ is probably between ${lo} and ${hi}.`,
+    vent: {
+      title: "Ventilation", short: "Vent.", dicht: "Closed", rooster: "Vent/tilted", raam: "Window open", pui: "Patio door open", onbekend: "Unknown", none: "—",
+      hint: "An open window or patio door makes indoor follow outdoor — that then says little about insulation. Tembo leaves such readings out of the insulation conclusions as long as there are enough readings with windows closed (or just a trickle vent/tilted window).",
+      excl: n => `${n} reading(s) with a window or patio door open are left out: then outdoor air sets the indoor temperature, not the insulation.`,
+      mostly: "Note: (almost) all your readings were taken with a window or patio door open. Indoor then follows outdoor and the line says little about insulation; confidence has been lowered. Measure now and then with everything closed (e.g. in the morning before airing).",
+      dampExcl: n => `${n} reading(s) with window/door open left out of the damping.`,
+      cool: "Ventilation that night", coolN: (n, tot) => n === tot ? `In all ${tot} test(s) a window or the patio door was open. That mostly measures ventilation, not insulation: run a test with everything closed.` : `${n} of ${tot} test(s) had a window or patio door open and are left out.`, coolVented: "window or patio door open during the test — says little about insulation",
+      tot: p => `${p}% of your readings in the last 30 days were taken with a window or patio door open. That depresses the damping and the heating-threshold estimate: with open windows you mainly measure outdoor air.`,
+      nTot: "Take some of your readings with windows and patio door closed (e.g. in the morning before airing and in the evening after closing), so Tembo can judge the insulation cleanly.",
+      tt: "Ventilation",
+    },
     setComfort: "Indoor comfort limit (°C)",
     setComfortHint: "Below this indoor temperature you find it too cold. Tembo uses it for the estimated heating threshold and the conclusions. For reference: the WHO names 18 °C as a safe minimum indoor temperature in the cold season.",
     sumHouse: "How does your house hold up?",
@@ -1654,7 +1677,7 @@ const I18N = {
         bench: "Benchmark: in a study of over 10,000 homes τ in winter was mostly between 15 and 55 hours (Syracuse Univ./IBPC); passive houses reach 90–200 hours (EMU Passive). Below 15 hours a house cools faster than usual, above 55 hours better than most homes.",
         spread: (lo, hi) => `The tests range from ${lo} to ${hi}; wind, sun and ventilation cause spread.`,
         excluded: n => `${n} test(s) with heating/cooling on, a rise or a rough fit are left out.`,
-        allFlagged: "Note: every test in this selection has a warning (heating/cooling on, intermediate rise, rough fit or too small an indoor–outdoor difference). The result is therefore uncertain.",
+        allFlagged: "Note: every test in this selection has a warning (heating/cooling on, window or patio door open, intermediate rise, rough fit or too small an indoor–outdoor difference). The result is therefore uncertain.",
         need: "No completed cool-down test in this selection yet. Do one: everything off in the evening, measure again the next morning.",
         fTau: "τ (median)", fNight: "Drop per night", fN: "Tests",
       },
@@ -1831,6 +1854,7 @@ function migrateState(){
   if(!Array.isArray(state.afkoelGenegeerd)) state.afkoelGenegeerd = [];
   if(!Array.isArray(state.koeltestGenegeerd)) state.koeltestGenegeerd = [];
   if(!Array.isArray(state.dataIgnore)) state.dataIgnore = [];
+  state.metingen.forEach(m => { if(m && m.vent !== undefined && !VENTS.includes(m.vent)) m.vent = ""; });
   if(state.settings.lastKlimaat){ if(!state.settings.lastKlimaat.cv) state.settings.lastKlimaat.cv = "uit"; if(!state.settings.lastKlimaat.airco) state.settings.lastKlimaat.airco = "uit"; }
   if(!state.lang) state.lang = "nl";
   if(typeof state.darkMode !== "boolean") state.darkMode = false;
@@ -2074,15 +2098,15 @@ function isRegulated(m){ return klimaatOf(m).reg === "gehaald"; }
    filters van "Binnen t.o.v. buiten" (zelfde metingen als de trendlijnen). In een maandoverzicht is
    de maand de periode; de periodeknoppen vallen daar weg, de overige filters blijven. */
 const CF_DEF = {
-  time:    ["rf", "dp", "kf"],          // periode zit al in de eigen werkbalk (1 dag … alles + zoomen)
-  scatter: ["tp", "rf", "dp", "kf"],
-  klimaat: ["tp", "rf", "dp"],          // klimaat is daar de kleur, dus geen klimaatfilter
+  time:    ["rf", "dp", "kf", "vf"],          // periode zit al in de eigen werkbalk (1 dag … alles + zoomen)
+  scatter: ["tp", "rf", "dp", "kf", "vf"],
+  klimaat: ["tp", "rf", "dp", "vf"],          // klimaat is daar de kleur, dus geen klimaatfilter
   koel:    ["tp", "rf"],
   afkoel:  ["tp", "rf"],
 };
 const chartFilters = {};
 const DP_RANGE = { nacht:"0–6", ochtend:"6–12", middag:"12–18", avond:"18–24" };
-function cfOf(key){ return chartFilters[key] || (chartFilters[key] = { tp:"all", dp:"all", kf:"all", rf:"all" }); }
+function cfOf(key){ return chartFilters[key] || (chartFilters[key] = { tp:"all", dp:"all", kf:"all", rf:"all", vf:"all" }); }
 function cfHas(key, f){ return (CF_DEF[key] || []).includes(f) && !(f === "tp" && (state.activeView || {}).type === "month"); }
 function kfMatch(m, kf){ if(kf === "all") return true; const k = klimaatOf(m).mode; return kf === "onbekend" ? (k === "onbekend" || k === "gemengd") : k === kf; }
 function tpStart(tp){ return tp === "all" ? -Infinity : tsFrom(addDaysISO(todayISO(), -(Number(tp) - 1)), "00:00"); }
@@ -2098,16 +2122,18 @@ function cfApply(key, list, opts){
     const m = mFn(x); if(!m) return true;
     if(cfHas(key, "dp") && !opts.skipDp && f.dp !== "all" && dagdeelOf(m.tijd) !== f.dp) return false;
     if(cfHas(key, "kf") && f.kf !== "all" && !kfMatch(m, f.kf)) return false;
+    if(cfHas(key, "vf") && f.vf && f.vf !== "all" && (f.vf === "onbekend" ? !!m.vent : f.vf === "open" ? !ventOpen(m) : f.vf === "dicht2" ? (ventOpen(m) || !m.vent) : m.vent !== f.vf)) return false;
     return true;
   });
 }
-function cfActive(key){ const f = cfOf(key); return ["tp","rf","dp","kf"].some(k => cfHas(key, k) && f[k] !== "all"); }
+function cfActive(key){ const f = cfOf(key); return ["tp","rf","dp","kf","vf"].some(k => cfHas(key, k) && f[k] && f[k] !== "all"); }
 function cfLabel(key){
   const f = cfOf(key), p = [];
   if(cfHas(key, "tp") && f.tp !== "all") p.push(t("tp" + f.tp));
   if(cfHas(key, "rf") && f.rf !== "all") p.push(f.rf);
   if(cfHas(key, "dp") && f.dp !== "all") p.push(dpLabel(f.dp).toLowerCase());
   if(cfHas(key, "kf") && f.kf !== "all") p.push(t("kStatus_" + f.kf).toLowerCase());
+  if(cfHas(key, "vf") && f.vf && f.vf !== "all") p.push(ventFilterLabel(f.vf).toLowerCase());
   return p.join(" · ");
 }
 function cfSelectsHTML(key){
@@ -2119,9 +2145,11 @@ function cfSelectsHTML(key){
     h += sel("rf", t("fRuimte"), [["all", t("dpAll")]].concat(R.map(r => [r, r])));
   }
   if(cfHas(key, "dp")) h += sel("dp", t("dpLabel"), [["all", t("dpAll")]].concat(DAGDELEN.map(k => [k, `${dpLabel(k)} (${DP_RANGE[k]})`])));
+  if(cfHas(key, "vf") && (state.metingen.some(m => m.vent) || (f.vf && f.vf !== "all"))) h += sel("vf", t("vent").title, [["all", t("dpAll")], ["dicht2", ventFilterLabel("dicht2")], ["open", ventFilterLabel("open")]].concat(VENTS.map(v => [v, ventLabel(v)])).concat(state.metingen.some(m => !m.vent) || f.vf === "onbekend" ? [["onbekend", t("vent").onbekend]] : []));
   if(cfHas(key, "kf")) h += sel("kf", t("kFilterLabel"), [["all", t("dpAll")]].concat(["vrij","verwarmen","koelen"].concat(hasUnknownKlimaat() || f.kf === "onbekend" ? ["onbekend"] : []).map(k => [k, t("kStatus_" + k)])));
   return h;
 }
+function ventFilterLabel(v){ const L = state.lang === "en" ? { dicht2: "Closed or vent only", open: "Window/door open" } : { dicht2: "Dicht of alleen rooster", open: "Raam/pui open" }; return L[v] || ventLabel(v); }
 function cfResetHTML(key){ return cfActive(key) ? `<button type="button" class="tnav-reset" data-cfreset="${key}">${t("cfReset")}</button>` : ""; }
 function cfBarHTML(key){
   const per = cfHas(key, "tp") ? `<span class="seg small">${[["1","tp1"],["7","tp7"],["30","tp30"],["90","tp90"],["all","tpAll"]].map(([k, l]) => `<button type="button" data-cfkey="${key}" data-cft="${k}" class="${cfOf(key).tp === k ? "on" : ""}">${t(l)}</button>`).join("")}</span>` : "";
@@ -2581,7 +2609,8 @@ function restoreFormDraft(){
 }
 function entryFormHTML(){
   if(!formKlimaat){
-    formKlimaat = Object.assign({ cv:"uit", cvTemp:20, airco:"uit", aircoTemp:21 }, state.settings.lastKlimaat || {});
+    formKlimaat = Object.assign({ cv:"uit", cvTemp:20, airco:"uit", aircoTemp:21, vent:"dicht" }, state.settings.lastKlimaat || {});
+    if(!VENTS.includes(formKlimaat.vent)) formKlimaat.vent = "dicht";
     if(!formKlimaat.cv) formKlimaat.cv = "uit";          // "—" bestaat niet meer: standaard Uit
     if(!formKlimaat.airco) formKlimaat.airco = "uit";
   }
@@ -2605,7 +2634,10 @@ function entryFormHTML(){
           <span class="seg" data-kgroup="airco">${[["uit","kOptUit"],["verwarmen","kOptVerw"],["koelen","kOptKoel"]].map(([v,k]) => `<button type="button" data-kv="${v}" class="${formKlimaat.airco===v?"on":""}">${t(k)}</button>`).join("")}</span>
           <label class="sp-field" id="airSpWrap" ${formKlimaat.airco==="verwarmen"||formKlimaat.airco==="koelen"?"":"hidden"}>${t("kSetpoint")}<input type="text" inputmode="decimal" id="fAirTemp" value="${escapeHtml(String(formKlimaat.aircoTemp ?? "").replace(".", state.lang==="en"?".":","))}" /> °C</label>
         </div>
-        <p class="klimaat-hint">${escapeHtml(t("kFormHint"))}</p>
+        <div class="klimaat-row"><span class="klimaat-sys">${escapeHtml(t("vent").title)}</span>
+          <span class="seg seg-wrap" data-kgroup="vent">${VENTS.map(v => `<button type="button" data-kv="${v}" class="${formKlimaat.vent===v?"on":""}">${escapeHtml(ventLabel(v))}</button>`).join("")}</span>
+        </div>
+        <p class="klimaat-hint">${escapeHtml(t("kFormHint"))} ${escapeHtml(t("vent").hint)}</p>
       </div>
       ${weerFormHTML()}
       <label class="wide">${t("fNotitie")}<input type="text" id="fNotitie" maxlength="200" /></label>
@@ -2657,7 +2689,7 @@ function wireEntryForm(){
       buitenBron: (formBuitenMode === "online" && formBuitenFetched !== null && buiten === formBuitenFetched) ? "online" : "handmatig",
       buitenOnline: formBuitenFetched,
       ruimte: ensureRuimte(document.getElementById("fRuimte").value),
-      cv: formKlimaat.cv, airco: formKlimaat.airco,
+      cv: formKlimaat.cv, airco: formKlimaat.airco, vent: formKlimaat.vent || "",
       cvTemp: formKlimaat.cv === "aan" ? parseNum(document.getElementById("fCvTemp").value) : null,
       aircoTemp: (formKlimaat.airco === "verwarmen" || formKlimaat.airco === "koelen") ? parseNum(document.getElementById("fAirTemp").value) : null,
       notitie: document.getElementById("fNotitie").value.trim(),
@@ -2666,7 +2698,7 @@ function wireEntryForm(){
     formWeer = { zon: "", wind: "", regen: "" };
     // Keuze onthouden voor de volgende meting (instellingen blijven staan, ook als het systeem uit is).
     const last = state.metingen[state.metingen.length - 1];
-    state.settings.lastKlimaat = { cv: last.cv, airco: last.airco,
+    state.settings.lastKlimaat = { cv: last.cv, airco: last.airco, vent: last.vent || "dicht",
       cvTemp: last.cvTemp ?? formKlimaat.cvTemp ?? 20, aircoTemp: last.aircoTemp ?? formKlimaat.aircoTemp ?? 21 };
     formKlimaat = null;
     formTimeTouched = false;
@@ -2686,7 +2718,8 @@ function klimaatCellHTML(m){
   const k = klimaatOf(m);
   const reg = k.reg ? `<span class="reg-tag ${k.reg}" title="${escapeHtml(t("kRegTip_" + k.reg))}">${t("kReg_" + k.reg)}</span>` : (k.mode === "verwarmen" && !m.cv && !m.airco ? `<span class="reg-tag">${t("kLegacy")}</span>` : "");
   return `<div class="krow"><span class="ksys">${t("kCv")}</span><select data-f="cv">${!m.cv ? opt("", "kOptNone", "") : ""}${opt("uit","kOptUit",m.cv)}${opt("aan","kOptAan",m.cv)}</select>${m.cv==="aan" ? `<input class="t-sp" type="text" inputmode="decimal" data-f="cvTemp" value="${escapeHtml(num(m.cvTemp))}" placeholder="°C" />` : ""}</div>
-    <div class="krow"><span class="ksys">${t("kAirco")}</span><select data-f="airco">${!m.airco ? opt("", "kOptNone", "") : ""}${opt("uit","kOptUit",m.airco)}${opt("verwarmen","kOptVerwShort",m.airco)}${opt("koelen","kOptKoelShort",m.airco)}</select>${(m.airco==="verwarmen"||m.airco==="koelen") ? `<input class="t-sp" type="text" inputmode="decimal" data-f="aircoTemp" value="${escapeHtml(num(m.aircoTemp))}" placeholder="°C" />` : ""}</div>${reg}`;
+    <div class="krow"><span class="ksys">${t("kAirco")}</span><select data-f="airco">${!m.airco ? opt("", "kOptNone", "") : ""}${opt("uit","kOptUit",m.airco)}${opt("verwarmen","kOptVerwShort",m.airco)}${opt("koelen","kOptKoelShort",m.airco)}</select>${(m.airco==="verwarmen"||m.airco==="koelen") ? `<input class="t-sp" type="text" inputmode="decimal" data-f="aircoTemp" value="${escapeHtml(num(m.aircoTemp))}" placeholder="°C" />` : ""}</div>
+    <div class="krow"><span class="ksys">${escapeHtml(t("vent").short)}</span><select data-f="vent">${!m.vent ? `<option value="" selected>${escapeHtml(t("vent").none)}</option>` : ""}${VENTS.map(v => `<option value="${v}" ${m.vent===v?"selected":""}>${escapeHtml(ventLabel(v))}</option>`).join("")}</select></div>${reg}`;
 }
 /* Tabel: de laatste 10 metingen altijd zichtbaar; oudere metingen per maand in een inklapbare
    sectie (standaard dicht). Zo blijft de pagina kort, hoeveel metingen er ook bijkomen. */
@@ -3384,7 +3417,7 @@ function drawTimeChart(el, listAll, fast){
     if(bx < m.l || bx > m.l + iw){ tip.hide(); return; }
     xh.setAttribute("x1", bx); xh.setAttribute("x2", bx); xh.setAttribute("opacity", "0.5");
     let html;
-    if(!daily) html = `<div class="tt-head">${escapeHtml(fmtDate(best.m.datum, true))}${best.m.tijd ? " · " + escapeHtml(best.m.tijd) : ""}</div>${ttRow(cIn, t("lBinnen"), fmtT(best.bin))}${ttRow(cOut, t("lBuiten"), fmtT(best.bu))}<div class="tt-row"><span>${t("thVerschil")}</span><span class="tt-val">${fmtDelta(best.d)}</span></div>${wxTipRows(best.m, cIn)}`;
+    if(!daily) html = `<div class="tt-head">${escapeHtml(fmtDate(best.m.datum, true))}${best.m.tijd ? " · " + escapeHtml(best.m.tijd) : ""}</div>${ttRow(cIn, t("lBinnen"), fmtT(best.bin))}${ttRow(cOut, t("lBuiten"), fmtT(best.bu))}<div class="tt-row"><span>${t("thVerschil")}</span><span class="tt-val">${fmtDelta(best.d)}</span></div>${best.m.vent ? ttRow(cIn, t("vent").tt, escapeHtml(ventLabel(best.m.vent))) : ""}${wxTipRows(best.m, cIn)}`;
     else html = `<div class="tt-head">${escapeHtml(fmtDate(best.datum, true))} · ${escapeHtml(t("tpN")(best.n))}</div>${ttRow(cIn, t("tlInAvg"), fmtT(best.bin))}${ttRow(cOut, t("tlOutAvg"), fmtT(best.bu))}${ttRow(cOut, t("tlOutBand"), fmtT(best.buMin) + " – " + fmtT(best.buMax))}<div class="tt-row"><span>${t("thVerschil")}</span><span class="tt-val">${fmtDelta(best.d)}</span></div>`;
     const yTop = diff ? Y(daily ? best.dMax : best.d) : Y(Math.max(best.bin, daily ? best.buMax : best.bu));
     tip.show(html, bx / sc, yTop / sc);
@@ -3607,6 +3640,12 @@ function houseFit(listIn, basis, kf){
   if(cold.length >= 4 && Math.max(...coldX) - Math.min(...coldX) >= 3 && cold.length < cand.length){ res.summerExcl = cand.length - cold.length; cand = cold; }
   else if(cand.length && cold.length < 4) res.summerOnly = true;
   res.summerT = SUMMER;
+  // Raam of pui open: binnen volgt dan de buitenlucht. Weglaten zolang er genoeg overblijft.
+  const shut = cand.filter(p => !ventOpen(p)), shutX = shut.map(p => xOf(p, basis));
+  if(shut.length < cand.length){
+    if(shut.length >= 4 && Math.max(...shutX) - Math.min(...shutX) >= 3){ res.ventExcl = cand.length - shut.length; cand = shut; }
+    else res.ventMostly = true;
+  }
   const vrij = cand.filter(p => klimaatOf(p).mode === "vrij");
   const pts = arr => arr.map(p => ({ x: xOf(p, basis), y: p.binnen, dp: dagdeelOf(p.tijd) }));
   const ok = r => r && r.n >= 4 && (r.maxX - r.minX) >= (res.summerExcl ? 3 : 4);
@@ -3625,6 +3664,7 @@ function houseFit(listIn, basis, kf){
   else res.status = res.pred >= comfort ? "good" : res.pred >= comfort - 2 ? "neutral" : "bad";
   let lvl = (r.n >= 12 && res.range >= 8) ? 2 : (r.n >= 6 && res.range >= 5) ? 1 : 0;
   if(res.extrap || res.grensExtrap || res.heatShare >= 0.3) lvl = Math.max(0, lvl - 1);
+  if(res.ventMostly) lvl = Math.max(0, lvl - 1);
   res.dpCorr = !!r.dpCorr; res.weatherCorr = !!r.weather;
   res.hasWeather = use.some(m => wxOf(m));
   const sk = dpSkew(use, basis);
@@ -3647,6 +3687,7 @@ function fitConclusionHTML(f, compact){
   if(f.vrijOnly) paras.push(C.vrijOnly); else if(f.heatShare >= 0.15) paras.push(C.heatShare(Math.round(f.heatShare * 100)));
   if(f.excluded) paras.push(C.excluded(f.excluded));
   if(f.summerExcl) paras.push(t("summerExcl")(f.summerExcl, fmtT(f.summerT, 0))); else if(f.summerOnly) paras.push(t("summerOnly")(fmtT(f.summerT, 0)));
+  if(f.ventExcl) paras.push(t("vent").excl(f.ventExcl)); else if(f.ventMostly) paras.push(t("vent").mostly);
   const facts = [[C.fPred(fmtT(f.ref, 0)), "~" + fmtT(f.pred)], [C.fGrens, f.grens !== undefined ? "~" + fmtT(f.grens, 0) : "—"], [C.fSlope, fmtT(Math.max(0, f.b))], [C.fN, String(f.n)]];
   if(f.weatherCorr){ const W = t("wc"), wr = f.r.weather; if(wr.zon !== null) facts.push([W.fZon, fmtDelta(wr.zon)]); if(wr.wind !== null) facts.push([W.fWind, fmtDelta(wr.wind)]); }
   return conBox(f.status, C["head_" + f.status], paras, facts, { level: f.conf }, compact ? "compact" : "");
@@ -3709,9 +3750,11 @@ function timeConclusionHTML(list, w, hourly){
   // nep-schommeling geven). Maat: bereik binnen ÷ bereik buiten over dezelfde metingen, na het
   // weglaten van uitschieters binnen (> 3× de mediane afwijking, min. 1 °C, van de mediaan — bijv.
   // zon of net gestookt). Gewogen gemiddelde over de ruimtes.
-  const dampRooms = []; let usedVrij = true;
+  const dampRooms = []; let usedVrij = true, ventDropped = 0;
   [...new Set(list.map(roomOf))].forEach(r => {
-    const nr = nonReg.filter(m => roomOf(m) === r), vr = nr.filter(m => klimaatOf(m).mode === "vrij");
+    let nr = nonReg.filter(m => roomOf(m) === r);
+    const nrShut = nr.filter(m => !ventOpen(m)); if(nrShut.length >= 4 && nrShut.length < nr.length){ ventDropped += nr.length - nrShut.length; nr = nrShut; }
+    const vr = nr.filter(m => klimaatOf(m).mode === "vrij");
     let b = vr.length >= 4 ? vr : nr.length >= 4 ? nr : null; if(!b) return;
     if(b !== vr) usedVrij = false;
     const med = median(b.map(m => m.binnen)), mad = median(b.map(m => Math.abs(m.binnen - med)));
@@ -3734,6 +3777,7 @@ function timeConclusionHTML(list, w, hourly){
     paras.push(C.body(fmtT(d0.ro), fmtT(d0.ri), Math.round(ratio * 100), (usedVrij ? C.basisVrij : "") + (valid.length > 1 ? ` — ${valid.map(d => `${d.r} ${Math.round(d.ratio * 100)}%`).join(", ")}` : multiRoom ? ` — ${d0.r}` : "")));
     facts.push([D.fRatio, Math.round(ratio * 100) + "%"]);
   } else paras.push(C.smallOut(fmtT(main ? main.ro : rng(list.map(m => m.buiten)))));
+  if(ventDropped) paras.push(t("vent").dampExcl(ventDropped));
   const secs = [], needs = [];
   const sec = (title, items) => { const it = items.filter(Boolean); if(it.length) secs.push(`<div class="con-sec"><div class="con-sec-h">${escapeHtml(title)}</div>${it.map(x => x.startsWith("<") ? x : `<p>${escapeHtml(x)}</p>`).join("")}</div>`); };
 
@@ -3767,7 +3811,7 @@ function timeConclusionHTML(list, w, hourly){
   const cool = [], heat = [];
   pairs.forEach(([a, b]) => {
     const dtH = (tsOf(b) - tsOf(a)) / HOUR, ma = klimaatOf(a).mode, mb = klimaatOf(b).mode;
-    if(ma === "vrij" && mb === "vrij" && dtH >= 1 && dtH <= 16 && a.binnen - b.binnen >= 0.2 && nightInterval(tsOf(a), tsOf(b))){
+    if(ma === "vrij" && mb === "vrij" && !ventOpen(a) && !ventOpen(b) && dtH >= 1 && dtH <= 16 && a.binnen - b.binnen >= 0.2 && nightInterval(tsOf(a), tsOf(b))){
       const To = outBetween(a, b), d0 = a.binnen - To, d1 = b.binnen - To;
       if(d0 >= 3 && d1 > 0.5){ const tau = dtH / Math.log(d0 / d1); const wa = wxOf(a), wb = wxOf(b), wv = [wa && wa.wind, wb && wb.wind].filter(v => numOrNull(v) !== null); if(tau > 5 && tau < 2000) cool.push({ rate: (a.binnen - b.binnen) / dtH, tau, wind: wv.length ? avg(wv) : null }); }
     }
@@ -3905,7 +3949,7 @@ function pairTaus(list){
   const by = {}; sortedMetingen(list).forEach(m => { const r = m.ruimte || ROOM_DEFAULT; (by[r] = by[r] || []).push(m); });
   const out = [];
   Object.values(by).forEach(arr => { for(let i = 1; i < arr.length; i++){ const a = arr[i-1], b = arr[i], dtH = (tsOf(b) - tsOf(a)) / HOUR;
-    if(klimaatOf(a).mode !== "vrij" || klimaatOf(b).mode !== "vrij" || dtH < 1 || dtH > 16 || a.binnen - b.binnen < 0.2 || !nightInterval(tsOf(a), tsOf(b))) continue;
+    if(klimaatOf(a).mode !== "vrij" || klimaatOf(b).mode !== "vrij" || ventOpen(a) || ventOpen(b) || dtH < 1 || dtH > 16 || a.binnen - b.binnen < 0.2 || !nightInterval(tsOf(a), tsOf(b))) continue;
     const To = (a.buiten + b.buiten) / 2, d0 = a.binnen - To, d1 = b.binnen - To;
     if(d0 >= 3 && d1 > 0.5){ const tau = dtH / Math.log(d0 / d1); if(tau > 5 && tau < 2000) out.push(tau); } } });
   return out;
@@ -4110,7 +4154,7 @@ function koelConclusionHTML(KT){
 }
 
 /* --- Afkoeltests --- */
-function coolClean(p){ return !p.c.heated && !p.c.rough && !p.c.rise && !p.c.small && !p.c.weak; }
+function coolClean(p){ return !p.c.heated && !p.c.rough && !p.c.rise && !p.c.small && !p.c.weak && !p.c.vented; }
 function coolConclusionHTML(pts){
   const C = t("con2").cool;
   if(!pts.length) return conBox("insufficient", t("conInsufficient"), [C.need]);
@@ -4126,7 +4170,8 @@ function coolConclusionHTML(pts){
   const paras = [C.body(hoursTxt(med), use.length), C.night(fmtT(night)), C.bench];
   if(use.length >= 2) paras.push(C.spread(hoursTxt(taus[0]), hoursTxt(taus[taus.length - 1])));
   if(calmOnly) paras.push(W.cUseCalm); else if(windyN) paras.push(W.cWindy(windyN));
-  const weakN = pts.filter(p => p.c.weak).length;
+  const weakN = pts.filter(p => p.c.weak).length, ventN = pts.filter(p => p.c.vented).length;
+  if(ventN) paras.push(t("vent").coolN(ventN, pts.length));
   if(!clean.length) paras.push(C.allFlagged); else if(pts.length - clean.length) paras.push(weakN && weakN === pts.length - clean.length ? t("coolWeakN")(weakN) : C.excluded(pts.length - clean.length));
   { const lo = median(use.map(p => p.c.tauLo)), hiV = use.map(p => p.c.tauHi), hi = median(hiV.map(v => isFinite(v) ? v : 1e6)); paras.push(t("coolRange")(hoursTxt(lo), hi >= 1e6 ? "∞" : hoursTxt(hi))); }
   const facts = [[C.fTau, hoursTxt(med)], [C.fNight, "~" + fmtT(night)], [C.fN, String(use.length)]];
@@ -4200,7 +4245,8 @@ document.addEventListener("click", e => {
    hij doorgetrokken is), stookgrens uit stookgedrag (0,6), demping laatste 30 dagen (0,3; 0,15 als
    er afkoeltests zijn). Score = gewogen gemiddelde van +1 / 0 / −1. Tegenstrijdigheden worden benoemd. */
 function dampRatio(list){
-  const nonReg = list.filter(m => !isRegulated(m) && klimaatOf(m).mode === "vrij"), rooms = [...new Set(nonReg.map(m => m.ruimte || ROOM_DEFAULT))];
+  const nonReg0 = list.filter(m => !isRegulated(m) && klimaatOf(m).mode === "vrij"), shut0 = nonReg0.filter(m => !ventOpen(m));
+  const nonReg = shut0.length >= 4 ? shut0 : nonReg0, rooms = [...new Set(nonReg.map(m => m.ruimte || ROOM_DEFAULT))];
   let num = 0, den = 0;
   rooms.forEach(r => {
     let b = nonReg.filter(m => (m.ruimte || ROOM_DEFAULT) === r); if(b.length < 4) return;
@@ -4250,6 +4296,8 @@ function totalVerdictHTML(){
   if(cool && cool.st === "good" && fit && fit.st !== "good") paras.push(T.conflictMass);
   if(fit && fit.st === "good" && cool && cool.st !== "good") paras.push(T.conflictFit);
   if(damp && damp.st === "bad" && ((cool && cool.st !== "bad") || (fit && fit.st !== "bad"))) paras.push(T.conflictDamp);
+  { const r30 = state.metingen.filter(m => tsOf(m) >= t30), withV = r30.filter(m => m.vent), openN = withV.filter(ventOpen).length;
+    if(withV.length >= 4 && openN / withV.length >= 0.5){ paras.push(t("vent").tot(Math.round(openN / withV.length * 100))); needs.push(t("vent").nTot); } }
   const issues = dataIssues().length; if(issues) needs.push(T.nIssues(issues));
   needs.push(T.nMore);
   const facts = items.map(([name, v, txt]) => [`${name}${v ? " · " + wl(v.w) : ""}`, `${v ? icon(v.st) + " " : ""}${txt}`]);
@@ -4634,6 +4682,7 @@ function detectColumns(header){
     verwarming: find(/verwarming|heating/),
     cv: find(/^cv|ketel|boiler/),
     airco: find(/airco|\bac\b|warmtepomp/),
+    vent: find(/ventil|raam|window/),
   };
 }
 function ruimteFromHeader(label){ const m = String(label||"").match(/temp(?:eratuur)?\s+(.+)/i); if(m && !/binnen|indoor|inside/i.test(m[1])) return m[1].trim().charAt(0).toUpperCase() + m[1].trim().slice(1); return null; }
@@ -4661,6 +4710,7 @@ function importRows(rows){
       cv: (() => { if(cols.cv < 0) return ""; const x = String(r[cols.cv] ?? "").toLowerCase(); return /aan|on|ja|yes|1/.test(x) ? "aan" : /uit|off|nee|no|0/.test(x) ? "uit" : ""; })(),
       airco: (() => { if(cols.airco < 0) return ""; const x = String(r[cols.airco] ?? "").toLowerCase(); return /koel|cool/.test(x) ? "koelen" : /verw|heat|warm/.test(x) ? "verwarmen" : /uit|off|nee|no|0/.test(x) ? "uit" : ""; })(),
       cvTemp: null, aircoTemp: null,
+      vent: (() => { if(cols.vent < 0) return ""; const x = String(r[cols.vent] ?? "").toLowerCase(); return /pui|deur|door|patio/.test(x) ? "pui" : /rooster|kiep|vent|tilt|trickle/.test(x) && !/open/.test(x) ? "rooster" : /open|raam|window/.test(x) ? "raam" : /dicht|closed|nee|no|0/.test(x) ? "dicht" : ""; })(),
       notitie: cols.notitie >= 0 ? String(r[cols.notitie]||"").trim() : "" });
     added++;
   });
@@ -4723,6 +4773,7 @@ function exportRows(){
     [(state.lang==="en" ? "Clouds" : "Bewolking") + " (%)"]: wxOf(m) && numOrNull(m.weer.wolk) !== null ? Math.round(m.weer.wolk) : "",
     [(state.lang==="en" ? "Rain 3 h" : "Regen 3 u") + " (mm)"]: wxOf(m) && numOrNull(m.weer.regen) !== null ? m.weer.regen : "",
     [state.lang==="en" ? "Weather source" : "Bron weer"]: wxOf(m) ? m.weer.src : "",
+    [t("vent").title]: m.vent ? ventLabel(m.vent) : "",
     [t("kCv")]: m.cv || "", [t("kCv") + " °C"]: m.cvTemp ?? "", [t("kAirco")]: m.airco || "", [t("kAirco") + " °C"]: m.aircoTemp ?? "",
     [t("thKlimaat")]: t("kStatus_" + klimaatOf(m).mode), [state.lang==="en" ? "Thermostat" : "Thermostaat"]: klimaatOf(m).reg ? t("kReg_" + klimaatOf(m).reg) : "",
     [t("fNotitie")]: m.notitie,
@@ -4818,6 +4869,9 @@ async function weerOver(loc, t0, t1){
   const r1 = x => Math.round(x * 10) / 10;
   return { src: "online", wind: w.length ? r1(avg(w)) : null, windMax: w.length ? r1(Math.max(...w)) : null, wolk: c.length ? Math.round(avg(c)) : null, regen: r.length ? r1(r.reduce((a, b) => a + b, 0)) : null };
 }
+const VENTS = ["dicht", "rooster", "raam", "pui"];
+function ventOpen(m){ return !!m && (m.vent === "raam" || m.vent === "pui"); }
+function ventLabel(v){ return t("vent")[v] || t("vent").none; }
 function wxOf(m){ return m && m.weer && typeof m.weer === "object" ? m.weer : null; }
 function wxTipRows(m, col){
   const w = wxOf(m); if(!w) return "";
@@ -5154,6 +5208,7 @@ function coolCalc(a){
   // Stond er tijdens de test (zelfde ruimte) toch verwarming of koeling aan volgens "Alle metingen"?
   const sT = coolStartTs(a), eT = coolEndTs(a), room = coolRuimte(a);
   res.heated = state.metingen.some(m => { const ts = tsOf(m), md = klimaatOf(m).mode; return ts > sT && ts < eT && (m.ruimte || "").toLowerCase() === room && (md === "verwarmen" || md === "koelen" || md === "gemengd"); });
+  res.vented = ventOpen(a) || state.metingen.some(m => { const ts = tsOf(m); return ts > sT && ts < eT && (m.ruimte || "").toLowerCase() === room && ventOpen(m); });
   if(!outAt){ res.status = "noout"; return res; }
   const points = [{ ts: coolStartTs(a), T: a.startBinnen }].concat(mids.map(m => ({ ts: tsOf(m), T: m.binnen }))).concat([{ ts: coolEndTs(a), T: a.eindBinnen }]);
   // Stijging tussendoor = waarschijnlijk toch verwarmd, zon of een open deur: test onbetrouwbaar.
@@ -5182,7 +5237,7 @@ function coolTauText(a, c){
   if(c.status === "noout") return `<span class="muted" title="${escapeHtml(t("coolNeedOut"))}">?</span>`;
   if(c.status === "nodrop") return `<span class="muted">${t("coolNoDrop")}</span>`;
   if(c.status === "invalid") return "—";
-  const warns = [c.heated ? t("coolHeated") : null, c.small ? t("coolSmallDelta") : null, c.weak ? t("coolWeak") : null, c.rise ? t("coolRise") : null, c.rough ? t("coolRough") : null].filter(Boolean);
+  const warns = [c.heated ? t("coolHeated") : null, c.vented ? t("vent").coolVented : null, c.small ? t("coolSmallDelta") : null, c.weak ? t("coolWeak") : null, c.rise ? t("coolRise") : null, c.rough ? t("coolRough") : null].filter(Boolean);
   const hi = isFinite(c.tauHi) ? fmtH(c.tauHi) : "∞";
   return `<strong class="mono">${fmtH(c.tau)}</strong>${warns.length ? ` <span class="warn-dot" title="${escapeHtml(warns.join(" · "))}">!</span>` : ""}<div class="pts" title="${escapeHtml(t("coolRangeTip")(fmtH(c.tauLo), hi))}">${escapeHtml(fmtH(c.tauLo) + "–" + hi + " u")}</div><div class="pts">${escapeHtml(t("coolPoints")(c.nPoints))}</div>`;
 }
@@ -5249,7 +5304,7 @@ function wireCandidates(){
 let lastCoolMsg = null;
 /* Ingevulde maar nog niet opgeslagen velden van het afkoeltest-formulier bewaren bij opnieuw tekenen
    (achtergrond-ophaalacties, taal of donkere modus wisselen). */
-const COOL_FIELDS = ["cStartDatum","cStartTijd","cStartBinnen","cEindDatum","cEindTijd","cEindBinnen","cRuimte","cNotitie","cWind","cWolk"];
+const COOL_FIELDS = ["cStartDatum","cStartTijd","cStartBinnen","cEindDatum","cEindTijd","cEindBinnen","cRuimte","cNotitie","cWind","cWolk","cVent"];
 let coolDraft = null;
 function captureCoolDraft(){ if(!document.getElementById("coolSaveBtn")) return; coolDraft = {}; COOL_FIELDS.forEach(id => { const el = document.getElementById(id); if(el) coolDraft[id] = el.value; }); }
 function restoreCoolDraft(){ if(!coolDraft) return; COOL_FIELDS.forEach(id => { const el = document.getElementById(id); if(el && coolDraft[id] !== undefined) el.value = coolDraft[id]; }); }
@@ -5272,6 +5327,7 @@ function renderCoolView(main){
           <label>${t("fBinnen")}<input type="text" inputmode="decimal" id="cEindBinnen" placeholder="20,3" /></label>
         </div></div>
       <label class="cool-note">${t("fRuimte")}<select id="cRuimte">${ruimteOptions(ruimteList()[0])}</select></label>
+      <label class="cool-note">${escapeHtml(t("vent").cool)}<select id="cVent">${VENTS.map(v => `<option value="${v}" ${v === "dicht" ? "selected" : ""}>${escapeHtml(ventLabel(v))}</option>`).join("")}</select></label>
       ${state.settings.locatie ? "" : `<label class="cool-note">${escapeHtml(t("wx").coolWind)}<select id="cWind"><option value="">${t("wx").none}</option>${Object.entries(t("wx").windOpt).map(([k, l]) => `<option value="${k}">${escapeHtml(l)}</option>`).join("")}</select></label>
       <label class="cool-note">${escapeHtml(t("wx").coolWolk)}<select id="cWolk"><option value="">${t("wx").none}</option>${Object.entries(t("wx").wolkOpt).map(([k, l]) => `<option value="${k}">${escapeHtml(l)}</option>`).join("")}</select></label>`}
       <label class="cool-note">${t("fNotitie")}<input type="text" id="cNotitie" maxlength="200" /></label>
@@ -5293,7 +5349,7 @@ function renderCoolView(main){
     const a = {
       id: newId(), startDatum: g("cStartDatum"), startTijd: g("cStartTijd"), startBinnen: parseNum(g("cStartBinnen")),
       eindDatum: g("cEindDatum"), eindTijd: g("cEindTijd"), eindBinnen: parseNum(g("cEindBinnen")),
-      buitenGem: null, buitenGemBron: null, notitie: g("cNotitie").trim(), ruimte: ensureRuimte(g("cRuimte")), bron: "handmatig",
+      buitenGem: null, buitenGemBron: null, notitie: g("cNotitie").trim(), ruimte: ensureRuimte(g("cRuimte")), bron: "handmatig", vent: VENTS.includes(g("cVent")) ? g("cVent") : "",
     };
     if(!state.settings.locatie){ const w = manualWeer({ wind: (document.getElementById("cWind") || {}).value, wolk: (document.getElementById("cWolk") || {}).value }); if(w) a.weer = w; }
     if(!validISODate(a.startDatum) || !a.startTijd || a.startBinnen === null){ msg.textContent = t("coolErrStart"); msg.className = "form-msg err"; return; }
@@ -5324,7 +5380,8 @@ function coolTableHTML(){
       <td class="num"><span class="mono">${c.status==="running" ? "—" : fmtDelta(-c.drop)}</span></td>
       <td class="num"><span class="mono">${c.tau ? "− " + fmtT(c.drop8at10) : "—"}</span></td>
       ${iso ? `<td><span class="phase ${ph}">${t(ph==="voor"?"phaseVoor":"phaseNa")}</span></td>` : ""}
-      <td><select data-f="ruimte" style="width:115px" aria-label="${escapeHtml(t("thRuimte"))}">${ruimteOptions(a.ruimte || ROOM_DEFAULT)}</select></td>
+      <td><select data-f="ruimte" style="width:115px" aria-label="${escapeHtml(t("thRuimte"))}">${ruimteOptions(a.ruimte || ROOM_DEFAULT)}</select>
+        <select data-f="vent" style="width:115px; margin-top:4px;" aria-label="${escapeHtml(t("vent").title)}">${!a.vent ? `<option value="" selected>${escapeHtml(t("vent").title)}: ${escapeHtml(t("vent").none)}</option>` : ""}${VENTS.map(v => `<option value="${v}" ${a.vent===v?"selected":""}>${escapeHtml(ventLabel(v))}</option>`).join("")}</select></td>
       <td><input type="text" data-f="notitie" value="${escapeHtml(a.notitie||"")}" />${a.bron === "auto" ? `<div class="pts">${escapeHtml(t("coolAutoTag"))}</div>` : ""}</td>
       <td><button class="row-del" aria-label="delete">${ICONS.trash}</button></td>
     </tr>`;
@@ -5452,7 +5509,7 @@ function coolExportRows(){
     [en?"End date":"Einddatum"]: a.eindDatum || "", [en?"End time":"Eindtijd"]: a.eindTijd || "", [en?"Indoor end (°C)":"Binnen eind (°C)"]: a.eindBinnen ?? "",
     [en?"Outdoor avg. (°C)":"Buiten gem. (°C)"]: a.buitenGem ?? "", [en?"Outdoor source":"Bron buiten"]: a.buitenGemBron || "",
     [en?"Duration (h)":"Duur (u)"]: c.dtH ? Math.round(c.dtH*10)/10 : "", [en?"Time constant τ (h)":"Tijdconstante τ (u)"]: c.tau ? Math.round(c.tau) : "",
-    [en?"Room":"Ruimte"]: a.ruimte || "", [en?"Points":"Meetpunten"]: c.nPoints || "", [en?"Source":"Bron"]: a.bron || "handmatig",
+    [en?"Room":"Ruimte"]: a.ruimte || "", [t("vent").title]: a.vent ? ventLabel(a.vent) : "", [en?"Points":"Meetpunten"]: c.nPoints || "", [en?"Source":"Bron"]: a.bron || "handmatig",
     [en?"Note":"Notitie"]: a.notitie || "",
   }; });
 }
