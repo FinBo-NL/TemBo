@@ -430,6 +430,11 @@
   .con-facts .l{display:block; font-size:10.5px; color:var(--text-onink-soft);}
   .con-facts .v{display:block; font-family:"Courier New",monospace; font-weight:700; font-size:13px; color:var(--text-onink);}
   .conclusion.compact p{display:none;}
+  .con-more{margin-top:10px;} .con-more > summary{cursor:pointer; font-size:12px; font-weight:600; color:var(--accent);}
+  .con-sec{margin-top:10px; padding-top:8px; border-top:1px dashed var(--rule);}
+  .con-sec-h{font-size:10.5px; font-weight:700; letter-spacing:.05em; text-transform:uppercase; color:var(--text-onink-soft);}
+  .con-sec p{margin:4px 0 0;}
+  .con-sec ul{margin:4px 0 0; padding-left:18px; font-size:12.5px; line-height:1.55; color:var(--text-onink-soft);}
   .dp-con-list{display:flex; flex-direction:column; gap:2px;}
   .dp-con{display:flex; align-items:center; gap:8px; width:100%; text-align:left; font-family:inherit; font-size:12.5px; padding:6px 8px; border:1px solid transparent; border-radius:4px; background:transparent; color:var(--text-onink); cursor:pointer;}
   .dp-con:hover{border-color:var(--rule);}
@@ -826,6 +831,39 @@ const I18N = {
     kFormHint: "Standaard staat alles op Uit. Zet aan wat er aan stond, met de ingestelde temperatuur. Tembo onthoudt je vorige keuze.",
     kStatus_vrij: "Alles uit", kStatus_verwarmen: "Verwarmd", kStatus_koelen: "Gekoeld", kStatus_onbekend: "Onbekend", kStatus_gemengd: "Gemengd",
     kFilterLabel: "Klimaat",
+    tc: {
+      more: n => `Alle details (${n} onderdelen)`,
+      sDamp: "Demping en vertraging", sCool: "Afkoelen en opwarmen", sComfort: "Comfort", sDay: "Dagverloop", sTrend: "Trend in deze periode", sRooms: "Ruimtes", sKlim: "Verwarming en koeling", sOdd: "Opvallende metingen", sNeed: "Voor nog meer detail",
+      dampHourly: (r, lo, hi) => `Online gemeten schommelde het buiten in deze periode ${r} (van ${lo} tot ${hi}); je metingen vangen daar een deel van.`,
+      lag: (h, r) => `Binnen volgt buiten met ~${h} uur vertraging (samenhang r = ${r}). Hoe langer de vertraging, hoe meer het huis (bouwmassa en isolatie) temperatuurwisselingen buffert. Indicatie: onder 2 uur licht/snel, 2–6 uur gemiddeld, boven 6 uur sterk gebufferd.`,
+      lagWeak: r => `Er is geen duidelijke samenhang tussen het buitenverloop en binnen (beste r = ${r}); binnen wordt hier vooral door andere dingen bepaald (stoken, zon, bewoners).`,
+      coolPairs: (n, rate, tau, lo, hi) => `${n} afkoelperiode(s) met alles uit tussen twee metingen: binnen daalde gemiddeld ${rate}. Daaruit volgt een tijdconstante τ van ~${tau} (spreiding ${lo}–${hi}). Indicatie: onder ~35 uur snel, 35–70 uur gemiddeld, boven ~70 uur goed.`,
+      coolNight: d => `Omgerekend: bij 20 °C binnen en 10 °C buiten zakt het in een nacht van 8 uur ~${d}.`,
+      heatPairs: (n, rate) => `${n} opwarmperiode(s) met de verwarming aan: binnen steeg gemiddeld ${rate}.`,
+      coolNone: "Geen afkoelperiodes met alles uit tussen twee metingen in deze periode.",
+      comfortHours: (cov, below, pBelow, c, above, pAbove, w, rooms) => `Van de ~${cov} uur tussen je metingen${rooms > 1 ? ` (opgeteld over ${rooms} ruimtes)` : ""} was het binnen naar schatting ${below} uur (${pBelow}%) onder ${c} en ${above} uur (${pAbove}%) boven ${w}.`,
+      minMax: (lo, loWhen, hi, hiWhen) => `Koudste meting ${lo} (${loWhen}), warmste ${hi} (${hiWhen}).`,
+      diffRange: (avgD, lo, hi) => `Het verschil binnen − buiten was gemiddeld ${avgD} (van ${lo} tot ${hi}).`,
+      day: (parts, sw, swOut) => `Gemiddeld per dagdeel: ${parts}. Binnen verschilt ${sw} tussen het warmste en koudste dagdeel, terwijl buiten ${swOut} verschilt.`,
+      dayNeed: "Meet op minstens twee verschillende dagdelen voor het dagverloop.",
+      trend: (din, dout, ddiff) => `Binnen veranderde ${din} per dag, buiten ${dout} per dag; het verschil binnen − buiten ${ddiff} per dag.`,
+      trendHold: "Het buiten werd kouder terwijl binnen minder zakte: het huis houdt de warmte relatief goed vast.",
+      trendFollow: "Binnen zakt ongeveer even hard mee als buiten: weinig buffer.",
+      trendStable: "Binnen en buiten bleven in deze periode vrij stabiel.",
+      rooms: list => `Gemiddeld per ruimte: ${list}.`,
+      roomsPair: (a, b, d, n) => `Gelijktijdig gemeten (binnen 1 uur, ${n}×): ${a} is gemiddeld ${d} ${""}t.o.v. ${b}.`,
+      warmer: "warmer", colder: "kouder",
+      klim: (v, h, k, reg) => `Metingen: ${v} met alles uit, ${h} met verwarming, ${k} met koeling${reg ? `; bij ${reg} bepaalde de thermostaat de temperatuur` : ""}.`,
+      oddWarm: (when, v, e) => `${when}: ${v}, ~${e} warmer dan verwacht — zon, koken, bezoek of net gestookt?`,
+      oddCold: (when, v, e) => `${when}: ${v}, ~${e} kouder dan verwacht — raam open, tocht of thermometer bij een raam?`,
+      oddNone: "Geen metingen die sterk afwijken van wat je bij dit weer zou verwachten.",
+      needLoc: "Stel een locatie in (Instellingen) voor de buitentemperatuur per uur en de vertraging.",
+      needZoom: "Kies een periode van hoogstens 7 dagen voor de vertraging binnen ↔ buiten.",
+      needNight: "Meet ook 's avonds laat en 's ochtends vroeg (met alles uit): dan berekent Tembo de afkoelsnelheid.",
+      needHeat: "Meet vlak vóór en een tijd ná het aanzetten van de verwarming: dan zie je hoe snel het opwarmt.",
+      needRooms: "Meet in een tweede ruimte op ongeveer hetzelfde moment om ruimtes eerlijk te vergelijken.",
+      fCoolRate: "Afkoelen (alles uit)", fTau: "τ uit metingen", fHeatRate: "Opwarmen (verwarming)", fBelow: "Uren onder comfort", fLag: "Vertraging", fRatio: "Demping",
+    },
     setComfort: "Comfortgrens binnen (°C)",
     setComfortHint: "Onder deze binnentemperatuur vind je het te koud. Tembo gebruikt dit voor de geschatte stookgrens en de conclusies.",
     sumHouse: "Hoe houdt je huis zich?",
@@ -1187,6 +1225,39 @@ const I18N = {
     kFormHint: "Everything is Off by default. Switch on what was running, with the set temperature. Tembo remembers your previous choice.",
     kStatus_vrij: "All off", kStatus_verwarmen: "Heated", kStatus_koelen: "Cooled", kStatus_onbekend: "Unknown", kStatus_gemengd: "Mixed",
     kFilterLabel: "Climate",
+    tc: {
+      more: n => `All details (${n} parts)`,
+      sDamp: "Damping and lag", sCool: "Cooling down and warming up", sComfort: "Comfort", sDay: "Daily pattern", sTrend: "Trend in this period", sRooms: "Rooms", sKlim: "Heating and cooling", sOdd: "Notable readings", sNeed: "For even more detail",
+      dampHourly: (r, lo, hi) => `Measured online, outdoor varied by ${r} in this period (from ${lo} to ${hi}); your readings capture part of that.`,
+      lag: (h, r) => `Indoor follows outdoor with ~${h} hour(s) delay (correlation r = ${r}). The longer the delay, the more the house (thermal mass and insulation) buffers temperature swings. Indication: under 2 hours light/fast, 2–6 hours average, above 6 hours strongly buffered.`,
+      lagWeak: r => `There is no clear link between the outdoor pattern and indoor (best r = ${r}); indoor is driven mainly by other things here (heating, sun, occupants).`,
+      coolPairs: (n, rate, tau, lo, hi) => `${n} cool-down period(s) with everything off between two readings: indoor dropped on average ${rate}. That gives a time constant τ of ~${tau} (range ${lo}–${hi}). Indication: below ~35 hours fast, 35–70 hours average, above ~70 hours good.`,
+      coolNight: d => `In other words: at 20 °C indoor and 10 °C outdoor it drops ~${d} in an 8-hour night.`,
+      heatPairs: (n, rate) => `${n} warm-up period(s) with heating on: indoor rose on average ${rate}.`,
+      coolNone: "No cool-down periods with everything off between two readings in this period.",
+      comfortHours: (cov, below, pBelow, c, above, pAbove, w, rooms) => `Of the ~${cov} hours between your readings${rooms > 1 ? ` (summed over ${rooms} rooms)` : ""}, indoor was an estimated ${below} hours (${pBelow}%) below ${c} and ${above} hours (${pAbove}%) above ${w}.`,
+      minMax: (lo, loWhen, hi, hiWhen) => `Coldest reading ${lo} (${loWhen}), warmest ${hi} (${hiWhen}).`,
+      diffRange: (avgD, lo, hi) => `The indoor − outdoor difference averaged ${avgD} (from ${lo} to ${hi}).`,
+      day: (parts, sw, swOut) => `Average per time of day: ${parts}. Indoor differs ${sw} between the warmest and coldest part of the day, while outdoor differs ${swOut}.`,
+      dayNeed: "Measure in at least two different parts of the day for the daily pattern.",
+      trend: (din, dout, ddiff) => `Indoor changed ${din} per day, outdoor ${dout} per day; the indoor − outdoor difference ${ddiff} per day.`,
+      trendHold: "Outdoor got colder while indoor dropped less: the house holds its warmth relatively well.",
+      trendFollow: "Indoor drops about as much as outdoor: little buffer.",
+      trendStable: "Indoor and outdoor were fairly stable in this period.",
+      rooms: list => `Average per room: ${list}.`,
+      roomsPair: (a, b, d, n) => `Measured at the same time (within 1 hour, ${n}×): ${a} is on average ${d} compared with ${b}.`,
+      warmer: "warmer", colder: "colder",
+      klim: (v, h, k, reg) => `Readings: ${v} with everything off, ${h} with heating, ${k} with cooling${reg ? `; in ${reg} the thermostat set the temperature` : ""}.`,
+      oddWarm: (when, v, e) => `${when}: ${v}, ~${e} warmer than expected — sun, cooking, visitors or recent heating?`,
+      oddCold: (when, v, e) => `${when}: ${v}, ~${e} colder than expected — window open, draught or thermometer near a window?`,
+      oddNone: "No readings that differ strongly from what you would expect in this weather.",
+      needLoc: "Set a location (Settings) for hourly outdoor temperature and the lag.",
+      needZoom: "Pick a period of at most 7 days for the indoor ↔ outdoor lag.",
+      needNight: "Also measure late in the evening and early in the morning (everything off): then Tembo calculates the cooling rate.",
+      needHeat: "Measure just before and a while after switching on the heating: then you see how fast it warms up.",
+      needRooms: "Measure in a second room at about the same time to compare rooms fairly.",
+      fCoolRate: "Cooling (all off)", fTau: "τ from readings", fHeatRate: "Warming (heating)", fBelow: "Hours below comfort", fLag: "Lag", fRatio: "Damping",
+    },
     setComfort: "Indoor comfort limit (°C)",
     setComfortHint: "Below this indoor temperature you find it too cold. Tembo uses it for the estimated heating threshold and the conclusions.",
     sumHouse: "How does your house hold up?",
@@ -2785,8 +2856,8 @@ function drawTimeChart(el, listAll, fast){
   wireTimeZoom(el);
   const w = timeWindow(listAll);
   const list = listAll.filter(m => { const ts = tsOf(m); return ts >= w.start && ts < w.end; });
-  if(!fast){ const ce = document.getElementById("timeCon"); if(ce && el.id === "timeChart") ce.innerHTML = timeConclusionHTML(list); }
   const hourly = (!fast || el._hourlyOk) ? hourlyOnlineFor(w, () => { if(document.getElementById("timeChart") === el) drawTimeChart(el, timeList()); }) : null;
+  if(!fast){ const ce = document.getElementById("timeCon"); if(ce && el.id === "timeChart") ce.innerHTML = timeConclusionHTML(list, w, hourly); }
   const span = (w.end - w.start) / DAY;
   const daily = span > 10.5;
   const diff = timeView === "diff";
@@ -3094,22 +3165,174 @@ function perDagdeelHTML(basis){
   return `<h3>${t("conPerDp")} · ${escapeHtml(C.fPred(fmtT(refT(), 0)))}</h3><div class="dp-con-list">${rows}</div>`;
 }
 
-/* --- Temperatuurverloop (wat er in beeld is) --- */
-function timeConclusionHTML(list){
-  const C = t("con2").time, comfort = comfortT();
+/* --- Temperatuurverloop: uitgebreide analyse van wat er in beeld is ---
+   Bovenaan het oordeel (demping) en de kerngetallen; daaronder per onderdeel:
+   demping + vertraging (kruiscorrelatie met de online uurtemperatuur, 0–12 u verschoven),
+   afkoelen (paren opeenvolgende metingen met alles uit → °C/u en τ via de wet van Newton) en
+   opwarmen (paren waarbij de verwarming aan stond), comfort (tijdgewogen: lineair tussen metingen,
+   gaten > 12 u tellen niet), dagverloop per dagdeel, trend per dag, ruimtes (ook gelijktijdig),
+   klimaatgebruik, uitschieters t.o.v. de trendlijn van die ruimte, en wat er nodig is voor meer. */
+const conMoreOpen = { time: true };
+document.addEventListener("toggle", e => { const d = e.target; if(d && d.dataset && d.dataset.conmore) conMoreOpen[d.dataset.conmore] = d.open; }, true);
+function pearson(xs, ys){
+  const n = xs.length; if(n < 3) return null;
+  const mx = avg(xs), my = avg(ys); let sxy = 0, sxx = 0, syy = 0;
+  for(let i = 0; i < n; i++){ const a = xs[i] - mx, b = ys[i] - my; sxy += a*b; sxx += a*a; syy += b*b; }
+  return sxx > 1e-9 && syy > 1e-9 ? sxy / Math.sqrt(sxx * syy) : null;
+}
+function hourlyAt(hourly, ts){
+  if(!hourly || hourly.length < 2 || ts < hourly[0].ts - 1.5*HOUR || ts > hourly[hourly.length-1].ts + 1.5*HOUR) return null;
+  const j = hourly.findIndex(h => h.ts >= ts); if(j < 0) return hourly[hourly.length-1].v; if(j === 0) return hourly[0].v;
+  const a = hourly[j-1], b = hourly[j]; return a.v + (b.v - a.v) * (ts - a.ts) / (b.ts - a.ts);
+}
+function whenTxt(m){ return `${fmtDate(m.datum)}${m.tijd ? " " + m.tijd : ""}${m.ruimte && ruimteList().length > 1 ? " · " + m.ruimte : ""}`; }
+function timeConclusionHTML(list, w, hourly){
+  const C = t("con2").time, D = t("tc"), comfort = comfortT(), WARM = 25;
   if(list.length < 3) return conBox("insufficient", t("conInsufficient"), [C.need]);
   const nonReg = list.filter(m => !isRegulated(m)), vrij = nonReg.filter(m => klimaatOf(m).mode === "vrij");
-  const base = vrij.length >= 4 ? vrij : nonReg.length >= 3 ? nonReg : list;
   const rng = a => Math.max(...a) - Math.min(...a);
-  const ro = rng(base.map(m => m.buiten)), ri = rng(base.map(m => m.binnen));
-  const facts = [[C.fAvgIn, fmtT(avg(list.map(m => m.binnen)))], [C.fAvgOut, fmtT(avg(list.map(m => m.buiten)))], [C.fDiff, fmtDelta(avg(list.map(m => m.binnen - m.buiten)))], [C.fSwing, `${fmtT(ri)} / ${fmtT(ro)}`]];
+  const sd = a => { const mu = avg(a); return Math.sqrt(avg(a.map(v => (v - mu) ** 2))); };
+  const roomOf = m => m.ruimte || ROOM_DEFAULT;
+  // Demping per ruimte (verschillende ruimtes hebben een ander niveau; samen zouden ze een
+  // nep-schommeling geven). Maat: bereik binnen ÷ bereik buiten over dezelfde metingen, na het
+  // weglaten van uitschieters binnen (> 3× de mediane afwijking, min. 1 °C, van de mediaan — bijv.
+  // zon of net gestookt). Gewogen gemiddelde over de ruimtes.
+  const dampRooms = []; let usedVrij = true;
+  [...new Set(list.map(roomOf))].forEach(r => {
+    const nr = nonReg.filter(m => roomOf(m) === r), vr = nr.filter(m => klimaatOf(m).mode === "vrij");
+    let b = vr.length >= 4 ? vr : nr.length >= 4 ? nr : null; if(!b) return;
+    if(b !== vr) usedVrij = false;
+    const med = median(b.map(m => m.binnen)), mad = median(b.map(m => Math.abs(m.binnen - med)));
+    const clean = b.filter(m => Math.abs(m.binnen - med) <= Math.max(1, 3 * mad * 1.4826));
+    if(clean.length >= 4) b = clean;
+    const ro = rng(b.map(m => m.buiten)), ri = rng(b.map(m => m.binnen));
+    dampRooms.push({ r, n: b.length, ro, ri, ratio: ro >= 4 ? ri / ro : null });
+  });
+  dampRooms.sort((a, b) => b.n - a.n);
+  const main = dampRooms[0] || null, valid = dampRooms.filter(d => d.ratio !== null && d.ro >= 4);
+  const hourlyIn = hourly ? hourly.filter(h => h.ts >= w.start && h.ts <= w.end) : [];
+  const multiRoom = new Set(list.map(roomOf)).size > 1;
+  const facts = [[C.fAvgIn, fmtT(avg(list.map(m => m.binnen)))], [C.fAvgOut, fmtT(avg(list.map(m => m.buiten)))], [C.fDiff, fmtDelta(avg(list.map(m => m.binnen - m.buiten)))]];
+  if(main) facts.push([C.fSwing + (multiRoom ? ` (${main.r})` : ""), `${fmtT(main.ri)} / ${fmtT(main.ro)}`]);
   const paras = []; let status = "info", head = C.head_info;
-  if(ro >= 4){ const ratio = ri / ro; status = ratio <= 0.25 ? "good" : ratio <= 0.5 ? "neutral" : "bad"; head = C["head_" + status]; paras.push(C.body(fmtT(ro), fmtT(ri), Math.round(ratio * 100), base === vrij ? C.basisVrij : "")); }
-  else paras.push(C.smallOut(fmtT(ro)));
+  if(valid.length){
+    const ratio = valid.reduce((acc, d) => acc + d.ratio * d.n, 0) / valid.reduce((acc, d) => acc + d.n, 0);
+    status = ratio <= 0.25 ? "good" : ratio <= 0.5 ? "neutral" : "bad"; head = C["head_" + status];
+    const d0 = valid[0];
+    paras.push(C.body(fmtT(d0.ro), fmtT(d0.ri), Math.round(ratio * 100), (usedVrij ? C.basisVrij : "") + (valid.length > 1 ? ` — ${valid.map(d => `${d.r} ${Math.round(d.ratio * 100)}%`).join(", ")}` : multiRoom ? ` — ${d0.r}` : "")));
+    facts.push([D.fRatio, Math.round(ratio * 100) + "%"]);
+  } else paras.push(C.smallOut(fmtT(main ? main.ro : rng(list.map(m => m.buiten)))));
+  const secs = [], needs = [];
+  const sec = (title, items) => { const it = items.filter(Boolean); if(it.length) secs.push(`<div class="con-sec"><div class="con-sec-h">${escapeHtml(title)}</div>${it.map(x => x.startsWith("<") ? x : `<p>${escapeHtml(x)}</p>`).join("")}</div>`); };
+
+  // 1. Demping en vertraging
+  const damp = [];
+  if(hourlyIn.length >= 6){ const hv = hourlyIn.map(h => h.v); damp.push(D.dampHourly(fmtT(rng(hv)), fmtT(Math.min(...hv)), fmtT(Math.max(...hv)))); }
+  if(hourly && hourly.length >= 24){
+    const cand = nonReg.filter(m => hourlyAt(hourly, tsOf(m) - 12*HOUR) !== null);
+    if(cand.length >= 8){
+      let best = null;
+      const rm = {}; [...new Set(cand.map(roomOf))].forEach(r => { rm[r] = avg(cand.filter(m => roomOf(m) === r).map(m => m.binnen)); });
+      const yv = cand.map(m => m.binnen - rm[roomOf(m)]);      // per ruimte gecentreerd
+      for(let L = 0; L <= 12; L++){ const r = pearson(cand.map(m => hourlyAt(hourly, tsOf(m) - L*HOUR)), yv); if(r !== null && (!best || r > best.r)) best = { L, r }; }
+      if(best && best.r >= 0.5){ damp.push(D.lag(best.L, best.r.toLocaleString(state.lang === "en" ? "en-GB" : "nl-NL", { maximumFractionDigits: 2 }))); facts.push([D.fLag, `~${best.L} u`]); }
+      else if(best) damp.push(D.lagWeak(best.r.toLocaleString(state.lang === "en" ? "en-GB" : "nl-NL", { maximumFractionDigits: 2 })));
+    }
+  } else needs.push(!state.settings.locatie ? D.needLoc : w.end - w.start > 7.5 * DAY ? D.needZoom : "");
+  sec(D.sDamp, damp);
+
+  // Paren opeenvolgende metingen per ruimte
+  const byRoom = {}; list.forEach(m => { const r = m.ruimte || ROOM_DEFAULT; (byRoom[r] = byRoom[r] || []).push(m); });
+  const pairs = []; Object.values(byRoom).forEach(arr => { for(let i = 1; i < arr.length; i++) pairs.push([arr[i-1], arr[i]]); });
+  const outBetween = (a, b) => { const ta = tsOf(a), tb = tsOf(b); if(hourly && hourlyAt(hourly, ta) !== null && hourlyAt(hourly, tb) !== null){ const v = [hourlyAt(hourly, ta)].concat(hourly.filter(h => h.ts > ta && h.ts < tb).map(h => h.v), [hourlyAt(hourly, tb)]); return avg(v); } return (a.buiten + b.buiten) / 2; };
+
+  // 2. Afkoelen en opwarmen
+  const cool = [], heat = [];
+  pairs.forEach(([a, b]) => {
+    const dtH = (tsOf(b) - tsOf(a)) / HOUR, ma = klimaatOf(a).mode, mb = klimaatOf(b).mode;
+    if(ma === "vrij" && mb === "vrij" && dtH >= 1 && dtH <= 16 && a.binnen - b.binnen >= 0.2){
+      const To = outBetween(a, b), d0 = a.binnen - To, d1 = b.binnen - To;
+      if(d0 >= 3 && d1 > 0.5){ const tau = dtH / Math.log(d0 / d1); if(tau > 5 && tau < 2000) cool.push({ rate: (a.binnen - b.binnen) / dtH, tau }); }
+    }
+    if(mb === "verwarmen" && dtH >= 0.25 && dtH <= 12 && b.binnen - a.binnen >= 0.2) heat.push((b.binnen - a.binnen) / dtH);
+  });
+  const coolItems = [];
+  if(cool.length){
+    const taus = cool.map(c => c.tau).sort((x, y) => x - y), mt = median(taus);
+    coolItems.push(D.coolPairs(cool.length, fmtRate(median(cool.map(c => c.rate))), hoursTxt(mt), hoursTxt(taus[0]), hoursTxt(taus[taus.length-1])), D.coolNight(fmtT(10 * (1 - Math.exp(-8 / mt)))));
+    facts.push([D.fCoolRate, fmtRate(median(cool.map(c => c.rate)))], [D.fTau, "~" + hoursTxt(mt)]);
+  } else { coolItems.push(D.coolNone); needs.push(D.needNight); }
+  if(heat.length){ coolItems.push(D.heatPairs(heat.length, fmtRate(median(heat)))); facts.push([D.fHeatRate, fmtRate(median(heat))]); }
+  else if(list.some(m => klimaatOf(m).mode === "verwarmen")) needs.push(D.needHeat);
+  sec(D.sCool, coolItems);
+
+  // 3. Comfort (tijdgewogen)
+  let cov = 0, below = 0, above = 0;
+  const part = (va, vb, dt, thr, under) => { const lo = Math.min(va, vb), hi = Math.max(va, vb); if(under){ if(hi < thr) return dt; if(lo >= thr) return 0; return dt * (thr - lo) / (hi - lo); } if(lo > thr) return dt; if(hi <= thr) return 0; return dt * (hi - thr) / (hi - lo); };
+  pairs.forEach(([a, b]) => { const dt = (tsOf(b) - tsOf(a)) / HOUR; if(dt <= 0 || dt > 12) return; cov += dt; below += part(a.binnen, b.binnen, dt, comfort, true); above += part(a.binnen, b.binnen, dt, WARM, false); });
+  const lo = list.reduce((x, m) => m.binnen < x.binnen ? m : x), hi = list.reduce((x, m) => m.binnen > x.binnen ? m : x);
+  const diffs = list.map(m => m.binnen - m.buiten);
   const cold = list.filter(m => m.binnen < comfort - 0.05).length;
-  paras.push(cold ? C.cold(cold, list.length, fmtT(comfort, 0)) : C.allComfort(fmtT(comfort, 0)));
-  if(list.length - nonReg.length && base !== list) paras.push(C.regNote(list.length - nonReg.length));
-  return conBox(status, head, paras, facts);
+  const comfortItems = [cold ? C.cold(cold, list.length, fmtT(comfort, 0)) : C.allComfort(fmtT(comfort, 0))];
+  if(cov >= 2){ const r1 = v => Math.round(v * 10) / 10; comfortItems.push(D.comfortHours(Math.round(cov), r1(below).toLocaleString(state.lang==="en"?"en-GB":"nl-NL"), Math.round(below / cov * 100), fmtT(comfort, 0), r1(above).toLocaleString(state.lang==="en"?"en-GB":"nl-NL"), Math.round(above / cov * 100), fmtT(WARM, 0), Object.keys(byRoom).length)); facts.push([D.fBelow, `${Math.round(below / cov * 100)}%`]); }
+  comfortItems.push(D.minMax(fmtT(lo.binnen), whenTxt(lo), fmtT(hi.binnen), whenTxt(hi)), D.diffRange(fmtDelta(avg(diffs)), fmtDelta(Math.min(...diffs)), fmtDelta(Math.max(...diffs))));
+  sec(D.sComfort, comfortItems);
+
+  // 4. Dagverloop
+  const dps = DAGDELEN.map(k => { const a = list.filter(m => dagdeelOf(m.tijd) === k); return a.length ? { k, bin: avg(a.map(m => m.binnen)), bu: avg(a.map(m => m.buiten)), n: a.length } : null; }).filter(Boolean);
+  if(dps.length >= 2){
+    const sw = Math.max(...dps.map(d => d.bin)) - Math.min(...dps.map(d => d.bin)), swo = Math.max(...dps.map(d => d.bu)) - Math.min(...dps.map(d => d.bu));
+    sec(D.sDay, [D.day(dps.map(d => `${dpLabel(d.k).toLowerCase()} ${fmtT(d.bin)} (buiten ${fmtT(d.bu)})`).join(" · "), fmtT(sw), fmtT(swo))]);
+  } else if(cfOf("time").dp === "all") sec(D.sDay, [D.dayNeed]);
+
+  // 5. Trend
+  const spanD = (tsOf(list[list.length-1]) - tsOf(list[0])) / DAY;
+  if(spanD >= 1.5 && list.length >= 6){
+    const t0 = tsOf(list[0]), X = list.map(m => (tsOf(m) - t0) / DAY);
+    const sl = ys => { const r = linReg(X.map((x, i) => ({ x, y: ys[i] }))); return r ? r.b : 0; };
+    const bi = sl(list.map(m => m.binnen)), bo = sl(list.map(m => m.buiten)), bd = sl(diffs);
+    const fd = v => Math.abs(v) < 0.05 ? fmtT(0) : fmtDelta(v);
+    const items = [D.trend(fd(bi), fd(bo), fd(bd))];
+    if(bo < -0.2 && bi > bo / 2) items.push(D.trendHold); else if(bo < -0.2) items.push(D.trendFollow); else if(Math.abs(bi) < 0.1 && Math.abs(bo) < 0.2) items.push(D.trendStable);
+    sec(D.sTrend, items);
+  }
+
+  // 6. Ruimtes
+  const rooms = Object.entries(byRoom).filter(([, a]) => a.length >= 2).map(([r, a]) => ({ r, avg: avg(a.map(m => m.binnen)), a })).sort((x, y) => y.avg - x.avg);
+  if(rooms.length >= 2){
+    const items = [D.rooms(rooms.map(x => `${x.r} ${fmtT(x.avg)}`).join(" · "))];
+    const ref = rooms[0];
+    rooms.slice(1).forEach(o => {
+      const d = []; o.a.forEach(m => { const near = ref.a.reduce((best, x) => { const dt = Math.abs(tsOf(x) - tsOf(m)); return dt <= HOUR && (!best || dt < best.dt) ? { x, dt } : best; }, null); if(near) d.push(m.binnen - near.x.binnen); });
+      if(d.length >= 2){ const md = avg(d); items.push(D.roomsPair(o.r, ref.r, `${fmtT(Math.abs(md))} ${md < 0 ? D.colder : D.warmer}`, d.length)); }
+      else needs.push(D.needRooms);
+    });
+    sec(D.sRooms, items);
+  }
+
+  // 7. Klimaatgebruik
+  const cnt = md => list.filter(m => klimaatOf(m).mode === md).length;
+  sec(D.sKlim, [D.klim(cnt("vrij"), cnt("verwarmen"), cnt("koelen"), list.length - nonReg.length)]);
+
+  // 8. Uitschieters t.o.v. de trendlijn (alles uit) van dezelfde ruimte
+  const odd = [];
+  Object.keys(byRoom).forEach(room => {
+    const f = houseFit(state.metingen.filter(m => (m.ruimte || ROOM_DEFAULT) === room), "nu", "vrij");
+    if(!f.r || !f.vrijOnly) return;
+    const thr = Math.max(1.0, 2.5 * f.r.sres);
+    byRoom[room].filter(m => klimaatOf(m).mode === "vrij").forEach(m => { const e = m.binnen - (f.r.a + f.r.b * m.buiten); if(Math.abs(e) >= thr) odd.push({ m, e }); });
+  });
+  odd.sort((x, y) => Math.abs(y.e) - Math.abs(x.e));
+  if(odd.length) sec(D.sOdd, [`<ul>${odd.slice(0, 4).map(o => `<li>${escapeHtml((o.e > 0 ? D.oddWarm : D.oddCold)(whenTxt(o.m), fmtT(o.m.binnen), fmtT(Math.abs(o.e))))}</li>`).join("")}</ul>`]);
+  else if(Object.keys(byRoom).some(r => houseFit(state.metingen.filter(m => (m.ruimte || ROOM_DEFAULT) === r), "nu", "vrij").r)) sec(D.sOdd, [D.oddNone]);
+
+  const nd = [...new Set(needs.filter(Boolean))];
+  if(nd.length) sec(D.sNeed, [`<ul>${nd.map(x => `<li>${escapeHtml(x)}</li>`).join("")}</ul>`]);
+
+  const conf = { level: list.length >= 20 && spanD >= 3 ? "high" : list.length >= 8 ? "medium" : "low" };
+  const box = conBox(status, head, paras, facts, conf);
+  const more = secs.length ? `<details class="con-more" data-conmore="time" ${conMoreOpen.time ? "open" : ""}><summary>${escapeHtml(D.more(secs.length))}</summary>${secs.join("")}</details>` : "";
+  return box.replace(/<\/div>$/, more + "</div>");
 }
 
 /* --- Per klimaat --- */
