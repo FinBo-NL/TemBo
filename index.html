@@ -837,10 +837,11 @@ const I18N = {
       dampHourly: (r, lo, hi) => `Online gemeten schommelde het buiten in deze periode ${r} (van ${lo} tot ${hi}); je metingen vangen daar een deel van.`,
       lag: (h, r) => `Binnen volgt buiten met ~${h} uur vertraging (samenhang r = ${r}). Hoe langer de vertraging, hoe meer het huis (bouwmassa en isolatie) temperatuurwisselingen buffert. Indicatie: onder 2 uur licht/snel, 2–6 uur gemiddeld, boven 6 uur sterk gebufferd.`,
       lagWeak: r => `Er is geen duidelijke samenhang tussen het buitenverloop en binnen (beste r = ${r}); binnen wordt hier vooral door andere dingen bepaald (stoken, zon, bewoners).`,
-      coolPairs: (n, rate, tau, lo, hi) => `${n} afkoelperiode(s) met alles uit tussen twee metingen: binnen daalde gemiddeld ${rate}. Daaruit volgt een tijdconstante τ van ~${tau} (spreiding ${lo}–${hi}). Indicatie: onder ~35 uur snel, 35–70 uur gemiddeld, boven ~70 uur goed.`,
+      coolPairs: (n, rate, tau, lo, hi) => `${n} afkoelperiode(s) 's nachts (tussen 18:00 en 09:00, zonder zon) met alles uit tussen twee metingen: binnen daalde gemiddeld ${rate}. Daaruit volgt een tijdconstante τ van ~${tau} (spreiding ${lo}–${hi}). Indicatie: onder ~35 uur snel, 35–70 uur gemiddeld, boven ~70 uur goed.`,
       coolNight: d => `Omgerekend: bij 20 °C binnen en 10 °C buiten zakt het in een nacht van 8 uur ~${d}.`,
       heatPairs: (n, rate) => `${n} opwarmperiode(s) met de verwarming aan: binnen steeg gemiddeld ${rate}.`,
-      coolNone: "Geen afkoelperiodes met alles uit tussen twee metingen in deze periode.",
+      coolNone: "Geen nachtelijke afkoelperiodes (18:00–09:00) met alles uit tussen twee metingen in deze periode. Overdag tellen niet mee: zon en koken vertekenen de afkoeling.",
+      trendCorr: "Gecorrigeerd voor het tijdstip van meten: per dagdeel is eerst het gemiddelde verschil weggehaald, zodat 's ochtends meer en 's avonds meer meten geen nep-trend geeft.",
       comfortHours: (cov, below, pBelow, c, above, pAbove, w, rooms) => `Van de ~${cov} uur tussen je metingen${rooms > 1 ? ` (opgeteld over ${rooms} ruimtes)` : ""} was het binnen naar schatting ${below} uur (${pBelow}%) onder ${c} en ${above} uur (${pAbove}%) boven ${w}.`,
       minMax: (lo, loWhen, hi, hiWhen) => `Koudste meting ${lo} (${loWhen}), warmste ${hi} (${hiWhen}).`,
       diffRange: (avgD, lo, hi) => `Het verschil binnen − buiten was gemiddeld ${avgD} (van ${lo} tot ${hi}).`,
@@ -911,6 +912,7 @@ const I18N = {
         needVerw: "Noteer bij metingen ook wanneer de verwarming aan staat (met de instelling); dan bepaalt Tembo de stookgrens uit je echte gedrag.",
         needKoel: "Noteer ook metingen met de airco op koelen voor de koelgrens.",
         needVrij: "Meet ook bij verschillend weer met alles uit (minstens 3 keer), dan bepaalt Tembo waar je stookgrens ligt.",
+        skew: (w, v) => `Let op: je metingen met verwarming vallen vooral in de ${w} en die met alles uit vooral in de ${v}. Het verschil in tijdstip (bijv. kouder 's ochtends) kan de stookgrens vertekenen. Meet ook met alles uit op de momenten dat je normaal stookt.`,
       },
       koel: {
         sOverview: "Overzicht", sOut: "Invloed van buiten", sReach: "Instelling halen", sRooms: "Per ruimte",
@@ -936,13 +938,51 @@ const I18N = {
         outNone: "Geen duidelijke invloed van de buitentemperatuur.",
         prac: (a, b, c) => `Daling in een nacht van 8 uur bij 5 / 10 / 15 °C verschil binnen–buiten: ${a} / ${b} / ${c}.`,
         hour1: h => `Bij 10 °C verschil duurt het ~${h} voordat het binnen 1 °C kouder is.`,
-        check: (v, n) => `Uit je gewone metingen (opeenvolgende metingen met alles uit, ${n} periodes) volgt τ ~${v}.`,
+        check: (v, n) => `Uit je gewone metingen (opeenvolgende metingen met alles uit 's nachts, ${n} periodes) volgt τ ~${v}.`,
         checkOk: "Dat komt goed overeen met de afkoeltests.", checkDiff: "Dat wijkt af van de afkoeltests; de tests zijn meestal nauwkeuriger (deuren dicht, hele nacht).",
         excl: (h, r, f, sm) => `${h} met verwarming/koeling aan, ${r} met een tussentijdse stijging, ${f} met een rommelige meting, ${sm} met te weinig verschil binnen–buiten.`,
         room: (r, n, v) => `${r}: ${n} test(s), τ ~${v}`,
         needMore: "Met 5 of meer tests wordt de mediaan betrouwbaar.",
         needCold: "Tests met een groot verschil binnen–buiten (koude nachten) zijn het nauwkeurigst.",
       },
+    },
+    wx: {
+      title: "Weer (optioneel)", zon: "Zon", wind: "Wind", regen: "Regen", wolk: "Bewolking",
+      zonOpt: { geen: "geen", beetje: "beetje", veel: "veel" }, windOpt: { rustig: "rustig", matig: "matig", hard: "hard" }, regenOpt: { droog: "droog", regen: "regen" }, wolkOpt: { helder: "helder", half: "half bewolkt", bewolkt: "bewolkt" },
+      hintOnline: "Zon, wind, bewolking en regen haalt Tembo automatisch online op voor je locatie — ook als je de buitentemperatuur zelf meet.",
+      hintManual: "Geen locatie ingesteld: geef zelf kort aan hoe het weer was (mag leeg blijven). Met een locatie (Instellingen) doet Tembo dit automatisch en nauwkeuriger.",
+      coolWind: "Wind die nacht", coolWolk: "Bewolking die nacht", none: "—",
+      ttZon: "Zon", ttWind: "Wind", ttWolk: "Bewolking", ttRegen: "Regen (3 u)",
+      manualTag: "zelf ingevuld",
+    },
+    wc: {
+      sWeather: "Zon en wind",
+      corr: ws => `Ook gecorrigeerd voor zon en wind: de schatting en de stookgrens gelden zonder zon en bij gemiddelde wind (${ws}). Zo vertekenen zonnige middagen en stormachtige dagen de lijn niet.`,
+      zon: (c, big) => `Zon: per 100 W/m² zonkracht is het binnen ~${c} warmer (volle zon ≈ 500–700 W/m² → ~${big}). Dat is warmte die via de ramen binnenkomt.`,
+      zonNone: "Zon: geen meetbaar effect op binnen.",
+      wind: (d, j) => `Wind: per 10 km/h meer wind is het binnen ~${d} kouder ${j}`,
+      windNone: "Wind: geen meetbaar effect op binnen — het huis is weinig tochtgevoelig.",
+      wGood: "— weinig tochtgevoelig.", wMid: "— enigszins tochtgevoelig.", wBad: "— duidelijk tochtgevoelig: kieren, naden of ventilatieroosters laten bij wind koude lucht binnen.",
+      fZon: "Zon (per 100 W/m²)", fWind: "Wind (per 10 km/h)",
+      needLoc: "Met een ingestelde locatie (of het weer zelf invullen bij een meting) houdt Tembo ook rekening met zon en wind.",
+      needVar: "Meet bij verschillend weer (zonnig én bewolkt, rustig én winderig), dan kan Tembo het effect van zon en wind scheiden van de temperatuur.",
+      oddSun: (w, v, e, z) => `${w}: ${v}, ~${e} warmer dan de lijn — het was zonnig (${z} W/m²).`,
+      oddWind: (w, v, e, s) => `${w}: ${v}, ~${e} kouder dan de lijn — harde wind (${s} km/h): tocht?`,
+      oddRain: (w, v, e) => `${w}: ${v}, ~${e} kouder dan de lijn — regen en bewolking.`,
+      cSec: "Weer tijdens de tests",
+      cCounts: (calm, windy, clear, n) => `Van ${n} test(s): ${calm} bij rustig weer (< 15 km/h), ${windy} bij harde wind (≥ 30 km/h), ${clear} in een heldere nacht.`,
+      cWind: (d, pct, j) => `Per 10 km/h meer wind daalt τ ~${d} (${pct}%) ${j}`,
+      cCalm: (v, n) => `τ bij rustig weer: ~${v} (${n} test(s)).`,
+      cUseCalm: "De conclusie gebruikt alleen tests bij rustig weer: wind laat het huis sneller afkoelen dan normaal en zou het oordeel te negatief maken.",
+      cWindy: n => `${n} test(s) in een winderige nacht: daar ligt τ waarschijnlijk lager dan normaal.`,
+      cClear: "In heldere nachten straalt het dak extra warmte uit naar de koude hemel; τ kan dan iets lager liggen.",
+      cNeed: "Doe tests bij zowel rustig als winderig weer, dan ziet Tembo hoe tochtgevoelig het huis is.",
+      tSec: "Weer in deze periode",
+      tSum: (sunH, maxSun, wind, maxWind, rain, clear) => `Zon: ${sunH} uur met flinke zon (> 200 W/m², hoogste ${maxSun} W/m²). Wind gemiddeld ${wind} km/h, hoogste ${maxWind} km/h. Regen ${rain} mm. ${clear} heldere nacht(en).`,
+      tSumR: (sun, wind, n) => `Bij je metingen: gemiddeld ${sun} W/m² zon en ${wind} km/h wind (${n} metingen met weer).`,
+      tNight: (tc, tw) => `Afkoelen 's nachts: τ ~${tc} bij rustig weer tegen ~${tw} bij wind.`,
+      kSec: "Zon tijdens de koeltests",
+      kSun: (rs, rn) => `Tests met zon (> 300 W/m²) koelden gemiddeld ${rs}, tests zonder zon ${rn}: zon door de ramen werkt de airco tegen.`,
     },
     setComfort: "Comfortgrens binnen (°C)",
     setComfortHint: "Onder deze binnentemperatuur vind je het te koud. Tembo gebruikt dit voor de geschatte stookgrens en de conclusies.",
@@ -973,6 +1013,9 @@ const I18N = {
         heatShare: p => `Bij ${p}% van deze metingen stond verwarming of airco aan (zonder dat de instelling bereikt werd); daardoor ligt de schatting warmer dan het huis zonder verwarming is. Meer metingen met alles uit maken de conclusie zuiverder.`,
         excluded: n => `${n} thermostaat-meting(en) tellen niet mee.`,
         vrijOnly: "Gebaseerd op metingen met alles uit — het zuiverste beeld.",
+        dpCorr: offs => `Gecorrigeerd voor het tijdstip van meten: Tembo vergelijkt ochtend met ochtend, middag met middag enz. (t.o.v. het daggemiddelde: ${offs}). De schatting en de stookgrens gelden voor het daggemiddelde binnen.`,
+        skew: (cold, warm) => `Let op: je koudere metingen vallen vooral in de ${cold}, je warmere in de ${warm}. Dan loopt het dagritme door het weer heen en kan de lijn vertekend zijn; de zekerheid is daarom verlaagd. Meet bij verschillend weer op hetzelfde tijdstip, dan kan Tembo hiervoor corrigeren.`,
+        lDpCorr: "gecorrigeerd voor tijdstip",
         fPred: r => `Binnen bij ${r} buiten`, fSlope: "Per °C kouder buiten", fGrens: "Geschatte stookgrens", fN: "Metingen",
         dpVal: (v, g) => `~${v}${g ? " · grens ~" + g : ""}`, dpNeed: n => `${n} metingen`,
         lTrend: "Trend", lTrendVrij: "Trend (alles uit)", lComfort: "Comfortgrens", lGrens: "Stookgrens", lFaded: "niet in trend", lRef: "Schatting bij referentie",
@@ -1311,10 +1354,11 @@ const I18N = {
       dampHourly: (r, lo, hi) => `Measured online, outdoor varied by ${r} in this period (from ${lo} to ${hi}); your readings capture part of that.`,
       lag: (h, r) => `Indoor follows outdoor with ~${h} hour(s) delay (correlation r = ${r}). The longer the delay, the more the house (thermal mass and insulation) buffers temperature swings. Indication: under 2 hours light/fast, 2–6 hours average, above 6 hours strongly buffered.`,
       lagWeak: r => `There is no clear link between the outdoor pattern and indoor (best r = ${r}); indoor is driven mainly by other things here (heating, sun, occupants).`,
-      coolPairs: (n, rate, tau, lo, hi) => `${n} cool-down period(s) with everything off between two readings: indoor dropped on average ${rate}. That gives a time constant τ of ~${tau} (range ${lo}–${hi}). Indication: below ~35 hours fast, 35–70 hours average, above ~70 hours good.`,
+      coolPairs: (n, rate, tau, lo, hi) => `${n} night-time cool-down period(s) (between 18:00 and 09:00, no sun) with everything off between two readings: indoor dropped on average ${rate}. That gives a time constant τ of ~${tau} (range ${lo}–${hi}). Indication: below ~35 hours fast, 35–70 hours average, above ~70 hours good.`,
       coolNight: d => `In other words: at 20 °C indoor and 10 °C outdoor it drops ~${d} in an 8-hour night.`,
       heatPairs: (n, rate) => `${n} warm-up period(s) with heating on: indoor rose on average ${rate}.`,
-      coolNone: "No cool-down periods with everything off between two readings in this period.",
+      coolNone: "No night-time cool-down periods (18:00–09:00) with everything off between two readings in this period. Daytime periods are left out: sun and cooking distort the cooling.",
+      trendCorr: "Corrected for time of measurement: the average difference per time of day was removed first, so measuring more in the morning one day and more in the evening another does not create a fake trend.",
       comfortHours: (cov, below, pBelow, c, above, pAbove, w, rooms) => `Of the ~${cov} hours between your readings${rooms > 1 ? ` (summed over ${rooms} rooms)` : ""}, indoor was an estimated ${below} hours (${pBelow}%) below ${c} and ${above} hours (${pAbove}%) above ${w}.`,
       minMax: (lo, loWhen, hi, hiWhen) => `Coldest reading ${lo} (${loWhen}), warmest ${hi} (${hiWhen}).`,
       diffRange: (avgD, lo, hi) => `The indoor − outdoor difference averaged ${avgD} (from ${lo} to ${hi}).`,
@@ -1385,6 +1429,7 @@ const I18N = {
         needVerw: "Also record when the heating is on (with its setting); then Tembo derives the heating threshold from your actual behaviour.",
         needKoel: "Also record readings with the AC on cooling for the cooling threshold.",
         needVrij: "Also measure with everything off in different weather (at least 3 times), then Tembo can tell where your heating threshold is.",
+        skew: (w, v) => `Note: your readings with heating fall mostly in the ${w} and those with everything off mostly in the ${v}. The difference in time of day (e.g. colder in the morning) can bias the heating threshold. Also measure with everything off at the times you normally heat.`,
       },
       koel: {
         sOverview: "Overview", sOut: "Effect of outdoor", sReach: "Reaching the setting", sRooms: "Per room",
@@ -1410,13 +1455,51 @@ const I18N = {
         outNone: "No clear effect of outdoor temperature.",
         prac: (a, b, c) => `Drop in an 8-hour night at 5 / 10 / 15 °C indoor–outdoor difference: ${a} / ${b} / ${c}.`,
         hour1: h => `At a 10 °C difference it takes ~${h} for indoor to get 1 °C colder.`,
-        check: (v, n) => `Your normal readings (consecutive readings with everything off, ${n} periods) give τ ~${v}.`,
+        check: (v, n) => `Your normal readings (consecutive night-time readings with everything off, ${n} periods) give τ ~${v}.`,
         checkOk: "That agrees well with the cool-down tests.", checkDiff: "That differs from the cool-down tests; the tests are usually more accurate (doors closed, whole night).",
         excl: (h, r, f, sm) => `${h} with heating/cooling on, ${r} with an intermediate rise, ${f} with a rough fit, ${sm} with too small an indoor–outdoor difference.`,
         room: (r, n, v) => `${r}: ${n} test(s), τ ~${v}`,
         needMore: "With 5 or more tests the median becomes reliable.",
         needCold: "Tests with a large indoor–outdoor difference (cold nights) are the most accurate.",
       },
+    },
+    wx: {
+      title: "Weather (optional)", zon: "Sun", wind: "Wind", regen: "Rain", wolk: "Clouds",
+      zonOpt: { geen: "none", beetje: "some", veel: "lots" }, windOpt: { rustig: "calm", matig: "moderate", hard: "strong" }, regenOpt: { droog: "dry", regen: "rain" }, wolkOpt: { helder: "clear", half: "partly cloudy", bewolkt: "cloudy" },
+      hintOnline: "Tembo fetches sun, wind, clouds and rain online for your location automatically — even if you measure the outdoor temperature yourself.",
+      hintManual: "No location set: briefly note what the weather was like (may be left empty). With a location (Settings) Tembo does this automatically and more precisely.",
+      coolWind: "Wind that night", coolWolk: "Clouds that night", none: "—",
+      ttZon: "Sun", ttWind: "Wind", ttWolk: "Clouds", ttRegen: "Rain (3 h)",
+      manualTag: "entered yourself",
+    },
+    wc: {
+      sWeather: "Sun and wind",
+      corr: ws => `Also corrected for sun and wind: the estimate and heating threshold apply without sun and at average wind (${ws}). So sunny afternoons and stormy days do not bias the line.`,
+      zon: (c, big) => `Sun: per 100 W/m² of sunshine indoor is ~${c} warmer (full sun ≈ 500–700 W/m² → ~${big}). That is heat coming in through the windows.`,
+      zonNone: "Sun: no measurable effect on indoor.",
+      wind: (d, j) => `Wind: per 10 km/h more wind indoor is ~${d} colder ${j}`,
+      windNone: "Wind: no measurable effect on indoor — the house is not very draughty.",
+      wGood: "— not very draughty.", wMid: "— somewhat draughty.", wBad: "— clearly draughty: gaps, seams or vents let cold air in when it is windy.",
+      fZon: "Sun (per 100 W/m²)", fWind: "Wind (per 10 km/h)",
+      needLoc: "With a location set (or by entering the weather with a reading) Tembo also takes sun and wind into account.",
+      needVar: "Measure in different weather (sunny and cloudy, calm and windy), so Tembo can separate the effect of sun and wind from temperature.",
+      oddSun: (w, v, e, z) => `${w}: ${v}, ~${e} warmer than the line — it was sunny (${z} W/m²).`,
+      oddWind: (w, v, e, s) => `${w}: ${v}, ~${e} colder than the line — strong wind (${s} km/h): draughts?`,
+      oddRain: (w, v, e) => `${w}: ${v}, ~${e} colder than the line — rain and clouds.`,
+      cSec: "Weather during the tests",
+      cCounts: (calm, windy, clear, n) => `Of ${n} test(s): ${calm} in calm weather (< 15 km/h), ${windy} in strong wind (≥ 30 km/h), ${clear} on a clear night.`,
+      cWind: (d, pct, j) => `Per 10 km/h more wind τ drops ~${d} (${pct}%) ${j}`,
+      cCalm: (v, n) => `τ in calm weather: ~${v} (${n} test(s)).`,
+      cUseCalm: "The conclusion only uses tests in calm weather: wind makes the house cool faster than normal and would make the verdict too negative.",
+      cWindy: n => `${n} test(s) on a windy night: τ is probably lower than normal there.`,
+      cClear: "On clear nights the roof radiates extra heat to the cold sky; τ may be slightly lower then.",
+      cNeed: "Do tests in both calm and windy weather, then Tembo can see how draughty the house is.",
+      tSec: "Weather in this period",
+      tSum: (sunH, maxSun, wind, maxWind, rain, clear) => `Sun: ${sunH} hours of strong sun (> 200 W/m², highest ${maxSun} W/m²). Wind averaged ${wind} km/h, highest ${maxWind} km/h. Rain ${rain} mm. ${clear} clear night(s).`,
+      tSumR: (sun, wind, n) => `At your readings: on average ${sun} W/m² sun and ${wind} km/h wind (${n} readings with weather).`,
+      tNight: (tc, tw) => `Cooling at night: τ ~${tc} in calm weather versus ~${tw} with wind.`,
+      kSec: "Sun during the cooling tests",
+      kSun: (rs, rn) => `Tests with sun (> 300 W/m²) cooled on average ${rs}, tests without sun ${rn}: sun through the windows works against the AC.`,
     },
     setComfort: "Indoor comfort limit (°C)",
     setComfortHint: "Below this indoor temperature you find it too cold. Tembo uses it for the estimated heating threshold and the conclusions.",
@@ -1447,6 +1530,9 @@ const I18N = {
         heatShare: p => `In ${p}% of these readings heating or AC was on (without reaching the setting); that makes the estimate warmer than the house is without heating. More readings with everything off make the conclusion cleaner.`,
         excluded: n => `${n} thermostat reading(s) are left out.`,
         vrijOnly: "Based on readings with everything off — the cleanest picture.",
+        dpCorr: offs => `Corrected for time of measurement: Tembo compares morning with morning, afternoon with afternoon, etc. (relative to the daily average: ${offs}). The estimate and heating threshold apply to the daily average indoors.`,
+        skew: (cold, warm) => `Note: your colder readings fall mostly in the ${cold}, your warmer ones in the ${warm}. The daily rhythm then mixes with the weather and the line may be biased; confidence has been lowered. Measure at the same time of day in different weather, then Tembo can correct for this.`,
+        lDpCorr: "corrected for time of day",
         fPred: r => `Indoor at ${r} outdoor`, fSlope: "Per °C colder outside", fGrens: "Est. heating threshold", fN: "Readings",
         dpVal: (v, g) => `~${v}${g ? " · threshold ~" + g : ""}`, dpNeed: n => `${n} readings`,
         lTrend: "Trend", lTrendVrij: "Trend (everything off)", lComfort: "Comfort limit", lGrens: "Heating threshold", lFaded: "not in trend", lRef: "Estimate at reference",
@@ -2401,6 +2487,7 @@ function entryFormHTML(){
         </div>
         <p class="klimaat-hint">${escapeHtml(t("kFormHint"))}</p>
       </div>
+      ${weerFormHTML()}
       <label class="wide">${t("fNotitie")}<input type="text" id="fNotitie" maxlength="200" /></label>
     </div>
     <div class="entry-actions" data-submit-block>
@@ -2427,6 +2514,10 @@ function wireEntryForm(){
   // Zelf datum/tijd aangepast (bijv. een meting van eerder invoeren)? Dan niet meer automatisch bijwerken.
   ["fDatum","fTijd"].forEach(id => document.getElementById(id).addEventListener("input", () => { formTimeTouched = true; }));
   setBuitenMode(formBuitenMode, false);
+  document.querySelectorAll("[data-wgroup]").forEach(g => g.querySelectorAll("button").forEach(b => b.onclick = () => {
+    const k = g.dataset.wgroup; formWeer[k] = formWeer[k] === b.dataset.wv ? "" : b.dataset.wv;   // nog eens tikken = leeg
+    g.querySelectorAll("button").forEach(x => x.classList.toggle("on", formWeer[k] === x.dataset.wv));
+  }));
   document.querySelectorAll("[data-kgroup]").forEach(g => g.querySelectorAll("button").forEach(b => b.onclick = () => {
     formKlimaat[g.dataset.kgroup] = b.dataset.kv;
     g.querySelectorAll("button").forEach(x => x.classList.toggle("on", x === b));
@@ -2450,7 +2541,9 @@ function wireEntryForm(){
       cvTemp: formKlimaat.cv === "aan" ? parseNum(document.getElementById("fCvTemp").value) : null,
       aircoTemp: (formKlimaat.airco === "verwarmen" || formKlimaat.airco === "koelen") ? parseNum(document.getElementById("fAirTemp").value) : null,
       notitie: document.getElementById("fNotitie").value.trim(),
+      ...(!state.settings.locatie && manualWeer(formWeer) ? { weer: manualWeer(formWeer) } : {}),
     });
+    formWeer = { zon: "", wind: "", regen: "" };
     // Keuze onthouden voor de volgende meting (instellingen blijven staan, ook als het systeem uit is).
     const last = state.metingen[state.metingen.length - 1];
     state.settings.lastKlimaat = { cv: last.cv, airco: last.airco,
@@ -2545,7 +2638,7 @@ function wireTable(){
           if(inp.value === m.datum) return;
           m.datum = inp.value;
         } else m[f] = inp.value.trim ? inp.value.trim() : inp.value;
-        if(f === "datum" || f === "tijd"){ delete m.buiten24; refreshOnlineFor(m); backfillOnline(); }
+        if(f === "datum" || f === "tijd"){ delete m.buiten24; if(!m.weer || m.weer.src !== "handmatig") delete m.weer; refreshOnlineFor(m); backfillOnline(); }
         scheduleAutoSave();
         renderAll({ keepFocus: { id: m.id, f } });
       });
@@ -3163,7 +3256,7 @@ function drawTimeChart(el, listAll, fast){
     if(bx < m.l || bx > m.l + iw){ tip.hide(); return; }
     xh.setAttribute("x1", bx); xh.setAttribute("x2", bx); xh.setAttribute("opacity", "0.5");
     let html;
-    if(!daily) html = `<div class="tt-head">${escapeHtml(fmtDate(best.m.datum, true))}${best.m.tijd ? " · " + escapeHtml(best.m.tijd) : ""}</div>${ttRow(cIn, t("lBinnen"), fmtT(best.bin))}${ttRow(cOut, t("lBuiten"), fmtT(best.bu))}<div class="tt-row"><span>${t("thVerschil")}</span><span class="tt-val">${fmtDelta(best.d)}</span></div>`;
+    if(!daily) html = `<div class="tt-head">${escapeHtml(fmtDate(best.m.datum, true))}${best.m.tijd ? " · " + escapeHtml(best.m.tijd) : ""}</div>${ttRow(cIn, t("lBinnen"), fmtT(best.bin))}${ttRow(cOut, t("lBuiten"), fmtT(best.bu))}<div class="tt-row"><span>${t("thVerschil")}</span><span class="tt-val">${fmtDelta(best.d)}</span></div>${wxTipRows(best.m, cIn)}`;
     else html = `<div class="tt-head">${escapeHtml(fmtDate(best.datum, true))} · ${escapeHtml(t("tpN")(best.n))}</div>${ttRow(cIn, t("tlInAvg"), fmtT(best.bin))}${ttRow(cOut, t("tlOutAvg"), fmtT(best.bu))}${ttRow(cOut, t("tlOutBand"), fmtT(best.buMin) + " – " + fmtT(best.buMax))}<div class="tt-row"><span>${t("thVerschil")}</span><span class="tt-val">${fmtDelta(best.d)}</span></div>`;
     const yTop = diff ? Y(daily ? best.dMax : best.d) : Y(Math.max(best.bin, daily ? best.buMax : best.bu));
     tip.show(html, bx / sc, yTop / sc);
@@ -3220,7 +3313,7 @@ function drawScatterChart(el, listAll){
   }).join("");
   const key = (sw, l) => `<span class="key">${sw}${escapeHtml(l)}</span>`;
   const legend = key(`<i class="sw dot" style="background:${col}"></i>`, `${t("lAlle")} (${list.length})`)
-    + (an.r ? key(`<i class="sw dashc" style="border-color:${col}"></i>`, an.vrijOnly ? C.lTrendVrij : C.lTrend) : "")
+    + (an.r ? key(`<i class="sw dashc" style="border-color:${col}"></i>`, (an.vrijOnly ? C.lTrendVrij : C.lTrend) + (an.dpCorr ? " · " + C.lDpCorr : "")) : "")
     + (an.r && list.some(p => !isRegulated(p) && !inTrend.has(p.id)) ? key(`<i class="sw dot" style="background:${col}; opacity:.3"></i>`, C.lFaded) : "")
     + (showComfort ? key(`<i class="sw dashc" style="border-color:var(--text-soft); border-top-style:dotted"></i>`, C.lComfort) : "")
     + (an.grens !== undefined ? key(`<i class="sw dashc" style="border-color:${cGrens}"></i>`, C.lGrens) : "")
@@ -3273,17 +3366,100 @@ function conBox(status, head, paras, facts, conf, extraCls){
   return `<div class="conclusion ${status}${extraCls ? " " + extraCls : ""}"><div class="con-head"><span class="con-icon" aria-hidden="true">${icon}</span>${escapeHtml(head)}</div>${(paras || []).filter(Boolean).map(p => `<p>${escapeHtml(p)}</p>`).join("")}${facts && facts.length ? `<div class="con-facts">${facts.map(([l, v]) => `<div><span class="l">${escapeHtml(l)}</span><span class="v">${escapeHtml(v)}</span></div>`).join("")}</div>` : ""}${conf ? `<div class="con-conf">${t("conConfidence")}: <strong>${t("conf_" + conf.level)}</strong>${conf.text ? " · " + escapeHtml(conf.text) : ""}</div>` : ""}</div>`;
 }
 
-/* --- Binnen t.o.v. buiten --- */
+/* --- Binnen t.o.v. buiten ---
+   Correctie voor het tijdstip van meten: binnen = a + b·buiten + verschuiving per dagdeel. De helling
+   b komt uit de variatie bínnen elk dagdeel (ochtend vergeleken met ochtend enz.), zodat het dagritme
+   (koude ochtend, zonnige middag) niet als "weer-effect" meetelt. a is het daggemiddelde (elk dagdeel
+   even zwaar, ongeacht hoe vaak je dan meet). Alleen als er ≥ 2 dagdelen met ≥ 2 metingen zijn en er
+   binnen de dagdelen genoeg spreiding in buitentemperatuur is (sd ≥ 1 °C); anders gewone regressie. */
+function linRegDp(points){
+  const r0 = linReg(points); if(!r0) return null;
+  const groups = {}; points.forEach(p => { if(p.dp) (groups[p.dp] = groups[p.dp] || []).push(p); });
+  const g2 = Object.keys(groups).filter(k => groups[k].length >= 2);
+  if(g2.length < 2) return r0;
+  let sxx = 0, sxy = 0, n = 0; const mxs = {}, mys = {};
+  g2.forEach(k => { const a = groups[k], mx = avg(a.map(p => p.x)), my = avg(a.map(p => p.y)); mxs[k] = mx; mys[k] = my; a.forEach(p => { sxx += (p.x - mx) ** 2; sxy += (p.x - mx) * (p.y - my); n++; }); });
+  if(n < 4 || sxx / n < 1) return Object.assign(r0, { dpSkipped: true });
+  const b = sxy / sxx, lv = k => mys[k] - b * mxs[k], a = avg(g2.map(lv));
+  const off = {}; g2.forEach(k => { off[k] = lv(k) - a; });
+  const used = points.filter(p => off[p.dp] !== undefined), xs = used.map(p => p.x);
+  const sse = used.reduce((acc, p) => acc + (p.y - (a + b * p.x + off[p.dp])) ** 2, 0);
+  const sres = Math.sqrt(sse / Math.max(1, used.length - 1 - g2.length));
+  return { a, b, n: used.length, mx: avg(xs), sxx, sres, minX: Math.min(...xs), maxX: Math.max(...xs), spread: Math.sqrt(sxx / used.length), off, dpCorr: true };
+}
+/* Verwachte binnentemperatuur voor een meting volgens de lijn (incl. dagdeel-verschuiving). */
+function fitPred(f, m){
+  const r = f.r, w = wxOf(m);
+  let v = r.a + r.b * xOf(m, f.basis) + ((r.off && r.off[dagdeelOf(m.tijd)]) || 0);
+  if(r.weather && w){ if(r.weather.zon !== null && numOrNull(w.zon) !== null) v += r.weather.zon * w.zon / 100; if(r.weather.wind !== null && numOrNull(w.wind) !== null) v += r.weather.wind * (w.wind - r.weather.windRef) / 10; }
+  return v;
+}
+/* Kleinste kwadraten voor meerdere variabelen (Gauss-eliminatie met pivot). */
+function lstsq(X, y){
+  const k = X[0].length, A = Array.from({ length: k }, () => Array(k + 1).fill(0));
+  X.forEach((row, i) => { for(let p = 0; p < k; p++){ A[p][k] += row[p] * y[i]; for(let q = 0; q < k; q++) A[p][q] += row[p] * row[q]; } });
+  for(let c = 0; c < k; c++){
+    let piv = c; for(let r = c + 1; r < k; r++) if(Math.abs(A[r][c]) > Math.abs(A[piv][c])) piv = r;
+    if(Math.abs(A[piv][c]) < 1e-9) return null;
+    [A[c], A[piv]] = [A[piv], A[c]];
+    for(let r = 0; r < k; r++){ if(r === c) continue; const f = A[r][c] / A[c][c]; for(let q = c; q <= k; q++) A[r][q] -= f * A[c][q]; }
+  }
+  return A.map((row, i) => row[k] / row[i]);
+}
+/* Trendlijn mét zon en wind (en dagdeel): binnen = a + b·buiten + dagdeel + c·zon + d·wind.
+   Alleen als ≥ 10 metingen weerdata hebben (≥ 70 % van de gebruikte), met genoeg variatie
+   (sd zon ≥ 60 W/m², sd wind ≥ 5 km/h) en ruim meer metingen dan onbekenden. a geldt voor
+   "geen zon, gemiddelde wind" — de situatie waarin je moet stoken. */
+function fitWeather(use, basis){
+  const wx = use.filter(m => { const w = wxOf(m); return w && numOrNull(w.zon) !== null && numOrNull(w.wind) !== null && xOf(m, basis) !== null; });
+  if(wx.length < 10 || wx.length < 0.7 * use.length) return null;
+  const sd = a => { const mu = avg(a); return Math.sqrt(avg(a.map(v => (v - mu) ** 2))); };
+  const zs = wx.map(m => m.weer.zon), ws = wx.map(m => m.weer.wind);
+  const useZ = sd(zs) >= 60, useW = sd(ws) >= 5; if(!useZ && !useW) return null;
+  const cnt = {}; wx.forEach(m => { const k = dagdeelOf(m.tijd); if(k) cnt[k] = (cnt[k] || 0) + 1; });
+  const dps = DAGDELEN.filter(k => (cnt[k] || 0) >= 2);
+  const rows = dps.length >= 2 ? wx.filter(m => dps.includes(dagdeelOf(m.tijd))) : wx;
+  const cols = m => { const dp = dagdeelOf(m.tijd), r = [1, xOf(m, basis)]; if(dps.length >= 2) dps.slice(1).forEach(k => r.push(dp === k ? 1 : 0)); if(useZ) r.push(m.weer.zon / 100); if(useW) r.push(m.weer.wind / 10); return r; };
+  const X = rows.map(cols), y = rows.map(m => m.binnen), k = X[0].length;
+  if(rows.length < k + 6) return null;
+  const beta = lstsq(X, y); if(!beta || beta.some(v => !isFinite(v))) return null;
+  const b = beta[1]; if(!(b > -0.2 && b < 1.5)) return null;
+  const eff = {}; if(dps.length >= 2){ eff[dps[0]] = 0; dps.slice(1).forEach((kk, i) => { eff[kk] = beta[2 + i]; }); }
+  let idx = 2 + (dps.length >= 2 ? dps.length - 1 : 0);
+  const cz = useZ ? beta[idx++] : null, cw = useW ? beta[idx++] : null, windRef = median(ws);
+  const effAvg = dps.length >= 2 ? avg(Object.values(eff)) : 0;
+  const a = beta[0] + effAvg;
+  const off = dps.length >= 2 ? Object.fromEntries(Object.entries(eff).map(([kk, v]) => [kk, v - effAvg])) : null;
+  // beta[0] hoort bij wind = 0; omrekenen naar gemiddelde wind
+  const aW = a + (cw !== null ? cw * windRef / 10 : 0);
+  const pred = m => aW + b * xOf(m, basis) + ((off && off[dagdeelOf(m.tijd)]) || 0) + (cz !== null ? cz * m.weer.zon / 100 : 0) + (cw !== null ? cw * (m.weer.wind - windRef) / 10 : 0);
+  const sse = rows.reduce((acc, m) => acc + (m.binnen - pred(m)) ** 2, 0);
+  const xs = rows.map(m => xOf(m, basis)), mx = avg(xs), sxx = xs.reduce((acc, v) => acc + (v - mx) ** 2, 0);
+  if(sxx < 1e-9) return null;
+  return { a: aW, b, n: rows.length, mx, sxx, sres: Math.sqrt(sse / Math.max(1, rows.length - k)), minX: Math.min(...xs), maxX: Math.max(...xs), spread: Math.sqrt(sxx / rows.length), off, dpCorr: !!off, weather: { zon: cz, wind: cw, windRef } };
+}
+/* Hoe sterk vallen koud/warm samen met het tijdstip? η² = deel van de spreiding in buitentemperatuur
+   dat door het dagdeel verklaard wordt. */
+function dpSkew(list, basis){
+  const g = {}; list.forEach(m => { const k = dagdeelOf(m.tijd); if(k) (g[k] = g[k] || []).push(xOf(m, basis)); });
+  const keys = Object.keys(g); if(keys.length < 2) return null;
+  const all = [].concat(...keys.map(k => g[k])), mu = avg(all), sst = all.reduce((a, v) => a + (v - mu) ** 2, 0);
+  if(sst < 1e-9) return null;
+  const ssb = keys.reduce((a, k) => a + g[k].length * (avg(g[k]) - mu) ** 2, 0);
+  const means = keys.map(k => ({ k, m: avg(g[k]) })).sort((a, b) => a.m - b.m);
+  return { eta: ssb / sst, cold: means[0].k, warm: means[means.length - 1].k };
+}
 function houseFit(listIn, basis, kf){
   kf = kf || cfOf("scatter").kf;
   const res = { status: "insufficient", basis, excluded: listIn.filter(isRegulated).length, n: 0, range: 0 };
   if(kf === "verwarmen" || kf === "koelen"){ res.status = "heat"; return res; }
   const cand = listIn.filter(p => !isRegulated(p) && xOf(p, basis) !== null);
   const vrij = cand.filter(p => klimaatOf(p).mode === "vrij");
-  const pts = arr => arr.map(p => ({ x: xOf(p, basis), y: p.binnen }));
+  const pts = arr => arr.map(p => ({ x: xOf(p, basis), y: p.binnen, dp: dagdeelOf(p.tijd) }));
   const ok = r => r && r.n >= 4 && (r.maxX - r.minX) >= 4;
-  let use = vrij, r = linReg(pts(vrij));
-  if(!ok(r)){ use = cand; r = linReg(pts(cand)); }
+  let use = vrij, r = linRegDp(pts(vrij));
+  if(!ok(r)){ use = cand; r = linRegDp(pts(cand)); }
+  if(ok(r)){ const wr = fitWeather(use, basis); if(wr && ok(wr)) r = wr; }
   res.use = use; res.n = use.length; res.range = r ? r.maxX - r.minX : (use.length ? 0 : 0);
   res.vrijOnly = use.length > 0 && use.every(p => klimaatOf(p).mode === "vrij");
   if(!ok(r)) return res;
@@ -3296,6 +3472,10 @@ function houseFit(listIn, basis, kf){
   else res.status = res.pred >= comfort ? "good" : res.pred >= comfort - 2 ? "neutral" : "bad";
   let lvl = (r.n >= 12 && res.range >= 8) ? 2 : (r.n >= 6 && res.range >= 5) ? 1 : 0;
   if(res.extrap || res.grensExtrap || res.heatShare >= 0.3) lvl = Math.max(0, lvl - 1);
+  res.dpCorr = !!r.dpCorr; res.weatherCorr = !!r.weather;
+  res.hasWeather = use.some(m => wxOf(m));
+  const sk = dpSkew(use, basis);
+  if(sk && sk.eta >= 0.5 && !res.dpCorr){ res.skew = sk; lvl = Math.max(0, lvl - 1); }
   res.conf = ["low", "medium", "high"][lvl];
   return res;
 }
@@ -3308,9 +3488,13 @@ function fitConclusionHTML(f, compact){
   paras.push(C.slope(fmtT(Math.max(0, f.b))));
   if(f.grens !== undefined) paras.push(C.grens(fmtT(f.grens, 0), fmtT(f.comfort, 0)) + (f.grensExtrap ? " " + C.extrap : ""));
   else paras.push(f.pred >= f.comfort ? C.flatOk(fmtT(f.comfort, 0)) : C.flatLow(fmtT(f.comfort, 0)));
+  if(f.weatherCorr){ const W = t("wc"), wr = f.r.weather; paras.push(W.corr(wr.wind !== null ? Math.round(wr.windRef) + " km/h" : "—")); }
+  if(f.dpCorr) paras.push(C.dpCorr(DAGDELEN.filter(k => f.r.off[k] !== undefined).map(k => `${dpLabel(k).toLowerCase()} ${fmtDelta(f.r.off[k])}`).join(", ")));
+  if(f.skew) paras.push(C.skew(dpLabel(f.skew.cold).toLowerCase(), dpLabel(f.skew.warm).toLowerCase()));
   if(f.vrijOnly) paras.push(C.vrijOnly); else if(f.heatShare >= 0.15) paras.push(C.heatShare(Math.round(f.heatShare * 100)));
   if(f.excluded) paras.push(C.excluded(f.excluded));
   const facts = [[C.fPred(fmtT(f.ref, 0)), "~" + fmtT(f.pred)], [C.fGrens, f.grens !== undefined ? "~" + fmtT(f.grens, 0) : "—"], [C.fSlope, fmtT(Math.max(0, f.b))], [C.fN, String(f.n)]];
+  if(f.weatherCorr){ const W = t("wc"), wr = f.r.weather; if(wr.zon !== null) facts.push([W.fZon, fmtDelta(wr.zon)]); if(wr.wind !== null) facts.push([W.fWind, fmtDelta(wr.wind)]); }
   return conBox(f.status, C["head_" + f.status], paras, facts, { level: f.conf }, compact ? "compact" : "");
 }
 function perDagdeelHTML(basis){
@@ -3334,6 +3518,12 @@ function perDagdeelHTML(basis){
    klimaatgebruik, uitschieters t.o.v. de trendlijn van die ruimte, en wat er nodig is voor meer. */
 const conMoreOpen = { time: true };
 document.addEventListener("toggle", e => { const d = e.target; if(d && d.dataset && d.dataset.conmore) conMoreOpen[d.dataset.conmore] = d.open; }, true);
+/* Valt het hele interval in de nacht/avond (18:00–09:00)? Dan geen zon en weinig koken. */
+function nightInterval(ta, tb){
+  const day = ts => { const d = new Date(ts), hf = d.getHours() + d.getMinutes() / 60; return hf > 9 && hf < 18; };
+  for(let ts = ta; ts < tb; ts += 15 * 60000) if(day(ts)) return false;
+  return !day(tb);
+}
 function pearson(xs, ys){
   const n = xs.length; if(n < 3) return null;
   const mx = avg(xs), my = avg(ys); let sxy = 0, sxx = 0, syy = 0;
@@ -3344,6 +3534,14 @@ function hourlyAt(hourly, ts){
   if(!hourly || hourly.length < 2 || ts < hourly[0].ts - 1.5*HOUR || ts > hourly[hourly.length-1].ts + 1.5*HOUR) return null;
   const j = hourly.findIndex(h => h.ts >= ts); if(j < 0) return hourly[hourly.length-1].v; if(j === 0) return hourly[0].v;
   const a = hourly[j-1], b = hourly[j]; return a.v + (b.v - a.v) * (ts - a.ts) / (b.ts - a.ts);
+}
+/* Uitschieter beschrijven, met het weer als verklaring als dat er is. */
+function oddTxt(o, D){
+  const W = t("wc"), w = wxOf(o.m), when = whenTxt(o.m), v = fmtT(o.m.binnen), e = fmtT(Math.abs(o.e));
+  if(o.e > 0 && w && numOrNull(w.zon) !== null && w.zon >= 250) return W.oddSun(when, v, e, Math.round(w.zon));
+  if(o.e < 0 && w && numOrNull(w.wind) !== null && w.wind >= 30) return W.oddWind(when, v, e, Math.round(w.wind));
+  if(o.e < 0 && w && numOrNull(w.regen) !== null && w.regen >= 0.5) return W.oddRain(when, v, e);
+  return (o.e > 0 ? D.oddWarm : D.oddCold)(when, v, e);
 }
 function whenTxt(m){ return `${fmtDate(m.datum)}${m.tijd ? " " + m.tijd : ""}${m.ruimte && ruimteList().length > 1 ? " · " + m.ruimte : ""}`; }
 function timeConclusionHTML(list, w, hourly){
@@ -3410,9 +3608,9 @@ function timeConclusionHTML(list, w, hourly){
   const cool = [], heat = [];
   pairs.forEach(([a, b]) => {
     const dtH = (tsOf(b) - tsOf(a)) / HOUR, ma = klimaatOf(a).mode, mb = klimaatOf(b).mode;
-    if(ma === "vrij" && mb === "vrij" && dtH >= 1 && dtH <= 16 && a.binnen - b.binnen >= 0.2){
+    if(ma === "vrij" && mb === "vrij" && dtH >= 1 && dtH <= 16 && a.binnen - b.binnen >= 0.2 && nightInterval(tsOf(a), tsOf(b))){
       const To = outBetween(a, b), d0 = a.binnen - To, d1 = b.binnen - To;
-      if(d0 >= 3 && d1 > 0.5){ const tau = dtH / Math.log(d0 / d1); if(tau > 5 && tau < 2000) cool.push({ rate: (a.binnen - b.binnen) / dtH, tau }); }
+      if(d0 >= 3 && d1 > 0.5){ const tau = dtH / Math.log(d0 / d1); const wa = wxOf(a), wb = wxOf(b), wv = [wa && wa.wind, wb && wb.wind].filter(v => numOrNull(v) !== null); if(tau > 5 && tau < 2000) cool.push({ rate: (a.binnen - b.binnen) / dtH, tau, wind: wv.length ? avg(wv) : null }); }
     }
     if(mb === "verwarmen" && dtH >= 0.25 && dtH <= 12 && b.binnen - a.binnen >= 0.2) heat.push((b.binnen - a.binnen) / dtH);
   });
@@ -3425,6 +3623,23 @@ function timeConclusionHTML(list, w, hourly){
   if(heat.length){ coolItems.push(D.heatPairs(heat.length, fmtRate(median(heat)))); facts.push([D.fHeatRate, fmtRate(median(heat))]); }
   else if(list.some(m => klimaatOf(m).mode === "verwarmen")) needs.push(D.needHeat);
   sec(D.sCool, coolItems);
+
+  // Weer in deze periode
+  {
+    const W = t("wc"), items = [], H = wxCached(w.start, w.end);
+    if(H.length >= 6){
+      const z = H.map(h => numOrNull(h.zon)).filter(v => v !== null), wi = H.map(h => numOrNull(h.wind)).filter(v => v !== null), rg = H.map(h => numOrNull(h.regen)).filter(v => v !== null);
+      const nights = {}; H.forEach(h => { const d = new Date(h.ts), hr = d.getHours(); if(hr <= 5 && numOrNull(h.wolk) !== null) (nights[tsToISO(h.ts)] = nights[tsToISO(h.ts)] || []).push(h.wolk); });
+      const clear = Object.values(nights).filter(a => avg(a) <= 30).length;
+      if(z.length && wi.length) items.push(W.tSum(z.filter(v => v > 200).length, Math.round(Math.max(...z)), Math.round(avg(wi)), Math.round(Math.max(...wi)), (Math.round(rg.reduce((a, b) => a + b, 0) * 10) / 10).toLocaleString(state.lang === "en" ? "en-GB" : "nl-NL"), clear));
+    } else {
+      const wl = list.filter(m => wxOf(m) && numOrNull(m.weer.wind) !== null);
+      if(wl.length >= 3) items.push(W.tSumR(Math.round(avg(wl.map(m => numOrNull(m.weer.zon) ?? 0))), Math.round(avg(wl.map(m => m.weer.wind))), wl.length));
+    }
+    const calm = cool.filter(c => c.wind !== null && c.wind < 15).map(c => c.tau), windy = cool.filter(c => c.wind !== null && c.wind >= 20).map(c => c.tau);
+    if(calm.length >= 2 && windy.length >= 2) items.push(W.tNight(hoursTxt(median(calm)), hoursTxt(median(windy))));
+    sec(W.tSec, items);
+  }
 
   // 3. Comfort (tijdgewogen)
   let cov = 0, below = 0, above = 0;
@@ -3450,9 +3665,14 @@ function timeConclusionHTML(list, w, hourly){
   if(spanD >= 1.5 && list.length >= 6){
     const t0 = tsOf(list[0]), X = list.map(m => (tsOf(m) - t0) / DAY);
     const sl = ys => { const r = linReg(X.map((x, i) => ({ x, y: ys[i] }))); return r ? r.b : 0; };
-    const bi = sl(list.map(m => m.binnen)), bo = sl(list.map(m => m.buiten)), bd = sl(diffs);
+    // Per dagdeel eerst het gemiddelde eraf: anders geeft "eerst vooral 's ochtends, later vooral
+    // 's avonds gemeten" een nep-trend.
+    const dpK = list.map(m => dagdeelOf(m.tijd)), dpSet = [...new Set(dpK.filter(Boolean))];
+    const corrT = dpSet.length >= 2 && dpSet.every(k => dpK.filter(x => x === k).length >= 2);
+    const deDp = ys => { if(!corrT) return ys; const mu = {}; dpSet.forEach(k => { mu[k] = avg(ys.filter((_, i) => dpK[i] === k)); }); return ys.map((v, i) => mu[dpK[i]] !== undefined ? v - mu[dpK[i]] : v); };
+    const bi = sl(deDp(list.map(m => m.binnen))), bo = sl(deDp(list.map(m => m.buiten))), bd = sl(deDp(diffs));
     const fd = v => Math.abs(v) < 0.05 ? fmtT(0) : fmtDelta(v);
-    const items = [D.trend(fd(bi), fd(bo), fd(bd))];
+    const items = [D.trend(fd(bi), fd(bo), fd(bd)), corrT ? D.trendCorr : ""];
     if(bo < -0.2 && bi > bo / 2) items.push(D.trendHold); else if(bo < -0.2) items.push(D.trendFollow); else if(Math.abs(bi) < 0.1 && Math.abs(bo) < 0.2) items.push(D.trendStable);
     sec(D.sTrend, items);
   }
@@ -3480,10 +3700,10 @@ function timeConclusionHTML(list, w, hourly){
     const f = houseFit(state.metingen.filter(m => (m.ruimte || ROOM_DEFAULT) === room), "nu", "vrij");
     if(!f.r || !f.vrijOnly) return;
     const thr = Math.max(1.0, 2.5 * f.r.sres);
-    byRoom[room].filter(m => klimaatOf(m).mode === "vrij").forEach(m => { const e = m.binnen - (f.r.a + f.r.b * m.buiten); if(Math.abs(e) >= thr) odd.push({ m, e }); });
+    byRoom[room].filter(m => klimaatOf(m).mode === "vrij").forEach(m => { const e = m.binnen - fitPred(f, m); if(Math.abs(e) >= thr) odd.push({ m, e }); });
   });
   odd.sort((x, y) => Math.abs(y.e) - Math.abs(x.e));
-  if(odd.length) sec(D.sOdd, [`<ul>${odd.slice(0, 4).map(o => `<li>${escapeHtml((o.e > 0 ? D.oddWarm : D.oddCold)(whenTxt(o.m), fmtT(o.m.binnen), fmtT(Math.abs(o.e))))}</li>`).join("")}</ul>`]);
+  if(odd.length) sec(D.sOdd, [`<ul>${odd.slice(0, 4).map(o => `<li>${escapeHtml(oddTxt(o, D))}</li>`).join("")}</ul>`]);
   else if(Object.keys(byRoom).some(r => houseFit(state.metingen.filter(m => (m.ruimte || ROOM_DEFAULT) === r), "nu", "vrij").r)) sec(D.sOdd, [D.oddNone]);
 
   const nd = [...new Set(needs.filter(Boolean))];
@@ -3509,13 +3729,13 @@ function moreHTML(key, secs, needs){
 function attachMore(box, more){ return more ? box.replace(/<\/div>$/, more + "</div>") : box; }
 function rTxt(r){ return r.toLocaleString(state.lang === "en" ? "en-GB" : "nl-NL", { maximumFractionDigits: 2 }); }
 function num2(v){ return v.toLocaleString(state.lang === "en" ? "en-GB" : "nl-NL", { maximumFractionDigits: 2, minimumFractionDigits: 2 }); }
-function r2Of(r, pts){ const my = avg(pts.map(p => p.y)), sst = pts.reduce((a, p) => a + (p.y - my) ** 2, 0); const sse = pts.reduce((a, p) => a + (p.y - (r.a + r.b * p.x)) ** 2, 0); return sst > 1e-9 ? Math.max(0, 1 - sse / sst) : 0; }
+function r2Of(r, pts){ const my = avg(pts.map(p => p.y)), sst = pts.reduce((a, p) => a + (p.y - my) ** 2, 0); const sse = pts.reduce((a, p) => a + (p.y - (r.a + r.b * p.x + ((r.off && p.dp && r.off[p.dp]) || 0))) ** 2, 0); return sst > 1e-9 ? Math.max(0, 1 - sse / sst) : 0; }
 /* τ uit paren opeenvolgende metingen met alles uit (zelfde ruimte), zoals bij het temperatuurverloop. */
 function pairTaus(list){
   const by = {}; sortedMetingen(list).forEach(m => { const r = m.ruimte || ROOM_DEFAULT; (by[r] = by[r] || []).push(m); });
   const out = [];
   Object.values(by).forEach(arr => { for(let i = 1; i < arr.length; i++){ const a = arr[i-1], b = arr[i], dtH = (tsOf(b) - tsOf(a)) / HOUR;
-    if(klimaatOf(a).mode !== "vrij" || klimaatOf(b).mode !== "vrij" || dtH < 1 || dtH > 16 || a.binnen - b.binnen < 0.2) continue;
+    if(klimaatOf(a).mode !== "vrij" || klimaatOf(b).mode !== "vrij" || dtH < 1 || dtH > 16 || a.binnen - b.binnen < 0.2 || !nightInterval(tsOf(a), tsOf(b))) continue;
     const To = (a.buiten + b.buiten) / 2, d0 = a.binnen - To, d1 = b.binnen - To;
     if(d0 >= 3 && d1 > 0.5){ const tau = dtH / Math.log(d0 / d1); if(tau > 5 && tau < 2000) out.push(tau); } } });
   return out;
@@ -3525,8 +3745,9 @@ function pairTaus(list){
 function fitDetailsHTML(f, listAll, basis){
   if(!f.r) return moreHTML("scatter", [], f.status === "insufficient" ? [t("dc").fit.needMore] : []);
   const D = t("dc").fit, r = f.r, secs = [], needs = [];
-  const pts = f.use.map(p => ({ x: xOf(p, basis), y: p.binnen })), r2 = r2Of(r, pts);
-  const resid = f.use.map(p => p.binnen - (r.a + r.b * xOf(p, basis))), sres = Math.sqrt(avg(resid.map(e => e * e)));
+  const ys = f.use.map(p => p.binnen), myy = avg(ys), sstY = ys.reduce((a, v) => a + (v - myy) ** 2, 0);
+  const r2 = sstY > 1e-9 ? Math.max(0, 1 - f.use.reduce((a, p) => a + (p.binnen - fitPred(f, p)) ** 2, 0) / sstY) : 0;
+  const resid = f.use.map(p => p.binnen - fitPred(f, p)), sres = Math.sqrt(avg(resid.map(e => e * e)));
   secs.push(secHTML(D.sTrend, [D.trend(fmtT(r.a), num2(r.b), f.vrijOnly ? D.srcVrij : D.srcAll, r.n, fmtT(r.minX), fmtT(r.maxX)), D.fitQ(Math.round(r2 * 100), fmtT(sres)), r2 < 0.4 ? D.fitQLow : ""]));
   const xs = [0, 5, 10, 15, 20].filter(x => x >= r.minX - 8 && x <= r.maxX + 8);
   secs.push(secHTML(D.sPred, [D.preds(xs.map(x => `${fmtT(x, 0)} → ${fmtT(r.a + r.b * x)} ± ${fmtT(Math.max(MEAS_UNCERTAINTY, 2 * predSE(r, x)))}${x < r.minX - 2 || x > r.maxX + 2 ? D.extrap : ""}`).join(" · "))]));
@@ -3546,22 +3767,30 @@ function fitDetailsHTML(f, listAll, basis){
   // nu vs 24 u
   const both = f.use.filter(has24);
   if(both.length >= 4){
-    const rn = linReg(both.map(p => ({ x: p.buiten, y: p.binnen }))), r24 = linReg(both.map(p => ({ x: p.buiten24, y: p.binnen })));
-    if(rn && r24){ const a = r2Of(rn, both.map(p => ({ x: p.buiten, y: p.binnen }))), b = r2Of(r24, both.map(p => ({ x: p.buiten24, y: p.binnen })));
+    const pn = both.map(p => ({ x: p.buiten, y: p.binnen, dp: dagdeelOf(p.tijd) })), p24 = both.map(p => ({ x: p.buiten24, y: p.binnen, dp: dagdeelOf(p.tijd) }));
+    const rn = linRegDp(pn), r24 = linRegDp(p24);
+    if(rn && r24){ const a = r2Of(rn, pn), b = r2Of(r24, p24);
       secs.push(secHTML(D.sBasis, [D.basis(Math.round(a * 100), Math.round(b * 100), b - a > 0.1 ? D.basis24 : a - b > 0.1 ? D.basisNu : D.basisSame)])); }
   } else if(!state.settings.locatie) needs.push(D.basisNeed);
   // verwarmen t.o.v. de lijn zonder verwarming
   if(f.vrijOnly){
     const heat = listAll.filter(m => !isRegulated(m) && klimaatOf(m).mode === "verwarmen" && xOf(m, basis) !== null);
     const items = [];
-    if(heat.length){ const d = avg(heat.map(m => m.binnen - (r.a + r.b * xOf(m, basis)))); items.push(D.heat(`${fmtT(Math.abs(d))} ${d >= 0 ? t("tc").warmer : t("tc").colder}`, heat.length)); }
+    if(heat.length){ const d = avg(heat.map(m => m.binnen - fitPred(f, m))); items.push(D.heat(`${fmtT(Math.abs(d))} ${d >= 0 ? t("tc").warmer : t("tc").colder}`, heat.length)); }
     if(f.excluded) items.push(D.heatReg(f.excluded));
     secs.push(secHTML(D.sHeat, items));
   } else needs.push(D.needVrij);
   // uitschieters
   const thr = Math.max(1, 2.5 * Math.max(r.sres, 0.2));
-  const odd = f.use.map(m => ({ m, e: m.binnen - (r.a + r.b * xOf(m, basis)) })).filter(o => Math.abs(o.e) >= thr).sort((a, b) => Math.abs(b.e) - Math.abs(a.e)).slice(0, 4);
-  secs.push(secHTML(D.sOdd, [odd.length ? listHTML(odd.map(o => (o.e > 0 ? D.oddWarm : D.oddCold)(whenTxt(o.m), fmtT(o.m.binnen), fmtT(Math.abs(o.e))))) : D.oddNone]));
+  const odd = f.use.map(m => ({ m, e: m.binnen - fitPred(f, m) })).filter(o => Math.abs(o.e) >= thr).sort((a, b) => Math.abs(b.e) - Math.abs(a.e)).slice(0, 4);
+  secs.push(secHTML(D.sOdd, [odd.length ? listHTML(odd.map(o => oddTxt(o, D))) : D.oddNone]));
+  const W = t("wc");
+  if(r.weather){
+    const items = [];
+    if(r.weather.zon !== null) items.push(Math.abs(r.weather.zon) >= 0.05 ? W.zon(fmtT(Math.abs(r.weather.zon)), fmtT(Math.abs(r.weather.zon) * 6, 0)) : W.zonNone);
+    if(r.weather.wind !== null){ const d = -r.weather.wind; items.push(d >= 0.05 ? W.wind(fmtT(d), d < 0.1 ? W.wGood : d < 0.3 ? W.wMid : W.wBad) : W.windNone); }
+    secs.push(secHTML(W.sWeather, items));
+  } else needs.push(f.hasWeather ? W.needVar : W.needLoc);
   if(f.conf !== "high") needs.push(D.needMore);
   return moreHTML("scatter", secs, needs);
 }
@@ -3620,6 +3849,11 @@ function koelDetailsHTML(KT){
     secs.push(secHTML(D.sReach, items));
   } else needs.push(D.needSp);
   const rooms = [...new Set(KT.map(k => k.a.ruimte || ROOM_DEFAULT))];
+  {
+    const W = t("wc"), zonOf = k => { const v = [wxOf(k.a), wxOf(k.b)].filter(Boolean).map(w => numOrNull(w.zon)).filter(x => x !== null); return v.length ? avg(v) : null; };
+    const sunny = KT.filter(k => zonOf(k) !== null && zonOf(k) > 300), dark = KT.filter(k => zonOf(k) !== null && zonOf(k) < 100);
+    if(sunny.length && dark.length) secs.push(secHTML(W.kSec, [W.kSun(fmtRate(avg(sunny.map(k => k.rate))), fmtRate(avg(dark.map(k => k.rate))))]));
+  }
   if(rooms.length > 1) secs.push(secHTML(D.sRooms, [listHTML(rooms.map(rm => { const a = KT.filter(k => (k.a.ruimte || ROOM_DEFAULT) === rm); return D.room(rm, a.length, fmtRate(avg(a.map(k => k.rate)))); }))]));
   return moreHTML("koel", secs, needs);
 }
@@ -3646,6 +3880,20 @@ function coolDetailsHTML(pts){
   const excl = pts.length - use.length;
   if(excl) secs.push(secHTML(D.sExcl, [D.excl(pts.filter(p => p.c.heated).length, pts.filter(p => p.c.rise).length, pts.filter(p => p.c.rough).length, pts.filter(p => p.c.small).length)]));
   if(rooms.length > 1) secs.push(secHTML(D.sRooms, [listHTML(rooms.map(rm => { const a = use.filter(p => (p.a.ruimte || ROOM_DEFAULT) === rm); return D.room(rm, a.length, hoursTxt(median(a.map(p => p.c.tau)))); }))]));
+  {
+    const W = t("wc"), windOf = p => { const w = wxOf(p.a); return w ? numOrNull(w.wind) : null; }, wolkOf = p => { const w = wxOf(p.a); return w ? numOrNull(w.wolk) : null; };
+    const withW = use.filter(p => windOf(p) !== null);
+    if(withW.length){
+      const items = [W.cCounts(withW.filter(p => windOf(p) < 15).length, withW.filter(p => windOf(p) >= 30).length, use.filter(p => wolkOf(p) !== null && wolkOf(p) <= 30).length, withW.length)];
+      const calm = withW.filter(p => windOf(p) < 15);
+      if(calm.length) items.push(W.cCalm(hoursTxt(median(calm.map(p => p.c.tau))), calm.length));
+      const rW = withW.length >= 3 ? linReg(withW.map(p => ({ x: windOf(p), y: p.c.tau }))) : null;
+      if(rW && rW.maxX - rW.minX >= 8){ const d = -rW.b * 10, pct = Math.round(d / med * 100); items.push(W.cWind(hoursTxt(Math.abs(d)), pct, pct < 10 ? W.wGood : pct < 25 ? W.wMid : W.wBad)); }
+      else needs.push(W.cNeed);
+      if(use.some(p => wolkOf(p) !== null && wolkOf(p) <= 30)) items.push(W.cClear);
+      secs.push(secHTML(W.cSec, items));
+    } else needs.push(W.needLoc);
+  }
   if(use.length < 5) needs.push(D.needMore);
   if(use.some(p => typeof p.c.out === "number" && p.a.startBinnen - p.c.out < 8)) needs.push(D.needCold);
   return moreHTML("afkoel", secs, needs);
@@ -3663,6 +3911,8 @@ function klimConclusionHTML(S){
     else paras.push(C.need);
   }
   if(S.koelG){ paras.push(C.koel(fmtT(S.koelG.T))); facts.push([C.fKoel, "~" + fmtT(S.koelG.T)]); }
+  const dom = arr => { const c = {}; arr.forEach(x => { const k = dagdeelOf(x.m.tijd); if(k) c[k] = (c[k] || 0) + 1; }); const best = Object.entries(c).sort((a, b) => b[1] - a[1])[0]; return best && best[1] / arr.length >= 0.7 ? best[0] : null; };
+  if(S.verw.length >= 3 && S.vrij.length >= 3){ const dw = dom(S.verw), dv = dom(S.vrij); if(dw && dv && dw !== dv) paras.push(t("dc").klim.skew(dpLabel(dw).toLowerCase(), dpLabel(dv).toLowerCase())); }
   if(S.verwPct !== null){ paras.push(S.verwPct >= 70 ? C.reg(S.verwPct) : C.regBad(S.verwPct)); facts.push([C.fReg, S.verwPct + "%"]); if(S.verwPct < 70 && status === "good") status = "neutral"; }
   if(status === "insufficient" && facts.length){ status = "info"; head = C.head_info; }
   return conBox(status, head, paras, facts);
@@ -3689,12 +3939,19 @@ function koelConclusionHTML(KT){
 function coolConclusionHTML(pts){
   const C = t("con2").cool;
   if(!pts.length) return conBox("insufficient", t("conInsufficient"), [C.need]);
-  const clean = pts.filter(p => !p.c.heated && !p.c.rough && !p.c.rise && !p.c.small), use = clean.length ? clean : pts;
+  const clean = pts.filter(p => !p.c.heated && !p.c.rough && !p.c.rise && !p.c.small);
+  let use = clean.length ? clean : pts;
+  // Wind laat het huis sneller afkoelen: met ≥ 2 tests bij rustig weer telt alleen die mee.
+  const W = t("wc"), windOf = p => { const w = wxOf(p.a); return w ? numOrNull(w.wind) : null; };
+  const calmT = use.filter(p => windOf(p) !== null && windOf(p) < 15), windyN = use.filter(p => windOf(p) !== null && windOf(p) >= 30).length;
+  const calmOnly = calmT.length >= 2 && calmT.length < use.length;
+  if(calmOnly) use = calmT;
   const taus = use.map(p => p.c.tau).sort((a, b) => a - b), med = median(taus);
   const status = med >= 70 ? "good" : med >= 35 ? "neutral" : "bad", night = 10 * (1 - Math.exp(-8 / med));
   const paras = [C.body(hoursTxt(med), use.length), C.night(fmtT(night)), C.bench];
   if(use.length >= 2) paras.push(C.spread(hoursTxt(taus[0]), hoursTxt(taus[taus.length - 1])));
-  if(pts.length - use.length) paras.push(C.excluded(pts.length - use.length));
+  if(calmOnly) paras.push(W.cUseCalm); else if(windyN) paras.push(W.cWindy(windyN));
+  if(pts.length - (clean.length ? clean.length : pts.length)) paras.push(C.excluded(pts.length - clean.length));
   const facts = [[C.fTau, hoursTxt(med)], [C.fNight, "~" + fmtT(night)], [C.fN, String(use.length)]];
   return conBox(status, C["head_" + status], paras, facts, { level: use.length >= 5 ? "high" : use.length >= 3 ? "medium" : "low" });
 }
@@ -4158,6 +4415,11 @@ function exportRows(){
     [state.lang==="en" ? "Outdoor online (°C)" : "Buiten online (°C)"]: (m.buitenOnline ?? ""), [state.lang==="en" ? "Outdoor source" : "Bron buiten"]: m.buitenBron,
     [t("th24") + " (°C)"]: has24(m) ? m.buiten24 : "", [t("dpLabel")]: m.tijd ? dpLabel(dagdeelOf(m.tijd)) : "",
     [t("fRuimte")]: m.ruimte,
+    [(state.lang==="en" ? "Sun" : "Zon") + " (W/m²)"]: wxOf(m) && numOrNull(m.weer.zon) !== null ? Math.round(m.weer.zon) : "",
+    [(state.lang==="en" ? "Wind" : "Wind") + " (km/h)"]: wxOf(m) && numOrNull(m.weer.wind) !== null ? Math.round(m.weer.wind) : "",
+    [(state.lang==="en" ? "Clouds" : "Bewolking") + " (%)"]: wxOf(m) && numOrNull(m.weer.wolk) !== null ? Math.round(m.weer.wolk) : "",
+    [(state.lang==="en" ? "Rain 3 h" : "Regen 3 u") + " (mm)"]: wxOf(m) && numOrNull(m.weer.regen) !== null ? m.weer.regen : "",
+    [state.lang==="en" ? "Weather source" : "Bron weer"]: wxOf(m) ? m.weer.src : "",
     [t("kCv")]: m.cv || "", [t("kCv") + " °C"]: m.cvTemp ?? "", [t("kAirco")]: m.airco || "", [t("kAirco") + " °C"]: m.aircoTemp ?? "",
     [t("thKlimaat")]: t("kStatus_" + klimaatOf(m).mode), [state.lang==="en" ? "Thermostat" : "Thermostaat"]: klimaatOf(m).reg ? t("kReg_" + klimaatOf(m).reg) : "",
     [t("fNotitie")]: m.notitie,
@@ -4203,19 +4465,93 @@ async function fetchHourly(loc, datum){
   weatherCache[key] = pr;   // lopende aanvraag delen i.p.v. dezelfde dag twee keer op te halen
   return pr;
 }
+/* ================= WEER: ZON, WIND, BEWOLKING, REGEN =================
+   Met een locatie haalt Tembo dit online op (Open-Meteo, zelfde afgeronde coördinaten), los van de
+   keuze online/eigen meting voor de buitentemperatuur: die keuze gaat alleen over de thermometer.
+   Zonder locatie kun je het weer per meting/afkoeltest grof zelf aangeven; dat wordt omgezet naar
+   ruwe getallen zodat dezelfde analyses werken (minder nauwkeurig). */
+const weatherExtra = {};
+const WX_MAN = { zon: { geen: 0, beetje: 250, veel: 600 }, wind: { rustig: 8, matig: 22, hard: 40 }, regen: { droog: 0, regen: 1 }, wolk: { helder: 10, half: 50, bewolkt: 90 } };
+function wxKey(loc, d){ return `${loc.lat.toFixed(3)},${loc.lon.toFixed(3)},${d}`; }
+function numOrNull(v){ return typeof v === "number" && isFinite(v) ? v : null; }
+async function wxHours(loc, t0, t1){
+  const out = [], seen = new Set();
+  for(let d = tsToISO(t0 - HOUR); tsFrom(d, "00:00") <= t1; d = addDaysISO(d, 1)){
+    if(daysBetween(d, todayISO()) < -1) break;
+    await fetchHourly(loc, d);
+    const ex = weatherExtra[wxKey(loc, d)]; if(!ex) continue;
+    Object.keys(ex).forEach(k => { const ts = keyToTs(k); if(ts >= t0 - HOUR && ts <= t1 + HOUR && !seen.has(ts)){ seen.add(ts); out.push(Object.assign({ ts }, ex[k])); } });
+  }
+  return out.sort((a, b) => a.ts - b.ts);
+}
+/* Synchroon: alleen wat al opgehaald is (voor de conclusie van het temperatuurverloop). */
+function wxCached(t0, t1){
+  const loc = state.settings.locatie; if(!loc) return [];
+  const out = [];
+  for(let d = tsToISO(t0); tsFrom(d, "00:00") <= t1; d = addDaysISO(d, 1)){
+    const ex = weatherExtra[wxKey(loc, d)]; if(!ex) continue;
+    Object.keys(ex).forEach(k => { if(!k.startsWith(d)) return; const ts = keyToTs(k); if(ts >= t0 && ts <= t1 && ts <= Date.now()) out.push(Object.assign({ ts }, ex[k])); });
+  }
+  return out.sort((a, b) => a.ts - b.ts);
+}
+async function weerAt(loc, m){
+  const ts = tsOf(m), H = await wxHours(loc, ts - 3 * HOUR, ts + HOUR);
+  const at = (key, tx) => { const h = H.find(x => x.ts === tx); return h ? numOrNull(h[key]) : null; };
+  const up = Math.ceil(ts / HOUR) * HOUR, near = Math.round(ts / HOUR) * HOUR;
+  const zon = at("zon", up), wind = at("wind", near), wolk = at("wolk", near);
+  const rs = H.filter(h => h.ts > ts - 3 * HOUR && h.ts <= up).map(h => numOrNull(h.regen)).filter(v => v !== null);
+  if(zon === null && wind === null && wolk === null) return null;
+  return { src: "online", zon, wind, wolk, regen: rs.length ? Math.round(rs.reduce((a, b) => a + b, 0) * 10) / 10 : null };
+}
+async function weerOver(loc, t0, t1){
+  const H = (await wxHours(loc, t0, t1)).filter(h => h.ts > t0 && h.ts <= Math.ceil(t1 / HOUR) * HOUR);
+  const v = k => H.map(h => numOrNull(h[k])).filter(x => x !== null);
+  const w = v("wind"), c = v("wolk"), r = v("regen");
+  if(!w.length && !c.length) return null;
+  const r1 = x => Math.round(x * 10) / 10;
+  return { src: "online", wind: w.length ? r1(avg(w)) : null, windMax: w.length ? r1(Math.max(...w)) : null, wolk: c.length ? Math.round(avg(c)) : null, regen: r.length ? r1(r.reduce((a, b) => a + b, 0)) : null };
+}
+function wxOf(m){ return m && m.weer && typeof m.weer === "object" ? m.weer : null; }
+function wxTipRows(m, col){
+  const w = wxOf(m); if(!w) return "";
+  const X = t("wx"), tag = w.src === "handmatig" ? ` (${X.manualTag})` : "";
+  let h = "";
+  if(numOrNull(w.zon) !== null) h += ttRow(col, X.ttZon + tag, `${Math.round(w.zon)} W/m²`);
+  if(numOrNull(w.wind) !== null) h += ttRow(col, X.ttWind, `${Math.round(w.wind)} km/h`);
+  if(numOrNull(w.wolk) !== null) h += ttRow(col, X.ttWolk, `${Math.round(w.wolk)}%`);
+  if(numOrNull(w.regen) !== null && w.regen > 0) h += ttRow(col, X.ttRegen, `${w.regen} mm`);
+  return h;
+}
+let formWeer = { zon: "", wind: "", regen: "" };
+function weerFormHTML(){
+  const X = t("wx");
+  if(state.settings.locatie) return `<p class="klimaat-hint wide" style="margin-top:-4px;">${escapeHtml(X.hintOnline)}</p>`;
+  const row = (g, label, opts) => `<div class="klimaat-row"><span class="klimaat-sys">${escapeHtml(label)}</span><span class="seg" data-wgroup="${g}">${Object.keys(opts).map(k => `<button type="button" data-wv="${k}" class="${formWeer[g] === k ? "on" : ""}">${escapeHtml(opts[k])}</button>`).join("")}</span></div>`;
+  return `<div class="klimaat-box wide"><div class="klimaat-title">${escapeHtml(X.title)}</div>${row("zon", X.zon, X.zonOpt)}${row("wind", X.wind, X.windOpt)}${row("regen", X.regen, X.regenOpt)}<p class="klimaat-hint">${escapeHtml(X.hintManual)}</p></div>`;
+}
+function manualWeer(sel){
+  const w = { src: "handmatig", zon: null, wind: null, wolk: null, regen: null }; let any = false;
+  ["zon", "wind", "regen", "wolk"].forEach(k => { if(sel[k]){ w[k] = WX_MAN[k][sel[k]]; w[k + "Lbl"] = sel[k]; any = true; } });
+  return any ? w : undefined;
+}
 async function fetchHourlyUncached(loc, datum){
   const ago = daysBetween(datum, todayISO());
   if(ago < -14) throw new Error("te ver in de toekomst");
   const base = ago > 60 ? "https://archive-api.open-meteo.com/v1/archive" : "https://api.open-meteo.com/v1/forecast";
   // Afgerond op 2 decimalen (~1 km): ruim nauwkeurig voor een weermodel met ~2 km-raster, en je
   // exacte adres gaat zo nooit naar Open-Meteo.
-  const url = `${base}?latitude=${loc.lat.toFixed(2)}&longitude=${loc.lon.toFixed(2)}&hourly=temperature_2m&timezone=auto&start_date=${datum}&end_date=${addDaysISO(datum, 1)}`;
+  const url = `${base}?latitude=${loc.lat.toFixed(2)}&longitude=${loc.lon.toFixed(2)}&hourly=temperature_2m,shortwave_radiation,cloud_cover,wind_speed_10m,precipitation&timezone=auto&start_date=${datum}&end_date=${addDaysISO(datum, 1)}`;
   const res = await fetch(url);
   if(!res.ok) throw new Error("HTTP " + res.status);
   const data = await res.json();
   if(!data.hourly || !Array.isArray(data.hourly.time)) throw new Error("onverwacht antwoord");
   const map = {};
   data.hourly.time.forEach((tm, i) => { const v = data.hourly.temperature_2m[i]; if(v !== null && v !== undefined) map[tm] = v; });
+  // Zon (W/m², gemiddelde van het voorgaande uur), bewolking (%), wind (km/h, 10 m) en neerslag (mm
+  // in het voorgaande uur) — apart bewaard, zodat alles wat alleen temperatuur kent ongewijzigd blijft.
+  const H = data.hourly, ex = {};
+  H.time.forEach((tm, i) => { ex[tm] = { zon: H.shortwave_radiation ? H.shortwave_radiation[i] : null, wolk: H.cloud_cover ? H.cloud_cover[i] : null, wind: H.wind_speed_10m ? H.wind_speed_10m[i] : null, regen: H.precipitation ? H.precipitation[i] : null }; });
+  weatherExtra[wxKey(loc, datum)] = ex;
   return map;
 }
 async function fetchOutdoorTemp(loc, datum, tijd){
@@ -4407,6 +4743,17 @@ async function backfillOnline(){
       }
       catch(err){ console.warn("Buitengemiddelde afkoeltest ophalen mislukt:", err); break; }
     }
+    // Weer (zon, wind, bewolking, regen) per meting en per afkoelnacht
+    for(const m of state.metingen.slice()){
+      if(m.weer !== undefined || !validISODate(m.datum) || tsOf(m) > Date.now()) continue;
+      try{ const v = await weerAt(loc, m); if(state !== stateRef) return; if(v || tsOf(m) < Date.now() - 3*86400000){ m.weer = v; changed = true; } }
+      catch(err){ console.warn("Weer ophalen mislukt:", err); break; }
+    }
+    for(const a of state.afkoeltests.slice()){
+      if(a.weer !== undefined || !coolComplete(a) || coolEndTs(a) > Date.now()) continue;
+      try{ const v = await weerOver(loc, coolStartTs(a), coolEndTs(a)); if(state !== stateRef) return; if(v || coolEndTs(a) < Date.now() - 3*86400000){ a.weer = v; changed = true; } }
+      catch(err){ console.warn("Weer afkoelnacht ophalen mislukt:", err); break; }
+    }
   } finally {
     backfillRunning = false;
   }
@@ -4597,6 +4944,8 @@ function renderCoolView(main){
           <label>${t("fBinnen")}<input type="text" inputmode="decimal" id="cEindBinnen" placeholder="20,3" /></label>
         </div></div>
       <label class="cool-note">${t("fRuimte")}<select id="cRuimte">${ruimteOptions(ruimteList()[0])}</select></label>
+      ${state.settings.locatie ? "" : `<label class="cool-note">${escapeHtml(t("wx").coolWind)}<select id="cWind"><option value="">${t("wx").none}</option>${Object.entries(t("wx").windOpt).map(([k, l]) => `<option value="${k}">${escapeHtml(l)}</option>`).join("")}</select></label>
+      <label class="cool-note">${escapeHtml(t("wx").coolWolk)}<select id="cWolk"><option value="">${t("wx").none}</option>${Object.entries(t("wx").wolkOpt).map(([k, l]) => `<option value="${k}">${escapeHtml(l)}</option>`).join("")}</select></label>`}
       <label class="cool-note">${t("fNotitie")}<input type="text" id="cNotitie" maxlength="200" /></label>
     </div>
     <div class="entry-actions" data-submit-block>
@@ -4617,6 +4966,7 @@ function renderCoolView(main){
       eindDatum: g("cEindDatum"), eindTijd: g("cEindTijd"), eindBinnen: parseNum(g("cEindBinnen")),
       buitenGem: null, buitenGemBron: null, notitie: g("cNotitie").trim(), ruimte: ensureRuimte(g("cRuimte")), bron: "handmatig",
     };
+    if(!state.settings.locatie){ const w = manualWeer({ wind: (document.getElementById("cWind") || {}).value, wolk: (document.getElementById("cWolk") || {}).value }); if(w) a.weer = w; }
     if(!validISODate(a.startDatum) || !a.startTijd || a.startBinnen === null){ msg.textContent = t("coolErrStart"); msg.className = "form-msg err"; return; }
     if(a.eindBinnen !== null && validISODate(a.eindDatum) && a.eindTijd && coolEndTs(a) <= coolStartTs(a)){ msg.textContent = t("coolErrOrder"); msg.className = "form-msg err"; return; }
     state.afkoeltests.push(a);
@@ -4674,6 +5024,7 @@ function wireCoolTable(){
           if(f === "buitenGem"){ a.buitenGemBron = n === null ? null : "handmatig"; if(n === null) delete a.buitenUur; }
         } else a[f] = inp.value.trim ? inp.value.trim() : inp.value;
         if(["startDatum","startTijd","eindDatum","eindTijd"].includes(f) && a.buitenGemBron !== "handmatig"){ a.buitenGem = null; a.buitenGemBron = null; delete a.buitenUur; }
+        if(["startDatum","startTijd","eindDatum","eindTijd"].includes(f) && (!a.weer || a.weer.src !== "handmatig")) delete a.weer;
         scheduleAutoSave();
         renderAll({ keepFocus: { id: a.id, f } });
         backfillOnline();
