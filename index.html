@@ -833,16 +833,18 @@ const I18N = {
     kFilterLabel: "Klimaat",
     tc: {
       more: n => `Alle details (${n} onderdelen)`,
-      sDamp: "Demping en vertraging", sCool: "Afkoelen en opwarmen", sComfort: "Comfort", sDay: "Dagverloop", sTrend: "Trend in deze periode", sRooms: "Ruimtes", sKlim: "Verwarming en koeling", sOdd: "Opvallende metingen", sNeed: "Voor nog meer detail",
+      sDamp: "Demping en vertraging",
+      dampExpect: (tau, src, exp, meas, ok) => `Met jouw tijdconstante τ ≈ ${tau} (${src}) zou je volgens die natuurkunde ~${exp}% demping verwachten; gemeten is ${meas}%. ${ok ? "Dat klopt goed met elkaar." : "Het verschil komt door warmte die niet via de muren gaat: zon door de ramen, ventileren of tocht, bewoners, of eerder op de dag gestookt."}`,
+      srcTests: "uit je afkoeltests", srcPairs: "uit je nachtelijke metingen", sCool: "Afkoelen en opwarmen", sComfort: "Comfort", sDay: "Dagverloop", sTrend: "Trend in deze periode", sRooms: "Ruimtes", sKlim: "Verwarming en koeling", sOdd: "Opvallende metingen", sNeed: "Voor nog meer detail",
       dampHourly: (r, lo, hi) => `Online gemeten schommelde het buiten in deze periode ${r} (van ${lo} tot ${hi}); je metingen vangen daar een deel van.`,
       lag: (h, r) => `Binnen volgt buiten met ~${h} uur vertraging (samenhang r = ${r}). Hoe langer de vertraging, hoe meer het huis (bouwmassa en isolatie) temperatuurwisselingen buffert. Indicatie: onder 2 uur licht/snel, 2–6 uur gemiddeld, boven 6 uur sterk gebufferd.`,
       lagWeak: r => `Er is geen duidelijke samenhang tussen het buitenverloop en binnen (beste r = ${r}); binnen wordt hier vooral door andere dingen bepaald (stoken, zon, bewoners).`,
-      coolPairs: (n, rate, tau, lo, hi) => `${n} afkoelperiode(s) 's nachts (tussen 18:00 en 09:00, zonder zon) met alles uit tussen twee metingen: binnen daalde gemiddeld ${rate}. Daaruit volgt een tijdconstante τ van ~${tau} (spreiding ${lo}–${hi}). Indicatie: onder ~35 uur snel, 35–70 uur gemiddeld, boven ~70 uur goed.`,
+      coolPairs: (n, rate, tau, lo, hi) => `${n} afkoelperiode(s) 's nachts (tussen 18:00 en 09:00, zonder zon) met alles uit tussen twee metingen: binnen daalde gemiddeld ${rate}. Daaruit volgt een tijdconstante τ van ~${tau} (spreiding ${lo}–${hi}). ${"IJkpunt: in een onderzoek naar ruim 10.000 woningen lag τ in de winter meestal tussen 15 en 55 uur (Syracuse Univ./IBPC); passiefhuizen halen 90–200 uur (EMU Passive). Onder 15 uur koelt een huis sneller af dan gangbaar, boven 55 uur beter dan de meeste woningen."}`,
       coolNight: d => `Omgerekend: bij 20 °C binnen en 10 °C buiten zakt het in een nacht van 8 uur ~${d}.`,
       heatPairs: (n, rate) => `${n} opwarmperiode(s) met de verwarming aan: binnen steeg gemiddeld ${rate}.`,
       coolNone: "Geen nachtelijke afkoelperiodes (18:00–09:00) met alles uit tussen twee metingen in deze periode. Overdag tellen niet mee: zon en koken vertekenen de afkoeling.",
       trendCorr: "Gecorrigeerd voor het tijdstip van meten: per dagdeel is eerst het gemiddelde verschil weggehaald, zodat 's ochtends meer en 's avonds meer meten geen nep-trend geeft.",
-      comfortHours: (cov, below, pBelow, c, above, pAbove, w, rooms) => `Van de ~${cov} uur tussen je metingen${rooms > 1 ? ` (opgeteld over ${rooms} ruimtes)` : ""} was het binnen naar schatting ${below} uur (${pBelow}%) onder ${c} en ${above} uur (${pAbove}%) boven ${w}.`,
+      comfortHours: (cov, below, pBelow, c, above, pAbove, w, rooms, a28) => `Van de ~${cov} uur tussen je metingen${rooms > 1 ? ` (opgeteld over ${rooms} ruimtes)` : ""} was het binnen naar schatting ${below} uur (${pBelow}%) onder ${c}, ${above} uur (${pAbove}%) boven ${w} en ${a28} uur boven 28 °C. Ter referentie: de WHO noemt 18 °C als veilige minimum-binnentemperatuur in het stookseizoen; voor oververhitting kijkt de Nederlandse bouwpraktijk naar het aantal uren boven 25 °C en boven 28 °C per jaar.`,
       minMax: (lo, loWhen, hi, hiWhen) => `Koudste meting ${lo} (${loWhen}), warmste ${hi} (${hiWhen}).`,
       diffRange: (avgD, lo, hi) => `Het verschil binnen − buiten was gemiddeld ${avgD} (van ${lo} tot ${hi}).`,
       day: (parts, sw, swOut) => `Gemiddeld per dagdeel: ${parts}. Binnen verschilt ${sw} tussen het warmste en koudste dagdeel, terwijl buiten ${swOut} verschilt.`,
@@ -962,7 +964,7 @@ const I18N = {
       zonNone: "Zon: geen meetbaar effect op binnen.",
       wind: (d, j) => `Wind: per 10 km/h meer wind is het binnen ~${d} kouder ${j}`,
       windNone: "Wind: geen meetbaar effect op binnen — het huis is weinig tochtgevoelig.",
-      wGood: "— weinig tochtgevoelig.", wMid: "— enigszins tochtgevoelig.", wBad: "— duidelijk tochtgevoelig: kieren, naden of ventilatieroosters laten bij wind koude lucht binnen.",
+      wGood: "— weinig tochtgevoelig (vuistregel Tembo, geen norm).", wMid: "— enigszins tochtgevoelig (vuistregel Tembo, geen norm).", wBad: "— duidelijk tochtgevoelig: kieren, naden of ventilatieroosters laten bij wind koude lucht binnen (vuistregel Tembo, geen norm).",
       fZon: "Zon (per 100 W/m²)", fWind: "Wind (per 10 km/h)",
       needLoc: "Met een ingestelde locatie (of het weer zelf invullen bij een meting) houdt Tembo ook rekening met zon en wind.",
       needVar: "Meet bij verschillend weer (zonnig én bewolkt, rustig én winderig), dan kan Tembo het effect van zon en wind scheiden van de temperatuur.",
@@ -985,13 +987,13 @@ const I18N = {
       kSun: (rs, rn) => `Tests met zon (> 300 W/m²) koelden gemiddeld ${rs}, tests zonder zon ${rn}: zon door de ramen werkt de airco tegen.`,
     },
     setComfort: "Comfortgrens binnen (°C)",
-    setComfortHint: "Onder deze binnentemperatuur vind je het te koud. Tembo gebruikt dit voor de geschatte stookgrens en de conclusies.",
+    setComfortHint: "Onder deze binnentemperatuur vind je het te koud. Tembo gebruikt dit voor de geschatte stookgrens en de conclusies. Ter referentie: de WHO noemt 18 °C als veilige minimum-binnentemperatuur in het stookseizoen.",
     sumHouse: "Hoe houdt je huis zich?",
     con2: {
       time: {
         head_good: "Binnen blijft stabiel", head_neutral: "Binnen beweegt matig mee met buiten", head_bad: "Binnen beweegt sterk mee met buiten", head_info: "Deze periode in het kort",
         need: "Te weinig metingen in beeld voor een conclusie (minimaal 3). Zoom uit of kies een langere periode.",
-        body: (ro, ri, pct, b) => `In beeld schommelde het buiten ${ro} en binnen ${ri}${b}: binnen bewoog ${pct}% mee. Hoe lager dat percentage, hoe beter het huis wisselingen buiten dempt (isolatie en bouwmassa). Indicatie: onder 25% goed, boven 50% veel.`,
+        body: (ro, ri, pct, b) => `In beeld schommelde het buiten ${ro} en binnen ${ri}${b}: binnen bewoog ${pct}% mee. Hoe lager dat percentage, hoe beter het huis wisselingen buiten dempt (isolatie en bouwmassa). IJkpunt: afgeleid uit de natuurkunde van een huis als één warmtemassa (demping = 1/√(1+(2π·τ/24 u)²)) met de gangbare τ van woningen (15–55 uur): onder ~7% sterk gedempt (τ boven 55 uur), 7–25% gangbaar, boven 25% minder dan gangbaar. Zon, ventileren en bewoners maken de gemeten waarde hoger.`,
         basisVrij: " (metingen met alles uit)",
         smallOut: ro => `Buiten schommelde maar ${ro}; te weinig om iets over demping te zeggen.`,
         regNote: n => `${n} meting(en) waarbij de thermostaat de temperatuur bepaalde tellen niet mee voor de demping.`,
@@ -1006,7 +1008,7 @@ const I18N = {
         srcVrij: "Zonder verwarming of airco", srcAll: "Bij je gewone gebruik",
         pred: (src, ref, v, pm) => `${src} is het binnen bij ${ref} buiten naar schatting ${v} (± ${pm}).`,
         slope: b => `Per graad kouder buiten wordt het binnen ~${b} kouder.`,
-        grens: (g, c) => `Kouder dan ~${g} buiten zakt het binnen naar verwachting onder je comfortgrens van ${c}: dat is je geschatte stookgrens. Indicatie: gemiddeld Nederlands huis ~15–16 °C, goed geïsoleerd ~12–13 °C — hoe lager, hoe korter het stookseizoen.`,
+        grens: (g, c) => `Kouder dan ~${g} buiten zakt het binnen naar verwachting onder je comfortgrens van ${c}: dat is je geschatte stookgrens. IJkpunt: een ongeïsoleerd huis uit de jaren 70 heeft een stookgrens rond 15 °C, hetzelfde huis goed geïsoleerd rond 12 °C (Open University, 'balance point'); in de praktijk wordt meestal 14–17 °C gehanteerd (Stimular). Hoe lager, hoe korter het stookseizoen.`,
         flatOk: c => `Het binnen blijft over het gemeten bereik boven je comfortgrens van ${c}.`,
         flatLow: c => `Het binnen ligt over het gemeten bereik al onder je comfortgrens van ${c}.`,
         extrap: "Let op: dit ligt buiten de gemeten buitentemperaturen; de schatting trekt de lijn door en is dus onzeker.",
@@ -1023,7 +1025,7 @@ const I18N = {
       },
       klim: {
         head_good: "Kort stookseizoen", head_neutral: "Gemiddelde stookgrens", head_bad: "Lang stookseizoen", head_info: "Verwarmen en koelen",
-        stook: g => `Je zet de verwarming meestal aan als het buiten kouder is dan ~${g}. Indicatie: gemiddeld Nederlands huis ~15–16 °C, goed geïsoleerd ~12–13 °C. Hoe lager, hoe korter het stookseizoen.`,
+        stook: g => `Je zet de verwarming meestal aan als het buiten kouder is dan ~${g}. IJkpunt: een ongeïsoleerd huis uit de jaren 70 heeft een stookgrens rond 15 °C, hetzelfde huis goed geïsoleerd rond 12 °C (Open University, 'balance point'); in de praktijk wordt meestal 14–17 °C gehanteerd (Stimular). Hoe lager, hoe korter het stookseizoen.`,
         stookEst: g => `Nog geen (genoeg) metingen met de verwarming aan; uit je metingen met alles uit schat Tembo de stookgrens op ~${g}.`,
         need: "Nodig voor een conclusie: 3 metingen met alles uit én 3 met de verwarming aan, of 4 metingen met alles uit bij verschillend weer.",
         koel: g => `Gekoeld wordt meestal vanaf ~${g} buiten. Hoe hoger, hoe beter het huis de hitte buiten houdt.`,
@@ -1034,7 +1036,7 @@ const I18N = {
       koel: {
         head_good: "Airco houdt het goed bij", head_neutral: "Airco houdt het deels bij", head_bad: "Airco houdt het niet bij", head_info: "Koeltests",
         body: (r, n) => `Gemiddeld werd het ${r} koeler (${n} test${n === 1 ? "" : "s"}).`,
-        reached: (k, n) => `De ingestelde temperatuur werd in ${k} van de ${n} tests gehaald.`,
+        reached: (k, n) => `De ingestelde temperatuur werd in ${k} van de ${n} tests gehaald (oordeel: 75% of meer goed, 40–75% deels — vuistregel Tembo).`,
         notFrom: g => `Niet gehaald bij tests vanaf ~${g} buiten: dan komt er meer warmte binnen (zon, ramen, muren, dak) dan de airco wegkrijgt.`,
         slope: v => `Per graad warmer buiten koelde het ~${v} langzamer.`,
         fRate: "Gem. koelsnelheid", fReached: "Instelling gehaald", fOut: "Gem. buiten",
@@ -1043,7 +1045,7 @@ const I18N = {
         head_good: "Houdt de warmte lang vast", head_neutral: "Gemiddelde afkoeling", head_bad: "Koelt snel af",
         body: (tau, n) => `De tijdconstante τ is ${tau} (mediaan van ${n} test${n === 1 ? "" : "s"}).`,
         night: d => `In de praktijk: bij 20 °C binnen en 10 °C buiten daalt het binnen in een nacht van 8 uur zonder verwarming ~${d}.`,
-        bench: "Indicatie: onder ~35 uur koelt een huis snel af (weinig isolatie of tocht), 35–70 uur is gemiddeld, boven ~70 uur houdt het de warmte goed vast.",
+        bench: "IJkpunt: in een onderzoek naar ruim 10.000 woningen lag τ in de winter meestal tussen 15 en 55 uur (Syracuse Univ./IBPC); passiefhuizen halen 90–200 uur (EMU Passive). Onder 15 uur koelt een huis sneller af dan gangbaar, boven 55 uur beter dan de meeste woningen.",
         spread: (lo, hi) => `De tests liggen tussen ${lo} en ${hi}; wind, zon en ventilatie zorgen voor spreiding.`,
         excluded: n => `${n} test(s) met verwarming/koeling aan, een stijging of een rommelige meting tellen niet mee.`,
         need: "Nog geen afgeronde afkoeltest in deze selectie. Doe er één: 's avonds alles uit, de volgende ochtend opnieuw meten.",
@@ -1113,7 +1115,7 @@ const I18N = {
     howtoCool: [
       "Elke stip is één afgeronde afkoeltest; van links naar rechts de datum, van onder naar boven de tijdconstante τ in uren.",
       "τ = hoe traag het huis afkoelt met verwarming en airco uit, al gecorrigeerd voor hoe koud het buiten was. Hoger = beter.",
-      "Indicatie: onder ~35 uur koelt een huis snel af, 35–70 uur is gemiddeld, boven ~70 uur houdt het de warmte goed vast.",
+      "IJkpunt: in een onderzoek naar ruim 10.000 woningen lag τ in de winter meestal tussen 15 en 55 uur (Syracuse Univ./IBPC); passiefhuizen halen 90–200 uur (EMU Passive). Onder 15 uur koelt een huis sneller af dan gangbaar, boven 55 uur beter dan de meeste woningen.",
       "Vuistregel: bij τ = 100 uur daalt binnen in 8 uur ongeveer 0,8 °C als het buiten 10 °C kouder is; bij τ = 50 uur ongeveer 1,5 °C.",
       "Tests schommelen van nature (wind, zon, bewoning). Kijk dus naar meerdere tests, niet naar één losse stip.",
     ],
@@ -1350,16 +1352,18 @@ const I18N = {
     kFilterLabel: "Climate",
     tc: {
       more: n => `All details (${n} parts)`,
-      sDamp: "Damping and lag", sCool: "Cooling down and warming up", sComfort: "Comfort", sDay: "Daily pattern", sTrend: "Trend in this period", sRooms: "Rooms", sKlim: "Heating and cooling", sOdd: "Notable readings", sNeed: "For even more detail",
+      sDamp: "Damping and lag",
+      dampExpect: (tau, src, exp, meas, ok) => `With your time constant τ ≈ ${tau} (${src}) that physics would predict ~${exp}% damping; measured is ${meas}%. ${ok ? "That agrees well." : "The difference comes from heat that does not go through the walls: sun through the windows, ventilation or draughts, occupants, or heating earlier in the day."}`,
+      srcTests: "from your cool-down tests", srcPairs: "from your night-time readings", sCool: "Cooling down and warming up", sComfort: "Comfort", sDay: "Daily pattern", sTrend: "Trend in this period", sRooms: "Rooms", sKlim: "Heating and cooling", sOdd: "Notable readings", sNeed: "For even more detail",
       dampHourly: (r, lo, hi) => `Measured online, outdoor varied by ${r} in this period (from ${lo} to ${hi}); your readings capture part of that.`,
       lag: (h, r) => `Indoor follows outdoor with ~${h} hour(s) delay (correlation r = ${r}). The longer the delay, the more the house (thermal mass and insulation) buffers temperature swings. Indication: under 2 hours light/fast, 2–6 hours average, above 6 hours strongly buffered.`,
       lagWeak: r => `There is no clear link between the outdoor pattern and indoor (best r = ${r}); indoor is driven mainly by other things here (heating, sun, occupants).`,
-      coolPairs: (n, rate, tau, lo, hi) => `${n} night-time cool-down period(s) (between 18:00 and 09:00, no sun) with everything off between two readings: indoor dropped on average ${rate}. That gives a time constant τ of ~${tau} (range ${lo}–${hi}). Indication: below ~35 hours fast, 35–70 hours average, above ~70 hours good.`,
+      coolPairs: (n, rate, tau, lo, hi) => `${n} night-time cool-down period(s) (between 18:00 and 09:00, no sun) with everything off between two readings: indoor dropped on average ${rate}. That gives a time constant τ of ~${tau} (range ${lo}–${hi}). ${"Benchmark: in a study of over 10,000 homes τ in winter was mostly between 15 and 55 hours (Syracuse Univ./IBPC); passive houses reach 90–200 hours (EMU Passive). Below 15 hours a house cools faster than usual, above 55 hours better than most homes."}`,
       coolNight: d => `In other words: at 20 °C indoor and 10 °C outdoor it drops ~${d} in an 8-hour night.`,
       heatPairs: (n, rate) => `${n} warm-up period(s) with heating on: indoor rose on average ${rate}.`,
       coolNone: "No night-time cool-down periods (18:00–09:00) with everything off between two readings in this period. Daytime periods are left out: sun and cooking distort the cooling.",
       trendCorr: "Corrected for time of measurement: the average difference per time of day was removed first, so measuring more in the morning one day and more in the evening another does not create a fake trend.",
-      comfortHours: (cov, below, pBelow, c, above, pAbove, w, rooms) => `Of the ~${cov} hours between your readings${rooms > 1 ? ` (summed over ${rooms} rooms)` : ""}, indoor was an estimated ${below} hours (${pBelow}%) below ${c} and ${above} hours (${pAbove}%) above ${w}.`,
+      comfortHours: (cov, below, pBelow, c, above, pAbove, w, rooms, a28) => `Of the ~${cov} hours between your readings${rooms > 1 ? ` (summed over ${rooms} rooms)` : ""}, indoor was an estimated ${below} hours (${pBelow}%) below ${c}, ${above} hours (${pAbove}%) above ${w} and ${a28} hours above 28 °C. For reference: the WHO names 18 °C as a safe minimum indoor temperature in the cold season; for overheating, Dutch building practice looks at the number of hours above 25 °C and above 28 °C per year.`,
       minMax: (lo, loWhen, hi, hiWhen) => `Coldest reading ${lo} (${loWhen}), warmest ${hi} (${hiWhen}).`,
       diffRange: (avgD, lo, hi) => `The indoor − outdoor difference averaged ${avgD} (from ${lo} to ${hi}).`,
       day: (parts, sw, swOut) => `Average per time of day: ${parts}. Indoor differs ${sw} between the warmest and coldest part of the day, while outdoor differs ${swOut}.`,
@@ -1479,7 +1483,7 @@ const I18N = {
       zonNone: "Sun: no measurable effect on indoor.",
       wind: (d, j) => `Wind: per 10 km/h more wind indoor is ~${d} colder ${j}`,
       windNone: "Wind: no measurable effect on indoor — the house is not very draughty.",
-      wGood: "— not very draughty.", wMid: "— somewhat draughty.", wBad: "— clearly draughty: gaps, seams or vents let cold air in when it is windy.",
+      wGood: "— not very draughty (Tembo rule of thumb, not a standard).", wMid: "— somewhat draughty (Tembo rule of thumb, not a standard).", wBad: "— clearly draughty: gaps, seams or vents let cold air in when it is windy (Tembo rule of thumb, not a standard).",
       fZon: "Sun (per 100 W/m²)", fWind: "Wind (per 10 km/h)",
       needLoc: "With a location set (or by entering the weather with a reading) Tembo also takes sun and wind into account.",
       needVar: "Measure in different weather (sunny and cloudy, calm and windy), so Tembo can separate the effect of sun and wind from temperature.",
@@ -1502,13 +1506,13 @@ const I18N = {
       kSun: (rs, rn) => `Tests with sun (> 300 W/m²) cooled on average ${rs}, tests without sun ${rn}: sun through the windows works against the AC.`,
     },
     setComfort: "Indoor comfort limit (°C)",
-    setComfortHint: "Below this indoor temperature you find it too cold. Tembo uses it for the estimated heating threshold and the conclusions.",
+    setComfortHint: "Below this indoor temperature you find it too cold. Tembo uses it for the estimated heating threshold and the conclusions. For reference: the WHO names 18 °C as a safe minimum indoor temperature in the cold season.",
     sumHouse: "How does your house hold up?",
     con2: {
       time: {
         head_good: "Indoor stays stable", head_neutral: "Indoor moves moderately with outdoor", head_bad: "Indoor moves strongly with outdoor", head_info: "This period at a glance",
         need: "Too few readings in view for a conclusion (at least 3). Zoom out or pick a longer period.",
-        body: (ro, ri, pct, b) => `In view, outdoor varied by ${ro} and indoor by ${ri}${b}: indoor moved ${pct}% along. The lower that percentage, the better the house damps outdoor swings (insulation and thermal mass). Indication: below 25% good, above 50% a lot.`,
+        body: (ro, ri, pct, b) => `In view, outdoor varied by ${ro} and indoor by ${ri}${b}: indoor moved ${pct}% along. The lower that percentage, the better the house damps outdoor swings (insulation and thermal mass). Benchmark: derived from the physics of a house as a single thermal mass (damping = 1/√(1+(2π·τ/24 h)²)) using typical home τ values (15–55 hours): below ~7% strongly damped (τ above 55 hours), 7–25% typical, above 25% less than typical. Sun, ventilation and occupants push the measured value up.`,
         basisVrij: " (readings with everything off)",
         smallOut: ro => `Outdoor varied only ${ro}; too little to say anything about damping.`,
         regNote: n => `${n} reading(s) where the thermostat set the temperature are left out of the damping.`,
@@ -1523,7 +1527,7 @@ const I18N = {
         srcVrij: "Without heating or AC", srcAll: "With your normal use",
         pred: (src, ref, v, pm) => `${src} indoor is estimated at ${v} (± ${pm}) when it is ${ref} outside.`,
         slope: b => `For every degree colder outside, indoor gets ~${b} colder.`,
-        grens: (g, c) => `Colder than ~${g} outside, indoor is expected to drop below your comfort limit of ${c}: that is your estimated heating threshold. Indication: average Dutch home ~15–16 °C, well insulated ~12–13 °C — the lower, the shorter the heating season.`,
+        grens: (g, c) => `Colder than ~${g} outside, indoor is expected to drop below your comfort limit of ${c}: that is your estimated heating threshold. Benchmark: an uninsulated 1970s house has a heating threshold around 15 °C, the same house well insulated around 12 °C (Open University, 'balance point'); in practice 14–17 °C is commonly used (Stimular). The lower, the shorter the heating season.`,
         flatOk: c => `Indoor stays above your comfort limit of ${c} across the measured range.`,
         flatLow: c => `Indoor is already below your comfort limit of ${c} across the measured range.`,
         extrap: "Note: this lies outside the measured outdoor temperatures; the estimate extends the line and is therefore uncertain.",
@@ -1540,7 +1544,7 @@ const I18N = {
       },
       klim: {
         head_good: "Short heating season", head_neutral: "Average heating threshold", head_bad: "Long heating season", head_info: "Heating and cooling",
-        stook: g => `You usually switch the heating on when it is colder than ~${g} outside. Indication: average Dutch home ~15–16 °C, well insulated ~12–13 °C. The lower, the shorter the heating season.`,
+        stook: g => `You usually switch the heating on when it is colder than ~${g} outside. Benchmark: an uninsulated 1970s house has a heating threshold around 15 °C, the same house well insulated around 12 °C (Open University, 'balance point'); in practice 14–17 °C is commonly used (Stimular). The lower, the shorter the heating season.`,
         stookEst: g => `No (or too few) readings with heating on yet; from your readings with everything off Tembo estimates the heating threshold at ~${g}.`,
         need: "Needed for a conclusion: 3 readings with everything off and 3 with heating on, or 4 readings with everything off in different weather.",
         koel: g => `Cooling usually starts from ~${g} outside. The higher, the better the house keeps the heat out.`,
@@ -1551,7 +1555,7 @@ const I18N = {
       koel: {
         head_good: "AC keeps up well", head_neutral: "AC partly keeps up", head_bad: "AC cannot keep up", head_info: "Cooling tests",
         body: (r, n) => `On average it got ${r} cooler (${n} test${n === 1 ? "" : "s"}).`,
-        reached: (k, n) => `The set temperature was reached in ${k} of the ${n} tests.`,
+        reached: (k, n) => `The set temperature was reached in ${k} of the ${n} tests (verdict: 75% or more good, 40–75% partly — Tembo rule of thumb).`,
         notFrom: g => `Not reached in tests from ~${g} outside: more heat comes in then (sun, windows, walls, roof) than the AC removes.`,
         slope: v => `For every degree warmer outside it cooled ~${v} slower.`,
         fRate: "Avg. cooling rate", fReached: "Setting reached", fOut: "Avg. outdoor",
@@ -1560,7 +1564,7 @@ const I18N = {
         head_good: "Holds warmth for a long time", head_neutral: "Average cool-down", head_bad: "Cools down quickly",
         body: (tau, n) => `The time constant τ is ${tau} (median of ${n} test${n === 1 ? "" : "s"}).`,
         night: d => `In practice: at 20 °C indoor and 10 °C outdoor, indoor drops ~${d} in an 8-hour night without heating.`,
-        bench: "Indication: below ~35 hours a house cools quickly (little insulation or draughts), 35–70 hours is average, above ~70 hours it holds the warmth well.",
+        bench: "Benchmark: in a study of over 10,000 homes τ in winter was mostly between 15 and 55 hours (Syracuse Univ./IBPC); passive houses reach 90–200 hours (EMU Passive). Below 15 hours a house cools faster than usual, above 55 hours better than most homes.",
         spread: (lo, hi) => `The tests range from ${lo} to ${hi}; wind, sun and ventilation cause spread.`,
         excluded: n => `${n} test(s) with heating/cooling on, a rise or a rough fit are left out.`,
         need: "No completed cool-down test in this selection yet. Do one: everything off in the evening, measure again the next morning.",
@@ -1630,7 +1634,7 @@ const I18N = {
     howtoCool: [
       "Each dot is one completed cool-down test; left to right the date, bottom to top the time constant τ in hours.",
       "τ = how slowly the house cools with heating and AC off, already corrected for how cold it was outside. Higher = better.",
-      "Indication: below ~35 hours a house cools quickly, 35–70 hours is average, above ~70 hours it holds the warmth well.",
+      "Benchmark: in a study of over 10,000 homes τ in winter was mostly between 15 and 55 hours (Syracuse Univ./IBPC); passive houses reach 90–200 hours (EMU Passive). Below 15 hours a house cools faster than usual, above 55 hours better than most homes.",
       "Rule of thumb: at τ = 100 hours indoor drops about 0.8 °C in 8 hours when it is 10 °C colder outside; at τ = 50 hours about 1.5 °C.",
       "Tests vary naturally (wind, sun, occupants). Look at several tests rather than one dot.",
     ],
@@ -3468,7 +3472,7 @@ function houseFit(listIn, basis, kf){
   res.extrap = ref < r.minX - 2 || ref > r.maxX + 2;
   res.heatShare = use.filter(p => { const md = klimaatOf(p).mode; return md === "verwarmen" || md === "koelen" || md === "gemengd"; }).length / use.length;
   if(r.b >= 0.05){ res.grens = (comfort - r.a) / r.b; res.grensExtrap = res.grens < r.minX - 3 || res.grens > r.maxX + 3; }
-  if(res.grens !== undefined) res.status = res.grens <= 13 ? "good" : res.grens <= 15.5 ? "neutral" : "bad";
+  if(res.grens !== undefined) res.status = res.grens <= 12.5 ? "good" : res.grens <= 15 ? "neutral" : "bad";
   else res.status = res.pred >= comfort ? "good" : res.pred >= comfort - 2 ? "neutral" : "bad";
   let lvl = (r.n >= 12 && res.range >= 8) ? 2 : (r.n >= 6 && res.range >= 5) ? 1 : 0;
   if(res.extrap || res.grensExtrap || res.heatShare >= 0.3) lvl = Math.max(0, lvl - 1);
@@ -3575,7 +3579,7 @@ function timeConclusionHTML(list, w, hourly){
   const paras = []; let status = "info", head = C.head_info;
   if(valid.length){
     const ratio = valid.reduce((acc, d) => acc + d.ratio * d.n, 0) / valid.reduce((acc, d) => acc + d.n, 0);
-    status = ratio <= 0.25 ? "good" : ratio <= 0.5 ? "neutral" : "bad"; head = C["head_" + status];
+    status = ratio <= 0.07 ? "good" : ratio <= 0.25 ? "neutral" : "bad"; head = C["head_" + status];
     const d0 = valid[0];
     paras.push(C.body(fmtT(d0.ro), fmtT(d0.ri), Math.round(ratio * 100), (usedVrij ? C.basisVrij : "") + (valid.length > 1 ? ` — ${valid.map(d => `${d.r} ${Math.round(d.ratio * 100)}%`).join(", ")}` : multiRoom ? ` — ${d0.r}` : "")));
     facts.push([D.fRatio, Math.round(ratio * 100) + "%"]);
@@ -3597,7 +3601,7 @@ function timeConclusionHTML(list, w, hourly){
       else if(best) damp.push(D.lagWeak(best.r.toLocaleString(state.lang === "en" ? "en-GB" : "nl-NL", { maximumFractionDigits: 2 })));
     }
   } else needs.push(!state.settings.locatie ? D.needLoc : w.end - w.start > 7.5 * DAY ? D.needZoom : "");
-  sec(D.sDamp, damp);
+  const dampIdx = secs.length; sec(D.sDamp, damp);
 
   // Paren opeenvolgende metingen per ruimte
   const byRoom = {}; list.forEach(m => { const r = m.ruimte || ROOM_DEFAULT; (byRoom[r] = byRoom[r] || []).push(m); });
@@ -3623,6 +3627,17 @@ function timeConclusionHTML(list, w, hourly){
   if(heat.length){ coolItems.push(D.heatPairs(heat.length, fmtRate(median(heat)))); facts.push([D.fHeatRate, fmtRate(median(heat))]); }
   else if(list.some(m => klimaatOf(m).mode === "verwarmen")) needs.push(D.needHeat);
   sec(D.sCool, coolItems);
+  // Verwachte demping uit je eigen τ (afkoeltests, anders nachtelijke metingen in beeld)
+  if(valid.length){
+    const testT = sortedCool().map(a => coolCalc(a)).filter(c => c.tau && !c.heated && !c.rough && !c.rise && !c.small).map(c => c.tau);
+    const tauX = testT.length ? median(testT) : cool.length >= 3 ? median(cool.map(c => c.tau)) : null;
+    if(tauX){
+      const exp = 1 / Math.sqrt(1 + (2 * Math.PI * tauX / 24) ** 2), meas = valid.reduce((acc, d) => acc + d.ratio * d.n, 0) / valid.reduce((acc, d) => acc + d.n, 0);
+      const item = `<p>${escapeHtml(D.dampExpect(hoursTxt(tauX), testT.length ? D.srcTests : D.srcPairs, Math.round(exp * 100), Math.round(meas * 100), meas <= exp * 2 + 0.05))}</p>`;
+      if(secs[dampIdx] && secs[dampIdx].includes(escapeHtml(D.sDamp))) secs[dampIdx] = secs[dampIdx].replace(/<\/div>$/, item + "</div>");
+      else secs.splice(dampIdx, 0, `<div class="con-sec"><div class="con-sec-h">${escapeHtml(D.sDamp)}</div>${item}</div>`);
+    }
+  }
 
   // Weer in deze periode
   {
@@ -3642,14 +3657,14 @@ function timeConclusionHTML(list, w, hourly){
   }
 
   // 3. Comfort (tijdgewogen)
-  let cov = 0, below = 0, above = 0;
+  let cov = 0, below = 0, above = 0, above28 = 0;
   const part = (va, vb, dt, thr, under) => { const lo = Math.min(va, vb), hi = Math.max(va, vb); if(under){ if(hi < thr) return dt; if(lo >= thr) return 0; return dt * (thr - lo) / (hi - lo); } if(lo > thr) return dt; if(hi <= thr) return 0; return dt * (hi - thr) / (hi - lo); };
-  pairs.forEach(([a, b]) => { const dt = (tsOf(b) - tsOf(a)) / HOUR; if(dt <= 0 || dt > 12) return; cov += dt; below += part(a.binnen, b.binnen, dt, comfort, true); above += part(a.binnen, b.binnen, dt, WARM, false); });
+  pairs.forEach(([a, b]) => { const dt = (tsOf(b) - tsOf(a)) / HOUR; if(dt <= 0 || dt > 12) return; cov += dt; below += part(a.binnen, b.binnen, dt, comfort, true); above += part(a.binnen, b.binnen, dt, WARM, false); above28 += part(a.binnen, b.binnen, dt, 28, false); });
   const lo = list.reduce((x, m) => m.binnen < x.binnen ? m : x), hi = list.reduce((x, m) => m.binnen > x.binnen ? m : x);
   const diffs = list.map(m => m.binnen - m.buiten);
   const cold = list.filter(m => m.binnen < comfort - 0.05).length;
   const comfortItems = [cold ? C.cold(cold, list.length, fmtT(comfort, 0)) : C.allComfort(fmtT(comfort, 0))];
-  if(cov >= 2){ const r1 = v => Math.round(v * 10) / 10; comfortItems.push(D.comfortHours(Math.round(cov), r1(below).toLocaleString(state.lang==="en"?"en-GB":"nl-NL"), Math.round(below / cov * 100), fmtT(comfort, 0), r1(above).toLocaleString(state.lang==="en"?"en-GB":"nl-NL"), Math.round(above / cov * 100), fmtT(WARM, 0), Object.keys(byRoom).length)); facts.push([D.fBelow, `${Math.round(below / cov * 100)}%`]); }
+  if(cov >= 2){ const r1 = v => Math.round(v * 10) / 10; comfortItems.push(D.comfortHours(Math.round(cov), r1(below).toLocaleString(state.lang==="en"?"en-GB":"nl-NL"), Math.round(below / cov * 100), fmtT(comfort, 0), r1(above).toLocaleString(state.lang==="en"?"en-GB":"nl-NL"), Math.round(above / cov * 100), fmtT(WARM, 0), Object.keys(byRoom).length, (Math.round(above28 * 10) / 10).toLocaleString(state.lang==="en"?"en-GB":"nl-NL"))); facts.push([D.fBelow, `${Math.round(below / cov * 100)}%`]); }
   comfortItems.push(D.minMax(fmtT(lo.binnen), whenTxt(lo), fmtT(hi.binnen), whenTxt(hi)), D.diffRange(fmtDelta(avg(diffs)), fmtDelta(Math.min(...diffs)), fmtDelta(Math.max(...diffs))));
   sec(D.sComfort, comfortItems);
 
@@ -3903,7 +3918,7 @@ function coolDetailsHTML(pts){
 function klimConclusionHTML(S){
   const C = t("con2").klim, paras = [], facts = [];
   let status = "insufficient", head = t("conInsufficient");
-  const rate = g => g <= 13 ? "good" : g <= 15.5 ? "neutral" : "bad";
+  const rate = g => g <= 12.5 ? "good" : g <= 15 ? "neutral" : "bad";
   if(S.stook){ status = rate(S.stook.T); head = C["head_" + status]; paras.push(C.stook(fmtT(S.stook.T))); facts.push([C.fStook, "~" + fmtT(S.stook.T)]); }
   else {
     const f = houseFit(S.vrij.map(x => x.m), kBasis(), "vrij");
@@ -3947,7 +3962,7 @@ function coolConclusionHTML(pts){
   const calmOnly = calmT.length >= 2 && calmT.length < use.length;
   if(calmOnly) use = calmT;
   const taus = use.map(p => p.c.tau).sort((a, b) => a - b), med = median(taus);
-  const status = med >= 70 ? "good" : med >= 35 ? "neutral" : "bad", night = 10 * (1 - Math.exp(-8 / med));
+  const status = med >= 55 ? "good" : med >= 15 ? "neutral" : "bad", night = 10 * (1 - Math.exp(-8 / med));
   const paras = [C.body(hoursTxt(med), use.length), C.night(fmtT(night)), C.bench];
   if(use.length >= 2) paras.push(C.spread(hoursTxt(taus[0]), hoursTxt(taus[taus.length - 1])));
   if(calmOnly) paras.push(W.cUseCalm); else if(windyN) paras.push(W.cWindy(windyN));
