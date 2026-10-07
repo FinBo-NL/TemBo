@@ -332,6 +332,7 @@
   .chart-wrap svg{display:block; width:100%; height:auto; overflow:visible;}
   .chart-wrap text{font-family:"Segoe UI",system-ui,sans-serif; font-size:11px; fill:var(--text-soft);}
   .chart-wrap .lbl-strong{fill:var(--text); font-weight:600;}
+  .chart-wrap .lbl-soft{fill:var(--text-soft); font-size:10.5px;}
   .chart-tooltip{
     position:absolute; pointer-events:none; z-index:5;
     background:var(--paper); border:1px solid var(--rule); border-radius:6px;
@@ -422,6 +423,13 @@
   .con-conf{margin-top:8px; font-size:11.5px; color:var(--text-onink-soft);}
   .con-conf strong{color:var(--text-onink);}
   .pm{font-size:11px; color:var(--text-onink-soft);}
+  .conclusion.info{border-left-color:var(--accent);} .info .con-icon{background:var(--accent);}
+  .chart-con{margin-top:12px;} .chart-con:empty{display:none;} .chart-con .conclusion{margin:0;}
+  .con-facts{display:grid; grid-template-columns:repeat(auto-fit, minmax(118px, 1fr)); gap:6px; margin-top:10px;}
+  .con-facts div{border:1px solid var(--rule); border-radius:4px; padding:5px 8px; background:color-mix(in srgb, var(--paper) 70%, transparent);}
+  .con-facts .l{display:block; font-size:10.5px; color:var(--text-onink-soft);}
+  .con-facts .v{display:block; font-family:"Courier New",monospace; font-weight:700; font-size:13px; color:var(--text-onink);}
+  .conclusion.compact p{display:none;}
   .dp-con-list{display:flex; flex-direction:column; gap:2px;}
   .dp-con{display:flex; align-items:center; gap:8px; width:100%; text-align:left; font-family:inherit; font-size:12.5px; padding:6px 8px; border:1px solid transparent; border-radius:4px; background:transparent; color:var(--text-onink); cursor:pointer;}
   .dp-con:hover{border-color:var(--rule);}
@@ -677,7 +685,7 @@ const I18N = {
     errDate: "Vul een datum in.",
     chartTime: "Temperatuurverloop",
     chartScatter: "Binnen t.o.v. buiten",
-    chartScatterNote: "Elke stip is één meting. Ligt de lijn ná isolatie hoger dan ervóór, dan blijft het bij dezelfde buitentemperatuur warmer binnen.",
+    chartScatterNote: "Elke stip is één meting. De lijn laat zien hoeveel het binnen meebeweegt met buiten.",
     chartNeed: "Nog te weinig metingen voor deze grafiek.",
     lBinnen: "Binnen", lBuiten: "Buiten", lVoor: "Vóór isolatie", lNa: "Na isolatie", lAlle: "Metingen", lIsolatie: "Isolatie",
     tableTitle: "Metingen",
@@ -771,7 +779,7 @@ const I18N = {
     coolErrStart: "Vul startdatum, starttijd en binnentemperatuur bij de start in.",
     coolErrOrder: "Het eindmoment moet na het startmoment liggen.",
     coolChart: "Tijdconstante per test",
-    coolChartNote: "Tijdconstante τ = hoe traag je huis afkoelt, in uren. Hoe hoger, hoe beter de warmte binnen blijft. Na isolatie zou τ omhoog moeten gaan.",
+    coolChartNote: "Tijdconstante τ = hoe traag je huis afkoelt, in uren. Hoe hoger, hoe beter de warmte binnen blijft.",
     coolNeed: "Nog geen afgeronde afkoeltest.",
     coolTable: "Afkoeltests",
     coolNoRows: "Nog geen afkoeltests. Start er vanavond een.",
@@ -818,10 +826,73 @@ const I18N = {
     kFormHint: "Standaard staat alles op Uit. Zet aan wat er aan stond, met de ingestelde temperatuur. Tembo onthoudt je vorige keuze.",
     kStatus_vrij: "Alles uit", kStatus_verwarmen: "Verwarmd", kStatus_koelen: "Gekoeld", kStatus_onbekend: "Onbekend", kStatus_gemengd: "Gemengd",
     kFilterLabel: "Klimaat",
+    setComfort: "Comfortgrens binnen (°C)",
+    setComfortHint: "Onder deze binnentemperatuur vind je het te koud. Tembo gebruikt dit voor de geschatte stookgrens en de conclusies.",
+    sumHouse: "Hoe houdt je huis zich?",
+    con2: {
+      time: {
+        head_good: "Binnen blijft stabiel", head_neutral: "Binnen beweegt matig mee met buiten", head_bad: "Binnen beweegt sterk mee met buiten", head_info: "Deze periode in het kort",
+        need: "Te weinig metingen in beeld voor een conclusie (minimaal 3). Zoom uit of kies een langere periode.",
+        body: (ro, ri, pct, b) => `In beeld schommelde het buiten ${ro} en binnen ${ri}${b}: binnen bewoog ${pct}% mee. Hoe lager dat percentage, hoe beter het huis wisselingen buiten dempt (isolatie en bouwmassa). Indicatie: onder 25% goed, boven 50% veel.`,
+        basisVrij: " (metingen met alles uit)",
+        smallOut: ro => `Buiten schommelde maar ${ro}; te weinig om iets over demping te zeggen.`,
+        regNote: n => `${n} meting(en) waarbij de thermostaat de temperatuur bepaalde tellen niet mee voor de demping.`,
+        cold: (k, n, c) => `${k} van de ${n} metingen lag onder je comfortgrens van ${c}.`,
+        allComfort: c => `Alle metingen lagen op of boven je comfortgrens van ${c}.`,
+        fAvgIn: "Gem. binnen", fAvgOut: "Gem. buiten", fDiff: "Gem. verschil", fSwing: "Schommeling binnen / buiten",
+      },
+      fit: {
+        head_good: "Blijft lang warm zonder verwarming", head_neutral: "Koelt merkbaar af zonder verwarming", head_bad: "Koelt snel af zonder verwarming", head_heat: "Hier bepaalt de thermostaat de binnentemperatuur",
+        heat: "Met de verwarming of airco aan volgt binnen vooral de instelling, niet het weer. Zet het klimaatfilter op 'Alle' of 'Alles uit' voor een conclusie over hoe het huis zelf de warmte vasthoudt.",
+        need: (n, r) => `Nodig: minstens 4 metingen zonder thermostaat-regeling met minstens 4 °C verschil in buitentemperatuur. Nu: ${n} metingen, ${r} verschil. Meet bij verschillend weer (koude ochtend, zachte middag).`,
+        srcVrij: "Zonder verwarming of airco", srcAll: "Bij je gewone gebruik",
+        pred: (src, ref, v, pm) => `${src} is het binnen bij ${ref} buiten naar schatting ${v} (± ${pm}).`,
+        slope: b => `Per graad kouder buiten wordt het binnen ~${b} kouder.`,
+        grens: (g, c) => `Kouder dan ~${g} buiten zakt het binnen naar verwachting onder je comfortgrens van ${c}: dat is je geschatte stookgrens. Indicatie: gemiddeld Nederlands huis ~15–16 °C, goed geïsoleerd ~12–13 °C — hoe lager, hoe korter het stookseizoen.`,
+        flatOk: c => `Het binnen blijft over het gemeten bereik boven je comfortgrens van ${c}.`,
+        flatLow: c => `Het binnen ligt over het gemeten bereik al onder je comfortgrens van ${c}.`,
+        extrap: "Let op: dit ligt buiten de gemeten buitentemperaturen; de schatting trekt de lijn door en is dus onzeker.",
+        heatShare: p => `Bij ${p}% van deze metingen stond verwarming of airco aan (zonder dat de instelling bereikt werd); daardoor ligt de schatting warmer dan het huis zonder verwarming is. Meer metingen met alles uit maken de conclusie zuiverder.`,
+        excluded: n => `${n} thermostaat-meting(en) tellen niet mee.`,
+        vrijOnly: "Gebaseerd op metingen met alles uit — het zuiverste beeld.",
+        fPred: r => `Binnen bij ${r} buiten`, fSlope: "Per °C kouder buiten", fGrens: "Geschatte stookgrens", fN: "Metingen",
+        dpVal: (v, g) => `~${v}${g ? " · grens ~" + g : ""}`, dpNeed: n => `${n} metingen`,
+        lTrend: "Trend", lTrendVrij: "Trend (alles uit)", lComfort: "Comfortgrens", lGrens: "Stookgrens", lFaded: "niet in trend", lRef: "Schatting bij referentie",
+        grensLbl: g => `stookgrens ~${g}°`, comfortLbl: c => `comfort ${c}°`,
+      },
+      klim: {
+        head_good: "Kort stookseizoen", head_neutral: "Gemiddelde stookgrens", head_bad: "Lang stookseizoen", head_info: "Verwarmen en koelen",
+        stook: g => `Je zet de verwarming meestal aan als het buiten kouder is dan ~${g}. Indicatie: gemiddeld Nederlands huis ~15–16 °C, goed geïsoleerd ~12–13 °C. Hoe lager, hoe korter het stookseizoen.`,
+        stookEst: g => `Nog geen (genoeg) metingen met de verwarming aan; uit je metingen met alles uit schat Tembo de stookgrens op ~${g}.`,
+        need: "Nodig voor een conclusie: 3 metingen met alles uit én 3 met de verwarming aan, of 4 metingen met alles uit bij verschillend weer.",
+        koel: g => `Gekoeld wordt meestal vanaf ~${g} buiten. Hoe hoger, hoe beter het huis de hitte buiten houdt.`,
+        reg: p => `De verwarming haalde de ingestelde temperatuur bij ${p}% van de metingen.`,
+        regBad: p => `De verwarming haalde de ingestelde temperatuur maar bij ${p}% van de metingen: bij die kou verliest het huis meer warmte dan de verwarming bijhoudt.`,
+        fStook: "Stookgrens", fKoel: "Koelgrens", fReg: "Verwarming gehaald",
+      },
+      koel: {
+        head_good: "Airco houdt het goed bij", head_neutral: "Airco houdt het deels bij", head_bad: "Airco houdt het niet bij", head_info: "Koeltests",
+        body: (r, n) => `Gemiddeld werd het ${r} koeler (${n} test${n === 1 ? "" : "s"}).`,
+        reached: (k, n) => `De ingestelde temperatuur werd in ${k} van de ${n} tests gehaald.`,
+        notFrom: g => `Niet gehaald bij tests vanaf ~${g} buiten: dan komt er meer warmte binnen (zon, ramen, muren, dak) dan de airco wegkrijgt.`,
+        slope: v => `Per graad warmer buiten koelde het ~${v} langzamer.`,
+        fRate: "Gem. koelsnelheid", fReached: "Instelling gehaald", fOut: "Gem. buiten",
+      },
+      cool: {
+        head_good: "Houdt de warmte lang vast", head_neutral: "Gemiddelde afkoeling", head_bad: "Koelt snel af",
+        body: (tau, n) => `De tijdconstante τ is ${tau} (mediaan van ${n} test${n === 1 ? "" : "s"}).`,
+        night: d => `In de praktijk: bij 20 °C binnen en 10 °C buiten daalt het binnen in een nacht van 8 uur zonder verwarming ~${d}.`,
+        bench: "Indicatie: onder ~35 uur koelt een huis snel af (weinig isolatie of tocht), 35–70 uur is gemiddeld, boven ~70 uur houdt het de warmte goed vast.",
+        spread: (lo, hi) => `De tests liggen tussen ${lo} en ${hi}; wind, zon en ventilatie zorgen voor spreiding.`,
+        excluded: n => `${n} test(s) met verwarming/koeling aan, een stijging of een rommelige meting tellen niet mee.`,
+        need: "Nog geen afgeronde afkoeltest in deze selectie. Doe er één: 's avonds alles uit, de volgende ochtend opnieuw meten.",
+        fTau: "τ (mediaan)", fNight: "Daling per nacht", fN: "Tests",
+      },
+    },
     cfReset: "Filters wissen", cfEmpty: "Geen metingen met deze filters. Kies een ruimere periode of zet een filter op 'Alle'.",
     conFollows: l => `Volgt de filters van de grafiek 'Binnen t.o.v. buiten': ${l}.`,
     kReg_gehaald: "thermostaat", kReg_niet: "niet gehaald", kReg_boven: "boven instelling", kReg_onder: "onder instelling",
-    kRegTip_gehaald: "Binnen ≈ ingestelde temperatuur: de thermostaat bepaalde de binnentemperatuur. Deze meting telt niet mee in het isolatievergelijk.",
+    kRegTip_gehaald: "Binnen ≈ ingestelde temperatuur: de thermostaat bepaalde de binnentemperatuur. Deze meting telt niet mee in de conclusie.",
     kRegTip_niet: "De ingestelde temperatuur werd niet gehaald — het systeem kon het niet bijhouden.",
     kRegTip_boven: "Warmer dan ingesteld: de verwarming hoefde (even) niet te werken.",
     kRegTip_onder: "Koeler dan ingesteld: de airco hoefde (even) niet te koelen.",
@@ -857,7 +928,7 @@ const I18N = {
     kpGrensNeed: "nog te weinig data (min. 3 metingen 'alles uit' én 3 met het systeem aan)",
     kpCounts: "Aantal metingen per klimaat",
     kpRegPct: "Instelling gehaald",
-    kpHint: "Deze pagina blijft nuttig als het vóór/na-vergelijk er niet meer toe doet: volg over de seizoenen of je minder hoeft te stoken en te koelen. Voor het energieverbruik zelf zijn meterstanden nodig.",
+    kpHint: "Volg over de seizoenen of je minder hoeft te stoken en te koelen. Voor het energieverbruik zelf zijn meterstanden nodig.",
     pct: v => `${v}%`,
     howtoTitle: "Zo lees je deze grafiek",
     scatterTrend: g => `Trend ${g.toLowerCase()}`,
@@ -865,11 +936,11 @@ const I18N = {
     scatterRefLegend: "Vergelijkpunt (zie conclusie)",
     howtoScatter: [
       "Elke stip is één meting: van links naar rechts de buitentemperatuur, van onder naar boven de binnentemperatuur.",
-      "De gestippelde lijnen zijn trendlijnen: het gemiddelde verband tussen buiten en binnen, per periode — paars = vóór isolatie, groen = na isolatie. Ze verschijnen vanaf 3 metingen per periode.",
-      "Vergelijk de twee lijnen recht boven elkaar, dus bij dezelfde buitentemperatuur. Ligt groen hóger dan paars, dan is het na isolatie binnen warmer bij hetzelfde weer: de isolatie helpt. Ligt groen lager, dan is het na isolatie juist kouder (vaak door minder stoken, ventilatie of een ander tijdstip).",
-      "De grijze verticale stippellijn is het vergelijkpunt: daar meet Tembo de afstand tussen de lijnen. Dat getal (bijv. +0,5°) is hetzelfde verschil als rechts onder 'Conclusie'.",
-      "Een vlakkere lijn betekent dat binnen minder meebeweegt met buiten — bij metingen met alles uit wijst dat op een beter geïsoleerd huis.",
-      "Open stippen zijn thermostaat-metingen (binnen ≈ ingestelde temperatuur); die tellen niet mee in de lijnen. Stippen ver van de lijn zijn uitschieters, bijv. door zon, een open raam of net gestookt.",
+      "De gestippelde lijn is de trendlijn: het gemiddelde verband tussen buiten en binnen. Met genoeg metingen met alles uit gebruikt Tembo alleen die (vervaagde stippen tellen dan niet mee): zo zie je hoe het huis zich zonder verwarming houdt.",
+      "Een vlakke lijn betekent dat het binnen weinig meebeweegt met het weer. Hoe steiler, hoe sneller het binnen afkoelt als het buiten kouder wordt.",
+      "De horizontale stippellijn is je comfortgrens (Instellingen). Waar de trendlijn die kruist ligt je geschatte stookgrens (oranje): kouder buiten dan dat en het wordt zonder verwarming te koud binnen.",
+      "Het punt op de grijze verticale lijn is de schatting bij je referentie-buitentemperatuur; dat getal staat ook in de conclusie.",
+      "Open stippen zijn thermostaat-metingen (binnen ≈ ingestelde temperatuur); die tellen niet mee. Stippen ver van de lijn zijn uitschieters, bijv. door zon, een open raam of net gestookt.",
     ],
     howtoKlimaat: [
       "Elke stip is één meting, gekleurd naar wat er aan stond: aqua = alles uit, oranje = verwarmd, blauw = gekoeld. Open stip = binnen ≈ ingestelde temperatuur (de thermostaat regelde het).",
@@ -881,9 +952,9 @@ const I18N = {
     howtoCool: [
       "Elke stip is één afgeronde afkoeltest; van links naar rechts de datum, van onder naar boven de tijdconstante τ in uren.",
       "τ = hoe traag het huis afkoelt met verwarming en airco uit, al gecorrigeerd voor hoe koud het buiten was. Hoger = beter.",
-      "Paars = vóór isolatie, groen = na isolatie. Liggen de groene stippen hoger, dan houdt het huis de warmte na isolatie langer vast.",
+      "Indicatie: onder ~35 uur koelt een huis snel af, 35–70 uur is gemiddeld, boven ~70 uur houdt het de warmte goed vast.",
       "Vuistregel: bij τ = 100 uur daalt binnen in 8 uur ongeveer 0,8 °C als het buiten 10 °C kouder is; bij τ = 50 uur ongeveer 1,5 °C.",
-      "Tests schommelen van nature (wind, zon, bewoning). Kijk dus naar de lijn over meerdere tests, niet naar één losse stip.",
+      "Tests schommelen van nature (wind, zon, bewoning). Kijk dus naar meerdere tests, niet naar één losse stip.",
     ],
     coolHeated: "volgens 'Alle metingen' stond er tijdens deze nacht verwarming of koeling aan — test onbetrouwbaar",
     coolRise: "de temperatuur steeg tussendoor (verwarming, zon of een open deur?) — test mogelijk onbetrouwbaar",
@@ -905,7 +976,7 @@ const I18N = {
     howtoKoel: [
       "Elke stip is één koeltest: van links naar rechts de gemiddelde buitentemperatuur tijdens het koelen, van onder naar boven hoe snel het binnen koeler werd (°C per uur).",
       "Hoe warmer het buiten, hoe harder de airco moet werken; stippen rechts liggen daardoor meestal lager.",
-      "Vergelijk tests bij ongeveer dezelfde buitentemperatuur. Na isolatie (groen) hoort de koelsnelheid hoger te liggen dan ervoor (paars), omdat er minder warmte door de muren naar binnen komt.",
+      "Vergelijk tests bij ongeveer dezelfde buitentemperatuur: een hogere koelsnelheid betekent dat er minder warmte door muren, ramen en dak naar binnen komt.",
       "Werd de ingestelde temperatuur niet gehaald ('niet gehaald' in de tabel), dan was de airco op zijn grens — een teken van veel warmte-instroom (zon, slecht geïsoleerde ramen of muren).",
     ],
     howtoK: {
@@ -934,7 +1005,7 @@ const I18N = {
     tpN: n => `${n} meting${n===1?"":"en"}`,
     tlInAvg: "Binnen (daggemiddelde)", tlOutAvg: "Buiten (daggemiddelde)", tlOutBand: "Buiten laagste – hoogste",
     tFill: "Gaten aanvullen", tlFill: "Binnen geschat (aangevuld)", ttFill: "Binnen geschat",
-    fillNote: (n, out) => `Gestippelde oranje lijn = geschat, waar je meer dan 36 uur niet gemeten hebt (tot 14 dagen). Berekend uit ${n} vergelijkbare metingen (zelfde fase vóór/na isolatie en zelfde klimaatstand): het gemiddelde dagverloop binnen${out ? " en de online buitentemperatuur per uur" : ""}, en altijd precies aansluitend op je echte meting ervóór en erna. Telt niet mee in conclusies, tabellen of export.`,
+    fillNote: (n, out) => `Gestippelde oranje lijn = geschat, waar je meer dan 36 uur niet gemeten hebt (tot 14 dagen). Berekend uit ${n} vergelijkbare metingen (zelfde ruimte en klimaatstand): het gemiddelde dagverloop binnen${out ? " en de online buitentemperatuur per uur" : ""}, en altijd precies aansluitend op je echte meting ervóór en erna. Telt niet mee in conclusies, tabellen of export.`,
     fillTtNote: n => `op basis van ${n} vergelijkbare metingen`,
     tlDiffAvg: "Verschil (daggemiddelde)", tlDiffBand: "Laagste – hoogste van de dag",
     tblRecent: n => `Laatste ${n} meting${n===1?"":"en"}`,
@@ -945,7 +1016,7 @@ const I18N = {
     srcOwnHint: v => v === null ? "Vul je eigen buitentemperatuur in." : `Eigen meting (online was ${v}).`,
     srcOnlineWas: v => `online: ${v}`,
     setRef: "Referentie-buitentemperatuur (°C)",
-    setRefHint: "Voor de schatting 'binnen bij X °C buiten' in het vergelijk vóór/na.",
+    setRefHint: "Tembo schat in de conclusie hoe warm het binnen is bij deze buitentemperatuur.",
     importTitle: "Importeer metingen",
     importNote: "Kies een Excel- (.xlsx) of CSV-bestand met kolommen zoals Datum, Tijd, Temp woonkamer/binnen en Temp buiten. Dubbele metingen (zelfde datum, tijd en ruimte) worden overgeslagen. Een Tembo-back-up (.json) vervangt alle huidige gegevens.",
     importDrop: "Klik of sleep een bestand hierheen",
@@ -975,7 +1046,7 @@ const I18N = {
     errDate: "Enter a date.",
     chartTime: "Temperature over time",
     chartScatter: "Indoor vs. outdoor",
-    chartScatterNote: "Each dot is one reading. If the line after insulation sits higher than before, it stays warmer inside at the same outdoor temperature.",
+    chartScatterNote: "Each dot is one reading. The line shows how much indoor moves with outdoor.",
     chartNeed: "Not enough readings for this chart yet.",
     lBinnen: "Indoor", lBuiten: "Outdoor", lVoor: "Before insulation", lNa: "After insulation", lAlle: "Readings", lIsolatie: "Insulation",
     tableTitle: "Readings",
@@ -1069,7 +1140,7 @@ const I18N = {
     coolErrStart: "Enter start date, start time and indoor temperature at the start.",
     coolErrOrder: "The end must be after the start.",
     coolChart: "Time constant per test",
-    coolChartNote: "Time constant τ = how slowly your house cools down, in hours. Higher means the warmth stays in better. After insulation τ should go up.",
+    coolChartNote: "Time constant τ = how slowly your house cools down, in hours. Higher means the warmth stays in better.",
     coolNeed: "No completed cool-down test yet.",
     coolTable: "Cool-down tests",
     coolNoRows: "No cool-down tests yet. Start one tonight.",
@@ -1116,10 +1187,73 @@ const I18N = {
     kFormHint: "Everything is Off by default. Switch on what was running, with the set temperature. Tembo remembers your previous choice.",
     kStatus_vrij: "All off", kStatus_verwarmen: "Heated", kStatus_koelen: "Cooled", kStatus_onbekend: "Unknown", kStatus_gemengd: "Mixed",
     kFilterLabel: "Climate",
+    setComfort: "Indoor comfort limit (°C)",
+    setComfortHint: "Below this indoor temperature you find it too cold. Tembo uses it for the estimated heating threshold and the conclusions.",
+    sumHouse: "How does your house hold up?",
+    con2: {
+      time: {
+        head_good: "Indoor stays stable", head_neutral: "Indoor moves moderately with outdoor", head_bad: "Indoor moves strongly with outdoor", head_info: "This period at a glance",
+        need: "Too few readings in view for a conclusion (at least 3). Zoom out or pick a longer period.",
+        body: (ro, ri, pct, b) => `In view, outdoor varied by ${ro} and indoor by ${ri}${b}: indoor moved ${pct}% along. The lower that percentage, the better the house damps outdoor swings (insulation and thermal mass). Indication: below 25% good, above 50% a lot.`,
+        basisVrij: " (readings with everything off)",
+        smallOut: ro => `Outdoor varied only ${ro}; too little to say anything about damping.`,
+        regNote: n => `${n} reading(s) where the thermostat set the temperature are left out of the damping.`,
+        cold: (k, n, c) => `${k} of the ${n} readings were below your comfort limit of ${c}.`,
+        allComfort: c => `All readings were at or above your comfort limit of ${c}.`,
+        fAvgIn: "Avg. indoor", fAvgOut: "Avg. outdoor", fDiff: "Avg. difference", fSwing: "Swing indoor / outdoor",
+      },
+      fit: {
+        head_good: "Stays warm long without heating", head_neutral: "Cools noticeably without heating", head_bad: "Cools quickly without heating", head_heat: "The thermostat sets the indoor temperature here",
+        heat: "With heating or AC on, indoor mainly follows the setting, not the weather. Set the climate filter to 'All' or 'Everything off' for a conclusion about how the house itself holds warmth.",
+        need: (n, r) => `Needed: at least 4 readings without thermostat control spanning at least 4 °C of outdoor temperature. Now: ${n} readings, ${r} span. Measure in different weather (cold morning, mild afternoon).`,
+        srcVrij: "Without heating or AC", srcAll: "With your normal use",
+        pred: (src, ref, v, pm) => `${src} indoor is estimated at ${v} (± ${pm}) when it is ${ref} outside.`,
+        slope: b => `For every degree colder outside, indoor gets ~${b} colder.`,
+        grens: (g, c) => `Colder than ~${g} outside, indoor is expected to drop below your comfort limit of ${c}: that is your estimated heating threshold. Indication: average Dutch home ~15–16 °C, well insulated ~12–13 °C — the lower, the shorter the heating season.`,
+        flatOk: c => `Indoor stays above your comfort limit of ${c} across the measured range.`,
+        flatLow: c => `Indoor is already below your comfort limit of ${c} across the measured range.`,
+        extrap: "Note: this lies outside the measured outdoor temperatures; the estimate extends the line and is therefore uncertain.",
+        heatShare: p => `In ${p}% of these readings heating or AC was on (without reaching the setting); that makes the estimate warmer than the house is without heating. More readings with everything off make the conclusion cleaner.`,
+        excluded: n => `${n} thermostat reading(s) are left out.`,
+        vrijOnly: "Based on readings with everything off — the cleanest picture.",
+        fPred: r => `Indoor at ${r} outdoor`, fSlope: "Per °C colder outside", fGrens: "Est. heating threshold", fN: "Readings",
+        dpVal: (v, g) => `~${v}${g ? " · threshold ~" + g : ""}`, dpNeed: n => `${n} readings`,
+        lTrend: "Trend", lTrendVrij: "Trend (everything off)", lComfort: "Comfort limit", lGrens: "Heating threshold", lFaded: "not in trend", lRef: "Estimate at reference",
+        grensLbl: g => `threshold ~${g}°`, comfortLbl: c => `comfort ${c}°`,
+      },
+      klim: {
+        head_good: "Short heating season", head_neutral: "Average heating threshold", head_bad: "Long heating season", head_info: "Heating and cooling",
+        stook: g => `You usually switch the heating on when it is colder than ~${g} outside. Indication: average Dutch home ~15–16 °C, well insulated ~12–13 °C. The lower, the shorter the heating season.`,
+        stookEst: g => `No (or too few) readings with heating on yet; from your readings with everything off Tembo estimates the heating threshold at ~${g}.`,
+        need: "Needed for a conclusion: 3 readings with everything off and 3 with heating on, or 4 readings with everything off in different weather.",
+        koel: g => `Cooling usually starts from ~${g} outside. The higher, the better the house keeps the heat out.`,
+        reg: p => `The heating reached the set temperature in ${p}% of the readings.`,
+        regBad: p => `The heating reached the set temperature in only ${p}% of the readings: in that cold the house loses more heat than the heating can keep up with.`,
+        fStook: "Heating threshold", fKoel: "Cooling threshold", fReg: "Heating reached",
+      },
+      koel: {
+        head_good: "AC keeps up well", head_neutral: "AC partly keeps up", head_bad: "AC cannot keep up", head_info: "Cooling tests",
+        body: (r, n) => `On average it got ${r} cooler (${n} test${n === 1 ? "" : "s"}).`,
+        reached: (k, n) => `The set temperature was reached in ${k} of the ${n} tests.`,
+        notFrom: g => `Not reached in tests from ~${g} outside: more heat comes in then (sun, windows, walls, roof) than the AC removes.`,
+        slope: v => `For every degree warmer outside it cooled ~${v} slower.`,
+        fRate: "Avg. cooling rate", fReached: "Setting reached", fOut: "Avg. outdoor",
+      },
+      cool: {
+        head_good: "Holds warmth for a long time", head_neutral: "Average cool-down", head_bad: "Cools down quickly",
+        body: (tau, n) => `The time constant τ is ${tau} (median of ${n} test${n === 1 ? "" : "s"}).`,
+        night: d => `In practice: at 20 °C indoor and 10 °C outdoor, indoor drops ~${d} in an 8-hour night without heating.`,
+        bench: "Indication: below ~35 hours a house cools quickly (little insulation or draughts), 35–70 hours is average, above ~70 hours it holds the warmth well.",
+        spread: (lo, hi) => `The tests range from ${lo} to ${hi}; wind, sun and ventilation cause spread.`,
+        excluded: n => `${n} test(s) with heating/cooling on, a rise or a rough fit are left out.`,
+        need: "No completed cool-down test in this selection yet. Do one: everything off in the evening, measure again the next morning.",
+        fTau: "τ (median)", fNight: "Drop per night", fN: "Tests",
+      },
+    },
     cfReset: "Clear filters", cfEmpty: "No readings with these filters. Pick a longer period or set a filter to 'All'.",
     conFollows: l => `Follows the filters of the 'Indoor vs. outdoor' chart: ${l}.`,
     kReg_gehaald: "thermostat", kReg_niet: "not reached", kReg_boven: "above setting", kReg_onder: "below setting",
-    kRegTip_gehaald: "Indoor ≈ set temperature: the thermostat determined the indoor temperature. This reading is left out of the insulation comparison.",
+    kRegTip_gehaald: "Indoor ≈ set temperature: the thermostat determined the indoor temperature. This reading is left out of the conclusion.",
     kRegTip_niet: "The set temperature was not reached — the system could not keep up.",
     kRegTip_boven: "Warmer than set: the heating did not need to run (for a while).",
     kRegTip_onder: "Cooler than set: the AC did not need to cool (for a while).",
@@ -1155,7 +1289,7 @@ const I18N = {
     kpGrensNeed: "not enough data yet (min. 3 readings 'all off' and 3 with the system on)",
     kpCounts: "Readings per climate",
     kpRegPct: "Setting reached",
-    kpHint: "This page stays useful once the before/after comparison no longer matters: follow across seasons whether you need to heat and cool less. Energy use itself needs meter readings.",
+    kpHint: "Follow across seasons whether you need to heat and cool less. Energy use itself needs meter readings.",
     pct: v => `${v}%`,
     howtoTitle: "How to read this chart",
     scatterTrend: g => `Trend ${g.toLowerCase()}`,
@@ -1163,11 +1297,11 @@ const I18N = {
     scatterRefLegend: "Comparison point (see conclusion)",
     howtoScatter: [
       "Each dot is one reading: left to right the outdoor temperature, bottom to top the indoor temperature.",
-      "The dashed lines are trend lines: the average relation between outdoor and indoor, per period — purple = before insulation, green = after. They appear from 3 readings per period.",
-      "Compare the two lines straight above each other, i.e. at the same outdoor temperature. If green sits higher than purple, it is warmer indoors after insulation in the same weather: the insulation helps. If green is lower, it is colder after insulation (often due to less heating, ventilation or a different time of day).",
-      "The grey vertical dotted line is the comparison point: that is where Tembo measures the gap between the lines. That number (e.g. +0.5°) is the same difference as under 'Conclusion' on the right.",
-      "A flatter line means indoor moves less with outdoor — for readings with everything off, that points to a better insulated house.",
-      "Open dots are thermostat readings (indoor ≈ set temperature); they are not used for the lines. Dots far from the line are outliers, e.g. from sun, an open window or recent heating.",
+      "The dotted line is the trend line: the average relation between outdoor and indoor. With enough readings with everything off, Tembo uses only those (faded dots are then left out): that shows how the house holds up without heating.",
+      "A flat line means indoor hardly moves with the weather. The steeper, the faster indoor cools when it gets colder outside.",
+      "The horizontal dotted line is your comfort limit (Settings). Where the trend line crosses it is your estimated heating threshold (orange): colder outside than that and it gets too cold indoors without heating.",
+      "The point on the grey vertical line is the estimate at your reference outdoor temperature; that number is also in the conclusion.",
+      "Open dots are thermostat readings (indoor ≈ set temperature); they are left out. Dots far from the line are outliers, e.g. sun, an open window or recent heating.",
     ],
     howtoKlimaat: [
       "Each dot is one reading, coloured by what was on: aqua = all off, orange = heated, blue = cooled. Open dot = indoor ≈ set temperature (the thermostat was in control).",
@@ -1179,9 +1313,9 @@ const I18N = {
     howtoCool: [
       "Each dot is one completed cool-down test; left to right the date, bottom to top the time constant τ in hours.",
       "τ = how slowly the house cools with heating and AC off, already corrected for how cold it was outside. Higher = better.",
-      "Purple = before insulation, green = after. If the green dots sit higher, the house holds its warmth longer after insulation.",
-      "Rule of thumb: with τ = 100 hours indoor drops about 0.8 °C in 8 hours when it is 10 °C colder outside; with τ = 50 hours about 1.5 °C.",
-      "Tests vary naturally (wind, sun, occupancy). Look at the trend over several tests, not one single dot.",
+      "Indication: below ~35 hours a house cools quickly, 35–70 hours is average, above ~70 hours it holds the warmth well.",
+      "Rule of thumb: at τ = 100 hours indoor drops about 0.8 °C in 8 hours when it is 10 °C colder outside; at τ = 50 hours about 1.5 °C.",
+      "Tests vary naturally (wind, sun, occupants). Look at several tests rather than one dot.",
     ],
     coolHeated: "according to 'All readings' heating or cooling was on during this night — test unreliable",
     coolRise: "temperature rose in between (heating, sun or an open door?) — test may be unreliable",
@@ -1203,7 +1337,7 @@ const I18N = {
     howtoKoel: [
       "Each dot is one cooling test: left to right the average outdoor temperature while cooling, bottom to top how quickly indoor got cooler (°C per hour).",
       "The warmer outside, the harder the AC has to work; dots on the right therefore usually sit lower.",
-      "Compare tests at roughly the same outdoor temperature. After insulation (green) the cooling rate should be higher than before (purple), because less heat comes in through the walls.",
+      "Compare tests at roughly the same outdoor temperature: a higher cooling rate means less heat comes in through walls, windows and roof.",
       "If the set temperature was not reached ('not reached' in the table), the AC was at its limit — a sign of a lot of heat coming in (sun, poorly insulated windows or walls).",
     ],
     howtoK: {
@@ -1232,7 +1366,7 @@ const I18N = {
     tpN: n => `${n} reading${n===1?"":"s"}`,
     tlInAvg: "Indoor (daily avg.)", tlOutAvg: "Outdoor (daily avg.)", tlOutBand: "Outdoor lowest – highest",
     tFill: "Fill gaps", tlFill: "Indoor estimated (filled)", ttFill: "Indoor estimated",
-    fillNote: (n, out) => `Dotted orange line = estimated, where you did not measure for more than 36 hours (up to 14 days). Calculated from ${n} comparable readings (same phase before/after insulation and same climate mode): the average indoor daily pattern${out ? " and the hourly online outdoor temperature" : ""}, always joining your real reading before and after exactly. Not used in conclusions, tables or export.`,
+    fillNote: (n, out) => `Dotted orange line = estimated, where you did not measure for more than 36 hours (up to 14 days). Calculated from ${n} comparable readings (same room and climate mode): the average indoor daily pattern${out ? " and the hourly online outdoor temperature" : ""}, always joining your real reading before and after exactly. Not used in conclusions, tables or export.`,
     fillTtNote: n => `based on ${n} comparable readings`,
     tlDiffAvg: "Difference (daily avg.)", tlDiffBand: "Lowest – highest of the day",
     tblRecent: n => `Latest ${n} reading${n===1?"":"s"}`,
@@ -1243,7 +1377,7 @@ const I18N = {
     srcOwnHint: v => v === null ? "Enter your own outdoor temperature." : `Own reading (online was ${v}).`,
     srcOnlineWas: v => `online: ${v}`,
     setRef: "Reference outdoor temperature (°C)",
-    setRefHint: "Used for the 'indoor at X °C outdoor' estimate in the before/after comparison.",
+    setRefHint: "In the conclusion Tembo estimates how warm it is indoors at this outdoor temperature.",
     importTitle: "Import readings",
     importNote: "Pick an Excel (.xlsx) or CSV file with columns like Date, Time, Indoor/living room temp and Outdoor temp. Duplicate readings (same date, time and room) are skipped. A Tembo backup (.json) replaces all current data.",
     importDrop: "Click or drop a file here",
@@ -1264,7 +1398,7 @@ function newId(){ return "m" + Date.now().toString(36) + Math.random().toString(
 function emptyState(){
   return {
     version: 1, lang: "nl", darkMode: false,
-    settings: { isolatieDatum: "", defaultRuimte: "Woonkamer", ruimtes: ["Woonkamer"], refBuiten: 10, locatie: null, autoBuiten: true, lastKlimaat: { cv:"uit", cvTemp:20, airco:"uit", aircoTemp:21 } },
+    settings: { comfortTemp: 19, defaultRuimte: "Woonkamer", ruimtes: ["Woonkamer"], refBuiten: 10, locatie: null, autoBuiten: true, lastKlimaat: { cv:"uit", cvTemp:20, airco:"uit", aircoTemp:21 } },
     metingen: [],
     afkoeltests: [],
     activeView: { type: "overview" },
@@ -1281,6 +1415,8 @@ function migrateState(){
   if(!state || typeof state !== "object") state = d;
   if(!state.settings) state.settings = d.settings;
   for(const k of Object.keys(d.settings)) if(state.settings[k] === undefined) state.settings[k] = d.settings[k];
+  delete state.settings.isolatieDatum;     // vóór/na-isolatie is vervallen (v19)
+  if(typeof state.settings.comfortTemp !== "number" || !isFinite(state.settings.comfortTemp)) state.settings.comfortTemp = 19;
   if(!Array.isArray(state.metingen)) state.metingen = [];
   if(!Array.isArray(state.afkoeltests)) state.afkoeltests = [];
   if(!Array.isArray(state.afkoelGenegeerd)) state.afkoelGenegeerd = [];
@@ -1446,7 +1582,7 @@ function validISODate(v){ const m = /^(\d{4})-(\d{2})-(\d{2})$/.exec(v || ""); r
 function monthKey(iso){ return iso ? iso.slice(0,7) : ""; }
 function monthLabel(key){ const [y,m] = key.split("-").map(Number); const n = t("monthNames")[m-1]; return n.charAt(0).toUpperCase() + n.slice(1) + " " + y; }
 function sortedMetingen(list){ return list.slice().sort((a,b) => tsOf(a) - tsOf(b)); }
-function phaseOf(m){ const iso = state.settings.isolatieDatum; if(!iso) return null; return m.datum < iso ? "voor" : "na"; }
+function phaseOf(m){ return null; }      // vóór/na-isolatie vervallen: geen fases meer
 function avg(arr){ return arr.length ? arr.reduce((a,b)=>a+b,0) / arr.length : null; }
 function linReg(points){
   // Kleinste-kwadraten-lijn y = a + b·x; null als er te weinig punten/spreiding is.
@@ -1959,8 +2095,8 @@ function renderMain(){
     if(!formModeTouched) formBuitenMode = (state.settings.locatie && state.settings.autoBuiten) ? "online" : "eigen";
     html += cardHTML(ICONS.plus, t("newEntry"), entryFormHTML());
   }
-  html += cardHTML(ICONS.therm, t("chartTime"), `<div id="timeToolbar">${timeToolbarHTML()}</div><div id="timeChart"></div>`);
-  html += cardHTML(ICONS.scatter, t("chartScatter"), `${cfBarHTML("scatter")}<div id="scatterChart"></div>${howtoHTML("howtoScatter")}${scatterBasis()==="24" ? `<p class="card-note" style="margin-top:6px;">${escapeHtml(t("basis24Hint"))}</p>` : ""}`, basisToggleHTML());
+  html += cardHTML(ICONS.therm, t("chartTime"), `<div id="timeToolbar">${timeToolbarHTML()}</div><div id="timeChart"></div><div id="timeCon" class="chart-con"></div>`);
+  html += cardHTML(ICONS.scatter, t("chartScatter"), `${cfBarHTML("scatter")}<div id="scatterChart"></div><div id="scatterCon" class="chart-con"></div>${howtoHTML("howtoScatter")}${scatterBasis()==="24" ? `<p class="card-note" style="margin-top:6px;">${escapeHtml(t("basis24Hint"))}</p>` : ""}`, basisToggleHTML());
   html += cardHTML(ICONS.list, t("tableTitle"), tableHTML(list), String(list.length));
   main.innerHTML = html;
   if(v.type === "overview"){ restoreFormDraft(); wireEntryForm(); }
@@ -2649,6 +2785,7 @@ function drawTimeChart(el, listAll, fast){
   wireTimeZoom(el);
   const w = timeWindow(listAll);
   const list = listAll.filter(m => { const ts = tsOf(m); return ts >= w.start && ts < w.end; });
+  if(!fast){ const ce = document.getElementById("timeCon"); if(ce && el.id === "timeChart") ce.innerHTML = timeConclusionHTML(list); }
   const hourly = (!fast || el._hourlyOk) ? hourlyOnlineFor(w, () => { if(document.getElementById("timeChart") === el) drawTimeChart(el, timeList()); }) : null;
   const span = (w.end - w.start) / DAY;
   const daily = span > 10.5;
@@ -2811,11 +2948,11 @@ function drawScatterChart(el, listAll){
   const basis = scatterBasis();
   const list = listAll.filter(p => xOf(p, basis) !== null);
   const missing = listAll.length - list.length;
+  const an = houseFit(listAll, basis);
+  const conEl = document.getElementById("scatterCon"); if(conEl) conEl.innerHTML = fitConclusionHTML(an);
   if(list.length < 2){ el.innerHTML = `<div class="chart-empty">${escapeHtml(cfActive("scatter") ? t("cfEmpty") : t("chartNeed"))}${missing ? "<br>" + escapeHtml(t("basis24Missing")(missing)) : ""}</div>`; return; }
-  const hasIso = !!state.settings.isolatieDatum;
-  const groups = hasIso
-    ? [{ key:"voor", label:t("lVoor"), color:"var(--c-voor)", pts:list.filter(p=>phaseOf(p)==="voor") }, { key:"na", label:t("lNa"), color:"var(--c-na)", pts:list.filter(p=>phaseOf(p)==="na") }].filter(g => g.pts.length)
-    : [{ key:"alle", label:t("lAlle"), color:"var(--accent)", pts:list }];
+  const C = t("con2").fit, col = "var(--accent)", cGrens = "var(--k-verw)";
+  const inTrend = new Set((an.r ? an.use : []).map(p => p.id));
   const W = chartWidth(el), H = Math.round(Math.min(320, Math.max(220, W*0.42)));
   const m = { l:42, r:16, t:28, b:36 };
   const iw = W - m.l - m.r, ih = H - m.t - m.b;
@@ -2827,39 +2964,38 @@ function drawScatterChart(el, listAll){
   let grid = yt.ticks.map(v => `<line x1="${m.l}" x2="${m.l+iw}" y1="${Y(v)}" y2="${Y(v)}" stroke="var(--grid)"/><text x="${m.l-8}" y="${Y(v)+4}" text-anchor="end">${nf(v)}°</text>`).join("");
   grid += xt.ticks.map(v => `<line x1="${X(v)}" x2="${X(v)}" y1="${m.t}" y2="${m.t+ih}" stroke="var(--grid)"/><text x="${X(v)}" y="${m.t+ih+16}" text-anchor="middle">${nf(v)}°</text>`).join("");
   grid += `<text x="${m.l+iw}" y="${H-2}" text-anchor="end">${escapeHtml(basis==="24" ? t("basis24") : t("lBuiten"))} →</text><text x="${m.l-34}" y="${m.t-16}">${escapeHtml(t("lBinnen"))} ↑</text>`;
-  // Trendlijnen uit precies dezelfde metingen als de conclusie rechts (zelfde filter, zonder
-  // thermostaat-metingen, en bij genoeg "alles uit"-metingen alleen die), zodat grafiek en
-  // conclusie altijd hetzelfde verhaal vertellen.
-  const an = hasIso ? analyzeBest(listAll, basis) : null;
-  const trendSet = p => !isRegulated(p) && (!an || !an.vrijOnly || klimaatOf(p).mode === "vrij");
-  let lines = "", dots = "", marker = "", markerTop = "";
-  const trendKeys = [];
-  groups.forEach(g => {
-    const free = g.pts.filter(trendSet);
-    const reg = linReg(free.map(p => ({ x:xOf(p,basis), y:p.binnen })));
-    if(reg && free.length >= 3){
-      lines += `<line x1="${X(reg.minX)}" y1="${Y(reg.a+reg.b*reg.minX)}" x2="${X(reg.maxX)}" y2="${Y(reg.a+reg.b*reg.maxX)}" stroke="${g.color}" stroke-width="2" stroke-dasharray="6 4" opacity=".9"/>`;
-      trendKeys.push(g);
+  let marks = "", top = "";
+  const comfort = comfortT();
+  const showComfort = comfort >= yt.lo && comfort <= yt.hi;
+  if(showComfort) marks += `<line x1="${m.l}" x2="${m.l+iw}" y1="${Y(comfort)}" y2="${Y(comfort)}" stroke="var(--text-soft)" stroke-width="1.2" stroke-dasharray="3 4"/><text x="${m.l+iw-4}" y="${Y(comfort)-5}" text-anchor="end" class="lbl-soft">${escapeHtml(C.comfortLbl(nf(comfort)))}</text>`;
+  if(an.r){
+    const r = an.r;
+    marks += `<line x1="${X(r.minX)}" y1="${Y(r.a + r.b*r.minX)}" x2="${X(r.maxX)}" y2="${Y(r.a + r.b*r.maxX)}" stroke="${col}" stroke-width="2" stroke-dasharray="6 4" opacity=".9"/>`;
+    if(an.grens !== undefined && an.grens >= xt.lo && an.grens <= xt.hi){
+      const xg = X(an.grens), right = xg > m.l + iw - 110;
+      marks += `<line x1="${xg}" x2="${xg}" y1="${m.t}" y2="${m.t+ih}" stroke="${cGrens}" stroke-width="1.5" stroke-dasharray="5 4"/><text x="${right ? xg - 5 : xg + 5}" y="${m.t+ih-6}" text-anchor="${right ? "end" : "start"}" class="lbl-strong" style="fill:${cGrens}">${escapeHtml(C.grensLbl(nf(Math.round(an.grens))))}</text>`;
     }
-    dots += g.pts.map(p => isRegulated(p)
-      ? `<circle cx="${X(xOf(p,basis))}" cy="${Y(p.binnen)}" r="4.5" fill="var(--paper)" stroke="${g.color}" stroke-width="2" data-id="${p.id}"/>`
-      : `<circle cx="${X(xOf(p,basis))}" cy="${Y(p.binnen)}" r="5" fill="${g.color}" stroke="var(--paper)" stroke-width="2" data-id="${p.id}" data-g="${g.key}"/>`).join("");
-  });
-  // Vergelijkpunt: waar de conclusie rechts de twee lijnen vergelijkt.
-  const showMarker = an && an.status !== "insufficient" && an.ref >= xt.lo && an.ref <= xt.hi;
-  if(showMarker){
-    const xr = X(an.ref), yv = Y(an.ev), yn = Y(an.en);
-    const lx = xr > m.l + iw - 90 ? xr - 8 : xr + 8, anchor = xr > m.l + iw - 90 ? "end" : "start";
-    marker = `<line x1="${xr}" x2="${xr}" y1="${m.t}" y2="${m.t+ih}" stroke="var(--text-soft)" stroke-width="1.2" stroke-dasharray="2 3"/>
-      <line x1="${xr}" x2="${xr}" y1="${Math.min(yv,yn)}" y2="${Math.max(yv,yn)}" stroke="var(--text)" stroke-width="2"/>
-      <circle cx="${xr}" cy="${yv}" r="4" fill="var(--c-voor)" stroke="var(--paper)" stroke-width="1.5"/>
-      <circle cx="${xr}" cy="${yn}" r="4" fill="var(--c-na)" stroke="var(--paper)" stroke-width="1.5"/>
-      <text x="${lx}" y="${(yv+yn)/2 + 4}" text-anchor="${anchor}" class="lbl-strong">${escapeHtml(fmtDelta(an.diff).replace(" °C","°"))}</text>`;
-    markerTop = `<text x="${xr}" y="${m.t - 4}" text-anchor="middle">${escapeHtml(t("scatterRef")(nf(an.ref)))}</text>`;
+    if(an.ref >= xt.lo && an.ref <= xt.hi){
+      const xr = X(an.ref), yp = Y(an.pred), right = xr > m.l + iw - 70;
+      marks += `<line x1="${xr}" x2="${xr}" y1="${m.t}" y2="${m.t+ih}" stroke="var(--text-soft)" stroke-width="1.2" stroke-dasharray="2 3"/><circle cx="${xr}" cy="${yp}" r="5" fill="var(--paper)" stroke="var(--text)" stroke-width="2"/><text x="${right ? xr - 9 : xr + 9}" y="${yp - 8}" text-anchor="${right ? "end" : "start"}" class="lbl-strong">~${escapeHtml(fmtT(an.pred).replace(" °C","°"))}</text>`;
+      top = `<text x="${xr}" y="${m.t - 4}" text-anchor="middle">${escapeHtml(t("scatterRef")(nf(an.ref)))}</text>`;
+    }
   }
-  const legendTrend = trendKeys.map(g => `<span class="key"><i class="sw dashc" style="border-color:${g.color}"></i>${escapeHtml(t("scatterTrend")(g.key === "voor" ? t("lVoor") : g.key === "na" ? t("lNa") : t("lAlle")))}${an && an.vrijOnly ? " · " + escapeHtml(t("kStatus_vrij").toLowerCase()) : ""}</span>`).join("");
-  el.innerHTML = `<div class="chart-legend">${groups.map(g => `<span class="key"><i class="sw dot" style="background:${g.color}"></i>${escapeHtml(g.label)} (${g.pts.length})</span>`).join("")}${legendTrend}${showMarker ? `<span class="key"><i class="sw dashc" style="border-color:var(--text-soft); border-top-style:dotted"></i>${escapeHtml(t("scatterRefLegend"))}</span>` : ""}${list.some(isRegulated) ? `<span class="key"><i class="sw dot hollow"></i>${escapeHtml(t("scatterHollow"))}</span>` : ""}</div>
-    <div class="chart-wrap"><svg viewBox="0 0 ${W} ${H}" role="img" aria-label="${escapeHtml(t("chartScatter"))}">${xyClipDef("scatter", m, iw, ih)}${grid}${markerTop}<g clip-path="url(#xyc-scatter)">${lines}${marker}${dots}</g></svg></div>${xyBarHTML(el)}${missing ? `<p class="card-note" style="margin-top:6px;">${escapeHtml(t("basis24Missing")(missing))}</p>` : ""}`;
+  const dots = list.map(p => {
+    const cx = X(xOf(p,basis)), cy = Y(p.binnen);
+    if(isRegulated(p)) return `<circle cx="${cx}" cy="${cy}" r="4.5" fill="var(--paper)" stroke="${col}" stroke-width="2" data-id="${p.id}"/>`;
+    const faded = an.r && !inTrend.has(p.id);
+    return `<circle cx="${cx}" cy="${cy}" r="5" fill="${col}" stroke="var(--paper)" stroke-width="2" data-id="${p.id}" ${faded ? 'opacity=".3"' : ""}/>`;
+  }).join("");
+  const key = (sw, l) => `<span class="key">${sw}${escapeHtml(l)}</span>`;
+  const legend = key(`<i class="sw dot" style="background:${col}"></i>`, `${t("lAlle")} (${list.length})`)
+    + (an.r ? key(`<i class="sw dashc" style="border-color:${col}"></i>`, an.vrijOnly ? C.lTrendVrij : C.lTrend) : "")
+    + (an.r && list.some(p => !isRegulated(p) && !inTrend.has(p.id)) ? key(`<i class="sw dot" style="background:${col}; opacity:.3"></i>`, C.lFaded) : "")
+    + (showComfort ? key(`<i class="sw dashc" style="border-color:var(--text-soft); border-top-style:dotted"></i>`, C.lComfort) : "")
+    + (an.grens !== undefined ? key(`<i class="sw dashc" style="border-color:${cGrens}"></i>`, C.lGrens) : "")
+    + (list.some(isRegulated) ? key(`<i class="sw dot hollow"></i>`, t("scatterHollow")) : "");
+  el.innerHTML = `<div class="chart-legend">${legend}</div>
+    <div class="chart-wrap"><svg viewBox="0 0 ${W} ${H}" role="img" aria-label="${escapeHtml(t("chartScatter"))}">${xyClipDef("scatter", m, iw, ih)}${grid}${top}<g clip-path="url(#xyc-scatter)">${marks}${dots}</g></svg></div>${xyBarHTML(el)}${missing ? `<p class="card-note" style="margin-top:6px;">${escapeHtml(t("basis24Missing")(missing))}</p>` : ""}`;
   xyFinish(el, { W, m, iw, ih }, () => drawScatterChart(el, listAll), list.map(p => ({ x: xOf(p, basis), y: p.binnen })));
   const wrap = el.querySelector(".chart-wrap"), svgEl = wrap.querySelector("svg"), tip = attachTooltip(wrap);
   svgEl.addEventListener("pointermove", ev => {
@@ -2869,93 +3005,159 @@ function drawScatterChart(el, listAll){
     if(!xyInView(el, px, py)){ tip.hide(); return; }
     list.forEach(p => { const d = Math.hypot(X(xOf(p,basis)) - px, Y(p.binnen) - py); if(d < bd){ bd = d; best = p; } });
     if(!best){ tip.hide(); return; }
-    const g = groups.find(gg => gg.pts.includes(best));
-    tip.show(`<div class="tt-head">${escapeHtml(fmtDate(best.datum, true))}${best.tijd ? " · " + escapeHtml(best.tijd) : ""}</div>
-      ${ttRow(g.color, t("lBinnen"), fmtT(best.binnen))}${ttRow(g.color, t("lBuiten"), fmtT(best.buiten))}${has24(best) ? ttRow(g.color, t("basis24"), fmtT(best.buiten24)) : ""}`, X(xOf(best,basis))/scale, Y(best.binnen)/scale);
+    const tag = klimaatTag(best);
+    tip.show(`<div class="tt-head">${escapeHtml(fmtDate(best.datum, true))}${best.tijd ? " · " + escapeHtml(best.tijd) : ""}${best.ruimte ? " · " + escapeHtml(best.ruimte) : ""}</div>
+      ${ttRow(col, t("lBinnen"), fmtT(best.binnen))}${ttRow(col, t("lBuiten"), fmtT(best.buiten))}${has24(best) ? ttRow(col, t("basis24"), fmtT(best.buiten24)) : ""}${ttRow(col, tag.txt, "")}`, X(xOf(best,basis))/scale, Y(best.binnen)/scale);
   });
   svgEl.addEventListener("pointerleave", () => tip.hide());
 }
 
-
-/* ================= CONCLUSIE VÓÓR / NA =================
-   Vergelijkt bij dezelfde buitentemperatuur (referentie, of het midden van het bereik dat in
-   beide periodes gemeten is) de geschatte binnentemperatuur vóór en na isolatie. Onzekerheid:
-   de standaardfout van beide schattingen (regressie) gecombineerd, met een ondergrens van 0,3 °C
-   voor de nauwkeurigheid van een gewone thermometer. Het oordeel:
-   - verschil > +marge  → isolatie biedt meerwaarde
-   - verschil < −marge  → na isolatie juist koeler (geen meerwaarde zichtbaar)
-   - daartussen         → nog geen duidelijk verschil
-   waarbij marge = max(0,3 °C, 2 × standaardfout). */
+/* ================= CONCLUSIES =================
+   Er is geen nulmeting van vóór de isolatie, dus alle conclusies zijn absoluut: hoe houdt het huis
+   zich nú, met vuistregel-ijkpunten als indicatie. Elke grafiek krijgt zijn eigen conclusie, berekend
+   uit precies dezelfde (gefilterde) metingen als de grafiek:
+   - Temperatuurverloop: demping = schommeling binnen / schommeling buiten in beeld, plus comfort.
+   - Binnen t.o.v. buiten: trendlijn binnen = a + b·buiten (bij voorkeur alleen "alles uit"); daaruit
+     binnen bij de referentie-buitentemperatuur en de geschatte stookgrens (waar de lijn je
+     comfortgrens kruist). Ijkpunt stookgrens: gemiddeld NL-huis ~15–16 °C, goed geïsoleerd ~12–13 °C.
+   - Per klimaat: stookgrens uit wanneer je echt gaat stoken; koelgrens; thermostaat gehaald.
+   - Koeltests: koelsnelheid en hoe vaak de instelling gehaald wordt.
+   - Afkoeltest: mediaan τ; < 35 u snel, 35–70 u gemiddeld, > 70 u goed.
+   Onzekerheid: standaardfout van de regressie, met een ondergrens van 0,3 °C (thermometer). */
 const MEAS_UNCERTAINTY = 0.3;
 function predSE(r, x0){
-  // Kleine steekproef zonder spreiding rond de lijn → sres 0; gebruik dan de meetonzekerheid.
   const s = Math.max(r.sres, MEAS_UNCERTAINTY / 2);
   return s * Math.sqrt(1 / r.n + (x0 - r.mx) ** 2 / r.sxx);
 }
-function analyzeVoorNa(listIn, basis){
-  const excluded = listIn.filter(isRegulated).length;
-  const list = listIn.filter(p => !isRegulated(p));
-  const voor = list.filter(p => phaseOf(p) === "voor" && xOf(p, basis) !== null);
-  const na = list.filter(p => phaseOf(p) === "na" && xOf(p, basis) !== null);
-  const res = { nv: voor.length, nn: na.length, status: "insufficient", excluded };
-  const rv = linReg(voor.map(p => ({ x:xOf(p,basis), y:p.binnen })));
-  const rn = linReg(na.map(p => ({ x:xOf(p,basis), y:p.binnen })));
-  const ok = r => r && r.n >= 3 && r.spread >= 1;
-  if(!ok(rv) || !ok(rn)) return res;
-  let ref = Number(state.settings.refBuiten), extrap = false, refMoved = false;
-  const lo = Math.max(rv.minX, rn.minX), hi = Math.min(rv.maxX, rn.maxX);
-  if(!isFinite(ref)) ref = 10;
-  if(lo <= hi){
-    if(ref < lo || ref > hi){ ref = Math.round((lo + hi) / 2); refMoved = true; }
-  } else extrap = true;
-  const ev = rv.a + rv.b*ref, en = rn.a + rn.b*ref, diff = en - ev;
-  const se = Math.sqrt(predSE(rv, ref) ** 2 + predSE(rn, ref) ** 2);
-  const margin = Math.max(MEAS_UNCERTAINTY, 2 * se);
-  Object.assign(res, { ref, ev, en, diff, se, margin, extrap, refMoved });
-  res.status = diff > margin ? "good" : diff < -margin ? "bad" : "neutral";
-  const minN = Math.min(voor.length, na.length), z = Math.abs(diff) / Math.max(se, 1e-6);
-  res.confidence = extrap ? "low" : (minN >= 8 && z >= 3) ? "high" : (minN >= 5 && z >= 2) ? "medium" : "low";
-  // Verwarming/airco-gebruik vergelijken: een groot verschil vertekent het beeld.
-  const share = arr => { const k = arr.filter(p => { const md = klimaatOf(p).mode; return md !== "onbekend"; }); return k.length ? k.filter(p => { const md = klimaatOf(p).mode; return md === "verwarmen" || md === "koelen" || md === "gemengd"; }).length / k.length : null; };
-  const hv = share(voor), hn = share(na);
-  if(hv !== null && hn !== null && Math.abs(hv - hn) >= 0.5) res.heatWarn = { hv, hn };
+function comfortT(){ const c = Number(state.settings.comfortTemp); return isFinite(c) ? c : 19; }
+function refT(){ const r = Number(state.settings.refBuiten); return isFinite(r) ? r : 10; }
+function nf1(v){ return Number(v).toLocaleString(state.lang === "en" ? "en-GB" : "nl-NL", { maximumFractionDigits: 1, minimumFractionDigits: 1 }); }
+function fmtRate(v){ return nf1(v) + " " + t("ktPerH"); }
+function hoursTxt(v){ return t("hours")(fmtH(v)); }
+function median(arr){ const a = arr.slice().sort((x, y) => x - y), n = a.length; return n ? (n % 2 ? a[(n-1)/2] : (a[n/2-1] + a[n/2]) / 2) : null; }
+/* Generiek conclusieblok: status (good | neutral | bad | info | insufficient), kop, alinea's,
+   kerngetallen [[label, waarde]], en optioneel zekerheid. */
+function conBox(status, head, paras, facts, conf, extraCls){
+  const icon = { good:"✓", bad:"!", neutral:"≈", info:"i", insufficient:"…", heat:"i" }[status] || "i";
+  return `<div class="conclusion ${status}${extraCls ? " " + extraCls : ""}"><div class="con-head"><span class="con-icon" aria-hidden="true">${icon}</span>${escapeHtml(head)}</div>${(paras || []).filter(Boolean).map(p => `<p>${escapeHtml(p)}</p>`).join("")}${facts && facts.length ? `<div class="con-facts">${facts.map(([l, v]) => `<div><span class="l">${escapeHtml(l)}</span><span class="v">${escapeHtml(v)}</span></div>`).join("")}</div>` : ""}${conf ? `<div class="con-conf">${t("conConfidence")}: <strong>${t("conf_" + conf.level)}</strong>${conf.text ? " · " + escapeHtml(conf.text) : ""}</div>` : ""}</div>`;
+}
+
+/* --- Binnen t.o.v. buiten --- */
+function houseFit(listIn, basis, kf){
+  kf = kf || cfOf("scatter").kf;
+  const res = { status: "insufficient", basis, excluded: listIn.filter(isRegulated).length, n: 0, range: 0 };
+  if(kf === "verwarmen" || kf === "koelen"){ res.status = "heat"; return res; }
+  const cand = listIn.filter(p => !isRegulated(p) && xOf(p, basis) !== null);
+  const vrij = cand.filter(p => klimaatOf(p).mode === "vrij");
+  const pts = arr => arr.map(p => ({ x: xOf(p, basis), y: p.binnen }));
+  const ok = r => r && r.n >= 4 && (r.maxX - r.minX) >= 4;
+  let use = vrij, r = linReg(pts(vrij));
+  if(!ok(r)){ use = cand; r = linReg(pts(cand)); }
+  res.use = use; res.n = use.length; res.range = r ? r.maxX - r.minX : (use.length ? 0 : 0);
+  res.vrijOnly = use.length > 0 && use.every(p => klimaatOf(p).mode === "vrij");
+  if(!ok(r)) return res;
+  const comfort = comfortT(), ref = refT();
+  Object.assign(res, { r, ref, comfort, b: r.b, pred: r.a + r.b * ref, pm: Math.max(MEAS_UNCERTAINTY, 2 * predSE(r, ref)) });
+  res.extrap = ref < r.minX - 2 || ref > r.maxX + 2;
+  res.heatShare = use.filter(p => { const md = klimaatOf(p).mode; return md === "verwarmen" || md === "koelen" || md === "gemengd"; }).length / use.length;
+  if(r.b >= 0.05){ res.grens = (comfort - r.a) / r.b; res.grensExtrap = res.grens < r.minX - 3 || res.grens > r.maxX + 3; }
+  if(res.grens !== undefined) res.status = res.grens <= 13 ? "good" : res.grens <= 15.5 ? "neutral" : "bad";
+  else res.status = res.pred >= comfort ? "good" : res.pred >= comfort - 2 ? "neutral" : "bad";
+  let lvl = (r.n >= 12 && res.range >= 8) ? 2 : (r.n >= 6 && res.range >= 5) ? 1 : 0;
+  if(res.extrap || res.grensExtrap || res.heatShare >= 0.3) lvl = Math.max(0, lvl - 1);
+  res.conf = ["low", "medium", "high"][lvl];
   return res;
 }
-/* Bij klimaatfilter "Alle": als er genoeg "alles uit"-metingen zijn, is dát het eerlijkste vergelijk
-   (verwarmen/koelen vermengen anders het beeld). Anders alle metingen minus thermostaat-metingen. */
-function analyzeBest(list, basis){
-  if(cfOf("scatter").kf === "all"){
-    const v = analyzeVoorNa(list.filter(m => klimaatOf(m).mode === "vrij"), basis);
-    if(v.status !== "insufficient"){ v.vrijOnly = true; return v; }
-  }
-  return analyzeVoorNa(list, basis);
-}
-function conclusionHTML(r, dpName){
-  const icon = { good:"✓", bad:"✗", neutral:"≈", insufficient:"…" }[r.status];
-  let head, body = "";
-  if(r.status === "insufficient"){
-    head = t("conInsufficient");
-    body = t("conInsufficientBody")(r.nv, r.nn);
-  } else {
-    head = t("con_" + r.status);
-    body = t("conBody_" + r.status)(fmtT(r.ref, 0), fmtT(Math.abs(r.diff)), fmtT(r.margin), dpName);
-    if(r.refMoved) body += " " + t("conRefMoved")(fmtT(r.ref, 0));
-    if(r.extrap) body += " " + t("conExtrap");
-    if(r.heatWarn) body += " " + t("conHeatWarn2")(Math.round(r.heatWarn.hv*100), Math.round(r.heatWarn.hn*100));
-  }
-  if(r.excluded) body += " " + t("conExcluded")(r.excluded);
-  if(r.vrijOnly) body += " " + t("conVrijOnly");
-  const conf = r.confidence ? `<div class="con-conf">${t("conConfidence")}: <strong>${t("conf_" + r.confidence)}</strong> · ${escapeHtml(t("conCounts")(r.nv, r.nn))}</div>` : "";
-  return `<div class="conclusion ${r.status}"><div class="con-head"><span class="con-icon" aria-hidden="true">${icon}</span>${escapeHtml(head)}</div><p>${escapeHtml(body)}</p>${conf}</div>`;
+function fitConclusionHTML(f, compact){
+  const C = t("con2").fit;
+  if(f.status === "heat") return conBox("info", C.head_heat, [C.heat], null, null, compact ? "compact" : "");
+  if(f.status === "insufficient") return conBox("insufficient", t("conInsufficient"), [C.need(f.n, fmtT(f.range || 0))], null, null, compact ? "compact" : "");
+  const paras = [C.pred(f.vrijOnly ? C.srcVrij : C.srcAll, fmtT(f.ref, 0), fmtT(f.pred), fmtT(f.pm))];
+  if(f.extrap) paras.push(C.extrap);
+  paras.push(C.slope(fmtT(Math.max(0, f.b))));
+  if(f.grens !== undefined) paras.push(C.grens(fmtT(f.grens, 0), fmtT(f.comfort, 0)) + (f.grensExtrap ? " " + C.extrap : ""));
+  else paras.push(f.pred >= f.comfort ? C.flatOk(fmtT(f.comfort, 0)) : C.flatLow(fmtT(f.comfort, 0)));
+  if(f.vrijOnly) paras.push(C.vrijOnly); else if(f.heatShare >= 0.15) paras.push(C.heatShare(Math.round(f.heatShare * 100)));
+  if(f.excluded) paras.push(C.excluded(f.excluded));
+  const facts = [[C.fPred(fmtT(f.ref, 0)), "~" + fmtT(f.pred)], [C.fGrens, f.grens !== undefined ? "~" + fmtT(f.grens, 0) : "—"], [C.fSlope, fmtT(Math.max(0, f.b))], [C.fN, String(f.n)]];
+  return conBox(f.status, C["head_" + f.status], paras, facts, { level: f.conf }, compact ? "compact" : "");
 }
 function perDagdeelHTML(basis){
+  const C = t("con2").fit, base = cfApply("scatter", state.metingen, { skipDp: true });
   const rows = DAGDELEN.map(k => {
-    const r = analyzeBest(cfApply("scatter", state.metingen, { skipDp: true }).filter(m => dagdeelOf(m.tijd) === k), basis);
-    const icon = { good:"✓", bad:"✗", neutral:"≈", insufficient:"…" }[r.status];
-    const val = r.status === "insufficient" ? t("conShortInsufficient")(r.nv, r.nn) : `${fmtDelta(r.diff)} · ${t("conShort_" + r.status)}`;
-    return `<button type="button" class="dp-con ${r.status} ${cfOf("scatter").dp===k?"on":""}" data-dp="${k}"><span class="con-icon" aria-hidden="true">${icon}</span><span class="l">${escapeHtml(dpLabel(k))}</span><span class="v">${escapeHtml(val)}</span></button>`;
+    const f = houseFit(base.filter(m => dagdeelOf(m.tijd) === k), basis);
+    const st = f.status === "heat" ? "info" : f.status;
+    const icon = { good:"✓", bad:"!", neutral:"≈", info:"i", insufficient:"…" }[st];
+    const val = f.r ? C.dpVal(fmtT(f.pred), f.grens !== undefined ? fmtT(f.grens, 0) : "") : C.dpNeed(f.n);
+    return `<button type="button" class="dp-con ${st} ${cfOf("scatter").dp === k ? "on" : ""}" data-dp="${k}"><span class="con-icon" aria-hidden="true">${icon}</span><span class="l">${escapeHtml(dpLabel(k))}</span><span class="v">${escapeHtml(val)}</span></button>`;
   }).join("");
-  return `<h3>${t("conPerDp")}</h3><div class="dp-con-list">${rows}</div>`;
+  return `<h3>${t("conPerDp")} · ${escapeHtml(C.fPred(fmtT(refT(), 0)))}</h3><div class="dp-con-list">${rows}</div>`;
+}
+
+/* --- Temperatuurverloop (wat er in beeld is) --- */
+function timeConclusionHTML(list){
+  const C = t("con2").time, comfort = comfortT();
+  if(list.length < 3) return conBox("insufficient", t("conInsufficient"), [C.need]);
+  const nonReg = list.filter(m => !isRegulated(m)), vrij = nonReg.filter(m => klimaatOf(m).mode === "vrij");
+  const base = vrij.length >= 4 ? vrij : nonReg.length >= 3 ? nonReg : list;
+  const rng = a => Math.max(...a) - Math.min(...a);
+  const ro = rng(base.map(m => m.buiten)), ri = rng(base.map(m => m.binnen));
+  const facts = [[C.fAvgIn, fmtT(avg(list.map(m => m.binnen)))], [C.fAvgOut, fmtT(avg(list.map(m => m.buiten)))], [C.fDiff, fmtDelta(avg(list.map(m => m.binnen - m.buiten)))], [C.fSwing, `${fmtT(ri)} / ${fmtT(ro)}`]];
+  const paras = []; let status = "info", head = C.head_info;
+  if(ro >= 4){ const ratio = ri / ro; status = ratio <= 0.25 ? "good" : ratio <= 0.5 ? "neutral" : "bad"; head = C["head_" + status]; paras.push(C.body(fmtT(ro), fmtT(ri), Math.round(ratio * 100), base === vrij ? C.basisVrij : "")); }
+  else paras.push(C.smallOut(fmtT(ro)));
+  const cold = list.filter(m => m.binnen < comfort - 0.05).length;
+  paras.push(cold ? C.cold(cold, list.length, fmtT(comfort, 0)) : C.allComfort(fmtT(comfort, 0)));
+  if(list.length - nonReg.length && base !== list) paras.push(C.regNote(list.length - nonReg.length));
+  return conBox(status, head, paras, facts);
+}
+
+/* --- Per klimaat --- */
+function klimConclusionHTML(S){
+  const C = t("con2").klim, paras = [], facts = [];
+  let status = "insufficient", head = t("conInsufficient");
+  const rate = g => g <= 13 ? "good" : g <= 15.5 ? "neutral" : "bad";
+  if(S.stook){ status = rate(S.stook.T); head = C["head_" + status]; paras.push(C.stook(fmtT(S.stook.T))); facts.push([C.fStook, "~" + fmtT(S.stook.T)]); }
+  else {
+    const f = houseFit(S.vrij.map(x => x.m), kBasis(), "vrij");
+    if(f.grens !== undefined){ status = rate(f.grens); head = C["head_" + status]; paras.push(C.stookEst(fmtT(f.grens, 0))); facts.push([C.fStook, "~" + fmtT(f.grens, 0)]); }
+    else paras.push(C.need);
+  }
+  if(S.koelG){ paras.push(C.koel(fmtT(S.koelG.T))); facts.push([C.fKoel, "~" + fmtT(S.koelG.T)]); }
+  if(S.verwPct !== null){ paras.push(S.verwPct >= 70 ? C.reg(S.verwPct) : C.regBad(S.verwPct)); facts.push([C.fReg, S.verwPct + "%"]); if(S.verwPct < 70 && status === "good") status = "neutral"; }
+  if(status === "insufficient" && facts.length){ status = "info"; head = C.head_info; }
+  return conBox(status, head, paras, facts);
+}
+
+/* --- Koeltests --- */
+function koelConclusionHTML(KT){
+  const C = t("con2").koel;
+  if(!KT.length) return "";
+  const rate = avg(KT.map(k => k.rate)), withSp = KT.filter(k => k.reached !== null), ok = withSp.filter(k => k.reached);
+  const paras = [C.body(fmtRate(rate), KT.length)], facts = [[C.fRate, fmtRate(rate)], [C.fOut, fmtT(avg(KT.map(k => k.out)))]];
+  let status = "info", head = C.head_info;
+  if(withSp.length){
+    const p = ok.length / withSp.length; status = p >= 0.75 ? "good" : p >= 0.4 ? "neutral" : "bad"; head = C["head_" + status];
+    paras.push(C.reached(ok.length, withSp.length)); facts.push([C.fReached, `${ok.length}/${withSp.length}`]);
+    const nr = withSp.filter(k => !k.reached);
+    if(nr.length) paras.push(C.notFrom(fmtT(Math.min(...nr.map(k => k.out)))));
+  }
+  if(KT.length >= 3){ const r = linReg(KT.map(k => ({ x: k.out, y: k.rate }))); if(r && r.maxX - r.minX >= 3 && r.b < 0) paras.push(C.slope(fmtRate(-r.b))); }
+  return conBox(status, head, paras, facts, { level: KT.length >= 6 ? "high" : KT.length >= 3 ? "medium" : "low" });
+}
+
+/* --- Afkoeltests --- */
+function coolConclusionHTML(pts){
+  const C = t("con2").cool;
+  if(!pts.length) return conBox("insufficient", t("conInsufficient"), [C.need]);
+  const clean = pts.filter(p => !p.c.heated && !p.c.rough && !p.c.rise && !p.c.small), use = clean.length ? clean : pts;
+  const taus = use.map(p => p.c.tau).sort((a, b) => a - b), med = median(taus);
+  const status = med >= 70 ? "good" : med >= 35 ? "neutral" : "bad", night = 10 * (1 - Math.exp(-8 / med));
+  const paras = [C.body(hoursTxt(med), use.length), C.night(fmtT(night)), C.bench];
+  if(use.length >= 2) paras.push(C.spread(hoursTxt(taus[0]), hoursTxt(taus[taus.length - 1])));
+  if(pts.length - use.length) paras.push(C.excluded(pts.length - use.length));
+  const facts = [[C.fTau, hoursTxt(med)], [C.fNight, "~" + fmtT(night)], [C.fN, String(use.length)]];
+  return conBox(status, C["head_" + status], paras, facts, { level: use.length >= 5 ? "high" : use.length >= 3 ? "medium" : "low" });
 }
 
 /* ================= SAMENVATTING ================= */
@@ -2982,31 +3184,20 @@ function renderSummary(){
       <div class="summary-line"><span class="l">${t("sumRangeIn")}</span><span class="v">${fmtT(Math.min(...ins))} – ${fmtT(Math.max(...ins))}</span></div>
       <div class="summary-line"><span class="l">${t("sumRangeOut")}</span><span class="v">${fmtT(Math.min(...outs))} – ${fmtT(Math.max(...outs))}</span></div>`;
   }
-  // Vóór/na-vergelijk (altijd over álle metingen, niet alleen de geselecteerde maand)
-  html += `<h3>${t("sumCompare")}</h3>`;
-  if(!state.settings.isolatieDatum){
-    html += `<p class="summary-hint">${escapeHtml(t("sumNoIso"))}</p>`;
-  } else {
+  // Conclusie over het huis (volgt de filters van "Binnen t.o.v. buiten"; altijd over alle maanden)
+  {
     const allS = sortedMetingen(v.type === "import" ? state.metingen : cfApply("scatter", state.metingen));
     const cfl = v.type === "import" ? "" : cfLabel("scatter");
+    const basis = scatterBasis(), an = houseFit(allS, basis), C = t("con2").fit;
+    html += `<h3>${t("sumHouse")}</h3>`;
     if(cfl) html += `<p class="summary-hint" style="margin-top:0;">${escapeHtml(t("conFollows")(cfl))}</p>`;
-    const basis = scatterBasis();
-    const voor = allS.filter(p => phaseOf(p) === "voor"), na = allS.filter(p => phaseOf(p) === "na");
-    const dv = avg(voor.map(p=>p.binnen-p.buiten)), dn = avg(na.map(p=>p.binnen-p.buiten));
-    html += `<div class="stamp-row">
-      <div class="stamp voor"><div class="stamp-label">${t("lVoor")}</div><div class="stamp-value">${fmtDelta(dv)}</div><div class="stamp-sub">${escapeHtml(t("sumOver")(voor.length))}</div></div>
-      <div class="stamp na"><div class="stamp-label">${t("lNa")}</div><div class="stamp-value">${fmtDelta(dn)}</div><div class="stamp-sub">${escapeHtml(t("sumOver")(na.length))}</div></div>
+    if(an.r) html += `<div class="stamp-row">
+      <div class="stamp"><div class="stamp-label">${escapeHtml(C.fPred(fmtT(an.ref, 0)))}</div><div class="stamp-value">~${fmtT(an.pred)}</div><div class="stamp-sub">${escapeHtml(an.vrijOnly ? C.srcVrij : C.srcAll)}</div></div>
+      <div class="stamp k-verw"><div class="stamp-label">${escapeHtml(C.fGrens)}</div><div class="stamp-value">${an.grens !== undefined ? "~" + fmtT(an.grens, 0) : "—"}</div><div class="stamp-sub">${escapeHtml(C.comfortLbl(fmtT(an.comfort, 0).replace(" °C", "")))}</div></div>
     </div>`;
-    const an = analyzeBest(allS, basis);
-    if(an.status !== "insufficient"){
-      html += `<div class="summary-line"><span class="l">${escapeHtml(t("sumAtBasis")(fmtT(an.ref,0), basis==="24" ? t("basis24").toLowerCase() : t("basisNu").toLowerCase()))}</span><span class="v"></span></div>
-        <div class="summary-line"><span class="l">&nbsp;&nbsp;${t("lVoor")}</span><span class="v"><i class="sw" style="background:var(--c-voor)"></i>${fmtT(an.ev)}</span></div>
-        <div class="summary-line"><span class="l">&nbsp;&nbsp;${t("lNa")}</span><span class="v"><i class="sw" style="background:var(--c-na)"></i>${fmtT(an.en)}</span></div>
-        <div class="summary-line"><span class="l">&nbsp;&nbsp;${t("thVerschil")}</span><span class="v">${fmtDelta(an.diff)} <span class="pm">± ${fmtT(an.margin)}</span></span></div>`;
-    }
     const sdp = cfOf("scatter").dp;
     html += `<h3>${t("conTitle")}${sdp !== "all" && v.type !== "import" ? " · " + escapeHtml(dpLabel(sdp)) : ""}</h3>`;
-    html += conclusionHTML(an, sdp === "all" || v.type === "import" ? t("conAllDay") : dpLabel(sdp).toLowerCase());
+    html += fitConclusionHTML(an, true);
     if(v.type !== "import") html += perDagdeelHTML(basis);
     html += `<p class="summary-hint">${escapeHtml(t("sumCaveat"))}</p>`;
   }
@@ -3132,7 +3323,7 @@ function renderKlimaatView(main){
   }
   koelBody += koelTestsHTML(KT);
   main.innerHTML =
-    cardHTML(ICONS.scatter, t("kpChart"), `${cfBarHTML("klimaat")}<div id="klimaatChart"></div>${howtoHTML("howtoKlimaat", klimaatHowtoItems(S))}`, basisToggleHTML()) +
+    cardHTML(ICONS.scatter, t("kpChart"), `${cfBarHTML("klimaat")}<div id="klimaatChart"></div><div id="klimaatCon" class="chart-con"></div>${howtoHTML("howtoKlimaat", klimaatHowtoItems(S))}`, basisToggleHTML()) +
     cardHTML(ICONS.therm, t("kpVrijTitle"), `<p class="card-note" style="margin-bottom:10px;">${escapeHtml(t("kpVrijNote"))}</p>${vrijBody}`, String(S.vrij.length)) +
     cardHTML(ICONS.plus, t("kpVerwTitle"), `<p class="card-note" style="margin-bottom:10px;">${escapeHtml(t("kpVerwNote"))}</p>${verwBody}`, String(S.verw.length)) +
     cardHTML(ICONS.moon, t("kpKoelTitle"), `<p class="card-note" style="margin-bottom:10px;">${escapeHtml(t("kpKoelNote"))}</p>${koelBody}`, String(S.koel.length));
@@ -3144,6 +3335,7 @@ function renderKlimaatView(main){
 function drawKlimaatChart(el){
   if(!el) return;
   const S = klimaatStats(cfApply("klimaat", state.metingen));
+  const ce = document.getElementById("klimaatCon"); if(ce) ce.innerHTML = klimConclusionHTML(S);
   const pts = S.withK.filter(x => x.k.mode !== "onbekend" && x.k.mode !== "gemengd");
   if(pts.length < 2){ el.innerHTML = cfActive("klimaat") ? cfEmptyHTML() : `<div class="chart-empty">${escapeHtml(t("chartNeed"))}</div>`; return; }
   const col = { vrij:"var(--k-vrij)", verwarmen:"var(--k-verw)", koelen:"var(--k-koel)" };
@@ -3252,7 +3444,7 @@ function koelTestsHTML(KT){
       <td><button class="row-del kt-skip" title="${escapeHtml(t("coolCandSkip"))}" aria-label="${escapeHtml(t("coolCandSkip"))}">${ICONS.trash}</button></td>
     </tr>`).join("");
   html += `<div class="table-scroll" style="margin-top:8px;"><table class="rtable ktable"><thead><tr><th>${t("thDatum")}</th><th class="num">${t("thBinnen")}</th><th class="num">${t("ktDur")}</th><th class="num">${t("ktRate")}</th><th class="num">${t("thBuitenGem")}</th><th class="num">${t("ktSet")}</th>${iso ? `<th>${t("thFase")}</th>` : ""}<th></th></tr></thead><tbody>${rows}</tbody></table></div>`;
-  html += `<div style="margin-top:14px;">${cfBarHTML("koel")}</div><div id="koelChart"></div>` + howtoHTML("howtoKoel");
+  html += `<div style="margin-top:14px;">${cfBarHTML("koel")}</div><div id="koelChart"></div><div id="koelCon" class="chart-con"></div>` + howtoHTML("howtoKoel");
   return html;
 }
 function wireKoelTests(){
@@ -3266,6 +3458,7 @@ function drawKoelChart(el, KTall){
   if(!el) return;
   if(!KTall.length){ el.innerHTML = ""; return; }
   const KT = cfApply("koel", KTall, { ts: k => tsOf(k.a), room: k => k.a.ruimte, m: () => null });
+  const ce = document.getElementById("koelCon"); if(ce) ce.innerHTML = koelConclusionHTML(KT);
   if(!KT.length){ el.innerHTML = cfEmptyHTML(); return; }
   const hasIso = !!state.settings.isolatieDatum;
   const colorOf = k => !hasIso || !k.phase ? "var(--k-koel)" : k.phase === "voor" ? "var(--c-voor)" : "var(--c-na)";
@@ -3775,7 +3968,7 @@ function coolCalc(a){
   res.drop8at10 = 10 * (1 - Math.exp(-8 / res.tau));
   return res;
 }
-function coolPhase(a){ const iso = state.settings.isolatieDatum; if(!iso) return null; return a.startDatum < iso ? "voor" : "na"; }
+function coolPhase(a){ return null; }
 function fmtH(n){ if(n === null || n === undefined || !isFinite(n)) return "—"; return n.toLocaleString(state.lang==="en"?"en-GB":"nl-NL", { maximumFractionDigits: n >= 100 ? 0 : 1 }); }
 function sortedCool(){ return state.afkoeltests.slice().sort((x,y) => coolStartTs(x) - coolStartTs(y)); }
 function coolTauText(a, c){
@@ -3872,7 +4065,7 @@ function renderCoolView(main){
       <span class="form-msg ${lastCoolMsg ? lastCoolMsg.cls : ""}" id="coolMsg">${lastCoolMsg ? escapeHtml(lastCoolMsg.text) : ""}</span>
     </div>`;
   let html = candidatesHTML() + cardHTML(ICONS.moon, t("coolNew"), form);
-  html += cardHTML(ICONS.therm, t("coolChart"), `${cfBarHTML("afkoel")}<div id="coolChart"></div>${howtoHTML("howtoCool")}`);
+  html += cardHTML(ICONS.therm, t("coolChart"), `${cfBarHTML("afkoel")}<div id="coolChart"></div><div id="coolCon" class="chart-con"></div>${howtoHTML("howtoCool")}`);
   html += cardHTML(ICONS.list, t("coolTable"), coolTableHTML(), String(state.afkoeltests.length));
   main.innerHTML = html;
   lastCoolMsg = null;
@@ -3957,8 +4150,9 @@ function wireCoolTable(){
 function drawCoolChart(el){
   if(!el) return;
   const ptsAll = sortedCool().map(a => ({ a, c: coolCalc(a) })).filter(p => p.c.tau);
-  if(!ptsAll.length){ el.innerHTML = `<div class="chart-empty">${escapeHtml(t("coolNeed"))}</div>`; return; }
   const pts = cfApply("afkoel", ptsAll, { ts: p => coolStartTs(p.a), room: p => p.a.ruimte, m: () => null });
+  const ce = document.getElementById("coolCon"); if(ce) ce.innerHTML = coolConclusionHTML(pts);
+  if(!ptsAll.length){ el.innerHTML = `<div class="chart-empty">${escapeHtml(t("coolNeed"))}</div>`; return; }
   if(!pts.length){ el.innerHTML = cfEmptyHTML(); return; }
   const hasIso = !!state.settings.isolatieDatum;
   const colorOf = p => !hasIso ? "var(--accent)" : coolPhase(p.a) === "voor" ? "var(--c-voor)" : "var(--c-na)";
@@ -4023,14 +4217,6 @@ function renderCoolSummary(el){
       <div class="summary-line"><span class="l">${t("coolLastOut")}</span><span class="v">${fmtT(last.c.out)}</span></div>
       <p class="summary-hint">${escapeHtml(t("coolExplain")(last.c.tau))}</p>`;
   }
-  if(state.settings.isolatieDatum){
-    const v = done.filter(p => coolPhase(p.a) === "voor"), n = done.filter(p => coolPhase(p.a) === "na");
-    const tv = avg(v.map(p => p.c.tau)), tn = avg(n.map(p => p.c.tau));
-    html += `<h3>${t("sumCompare")}</h3><div class="stamp-row">
-      <div class="stamp voor"><div class="stamp-label">${t("lVoor")}</div><div class="stamp-value">${tv ? escapeHtml(t("hours")(fmtH(tv))) : "—"}</div><div class="stamp-sub">${escapeHtml(t("coolOver")(v.length))}</div></div>
-      <div class="stamp na"><div class="stamp-label">${t("lNa")}</div><div class="stamp-value">${tn ? escapeHtml(t("hours")(fmtH(tn))) : "—"}</div><div class="stamp-sub">${escapeHtml(t("coolOver")(n.length))}</div></div></div>`;
-  }
-  if(state.settings.isolatieDatum) html += `<h3>${t("conTitle")}</h3>` + coolConclusionHTML(done);
   html += `<p class="summary-hint">${escapeHtml(t("coolCaveat"))}</p>`;
   html += actionsHTML();
   el.innerHTML = html;
@@ -4039,21 +4225,6 @@ function renderCoolSummary(el){
 /* Conclusie afkoeltests: gemiddelde τ na t.o.v. vóór. Onder ±15 % (of met 1 test per kant) noemen we
    het geen duidelijk verschil / voorlopig — dagelijkse omstandigheden (wind, zon, bewoning) laten τ
    makkelijk zo veel schommelen. */
-function coolConclusionHTML(done){
-  const v = done.filter(p => coolPhase(p.a) === "voor").map(p => p.c.tau), n = done.filter(p => coolPhase(p.a) === "na").map(p => p.c.tau);
-  let status = "insufficient", head, body;
-  if(!v.length || !n.length){
-    head = t("conInsufficient"); body = t("coolConInsufficient")(v.length, n.length);
-  } else {
-    const tv = avg(v), tn = avg(n), pct = (tn - tv) / tv * 100;
-    status = pct > 15 ? "good" : pct < -15 ? "bad" : "neutral";
-    head = t("con_" + status);
-    body = t("coolConBody_" + status)(fmtH(tv), fmtH(tn), Math.abs(Math.round(pct)));
-  }
-  const conf = status === "insufficient" ? "" : (Math.min(v.length, n.length) >= 4 ? "medium" : "low");
-  const icon = { good:"✓", bad:"✗", neutral:"≈", insufficient:"…" }[status];
-  return `<div class="conclusion ${status}"><div class="con-head"><span class="con-icon" aria-hidden="true">${icon}</span>${escapeHtml(head)}</div><p>${escapeHtml(body)}</p>${conf ? `<div class="con-conf">${t("conConfidence")}: <strong>${t("conf_" + conf)}</strong> · ${escapeHtml(t("coolConCounts")(v.length, n.length))}</div>` : ""}</div>`;
-}
 function coolExportRows(){
   const en = state.lang === "en";
   return sortedCool().map(a => { const c = coolCalc(a); return {
@@ -4077,8 +4248,8 @@ function renderProfilePanel(){
   if(profileTab === "settings"){
     body.innerHTML = `
       <div>
-        <label class="profile-field">${t("setIso")}<input type="date" min="2000-01-01" max="2100-12-31" id="setIso" value="${escapeHtml(state.settings.isolatieDatum)}" /></label>
-        <p class="profile-hint">${escapeHtml(t("setIsoHint"))}</p>
+        <label class="profile-field">${t("setComfort")}<input type="text" inputmode="decimal" id="setComfort" value="${escapeHtml(String(comfortT()).replace(".", state.lang === "en" ? "." : ","))}" /></label>
+        <p class="profile-hint">${escapeHtml(t("setComfortHint"))}</p>
       </div>
       <div>
         <label class="profile-field">${t("setRef")}<input type="number" step="1" id="setRef" value="${escapeHtml(state.settings.refBuiten)}" /></label>
@@ -4102,15 +4273,7 @@ function renderProfilePanel(){
         <label class="profile-check"><input type="checkbox" id="setAuto" ${state.settings.autoBuiten ? "checked" : ""} /> ${escapeHtml(t("setAuto"))}</label>
       </div>`;
     wireLocationSettings();
-    const isoInp = document.getElementById("setIso");
-    const commitIso = () => {
-      const v = isoInp.value;
-      if(v !== "" && !validISODate(v)) return;          // nog bezig met typen
-      if(v === state.settings.isolatieDatum) return;
-      state.settings.isolatieDatum = v; scheduleAutoSave(); renderAll({ skipProfile: true });
-    };
-    isoInp.addEventListener("change", commitIso);
-    isoInp.addEventListener("blur", commitIso);
+    document.getElementById("setComfort").onchange = e => { const n = parseNum(e.target.value); if(n !== null && n >= 10 && n <= 30){ state.settings.comfortTemp = n; scheduleAutoSave(); renderAll({ skipProfile: true }); } else e.target.value = String(comfortT()); };
     document.getElementById("setRef").onchange = e => { const n = parseNum(e.target.value); if(n !== null){ state.settings.refBuiten = n; scheduleAutoSave(); renderAll(); } };
     renderRoomSection();
   } else {
