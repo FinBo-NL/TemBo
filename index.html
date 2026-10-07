@@ -1048,6 +1048,7 @@ const I18N = {
         bench: "IJkpunt: in een onderzoek naar ruim 10.000 woningen lag τ in de winter meestal tussen 15 en 55 uur (Syracuse Univ./IBPC); passiefhuizen halen 90–200 uur (EMU Passive). Onder 15 uur koelt een huis sneller af dan gangbaar, boven 55 uur beter dan de meeste woningen.",
         spread: (lo, hi) => `De tests liggen tussen ${lo} en ${hi}; wind, zon en ventilatie zorgen voor spreiding.`,
         excluded: n => `${n} test(s) met verwarming/koeling aan, een stijging of een rommelige meting tellen niet mee.`,
+        allFlagged: "Let op: alle tests in deze selectie hebben een waarschuwing (verwarming/koeling aan, tussentijdse stijging, rommelige meting of te weinig verschil binnen–buiten). De uitkomst is daarom onzeker.",
         need: "Nog geen afgeronde afkoeltest in deze selectie. Doe er één: 's avonds alles uit, de volgende ochtend opnieuw meten.",
         fTau: "τ (mediaan)", fNight: "Daling per nacht", fN: "Tests",
       },
@@ -1567,6 +1568,7 @@ const I18N = {
         bench: "Benchmark: in a study of over 10,000 homes τ in winter was mostly between 15 and 55 hours (Syracuse Univ./IBPC); passive houses reach 90–200 hours (EMU Passive). Below 15 hours a house cools faster than usual, above 55 hours better than most homes.",
         spread: (lo, hi) => `The tests range from ${lo} to ${hi}; wind, sun and ventilation cause spread.`,
         excluded: n => `${n} test(s) with heating/cooling on, a rise or a rough fit are left out.`,
+        allFlagged: "Note: every test in this selection has a warning (heating/cooling on, intermediate rise, rough fit or too small an indoor–outdoor difference). The result is therefore uncertain.",
         need: "No completed cool-down test in this selection yet. Do one: everything off in the evening, measure again the next morning.",
         fTau: "τ (median)", fNight: "Drop per night", fN: "Tests",
       },
@@ -1756,6 +1758,20 @@ function migrateState(){
     if(typeof m.buiten !== "number") m.buiten = parseNum(m.buiten);
     return m;
   }).filter(m => validISODate(m.datum) && m.binnen !== null && m.buiten !== null);
+  const safeId = id => typeof id === "string" && /^[\w-]{1,64}$/.test(id);
+  const seenIds = new Set();
+  state.metingen.forEach(m => {
+    if(typeof m.tijd !== "string" || !/^\d{1,2}:\d{2}$/.test(m.tijd)) m.tijd = typeof m.tijd === "string" && /^\d{1,2}:\d{2}/.test(m.tijd) ? m.tijd.slice(0, 5) : "";
+    if(!safeId(m.id) || seenIds.has(m.id)) m.id = newId();
+    seenIds.add(m.id);
+  });
+  state.afkoeltests = state.afkoeltests.filter(a => a && typeof a === "object" && validISODate(a.startDatum) && typeof a.startTijd === "string" && typeof parseNum(a.startBinnen) === "number").map(a => {
+    a.startBinnen = parseNum(a.startBinnen); a.eindBinnen = parseNum(a.eindBinnen);
+    if(!validISODate(a.eindDatum)) a.eindDatum = ""; if(typeof a.eindTijd !== "string") a.eindTijd = "";
+    if(!safeId(a.id) || seenIds.has(a.id)) a.id = newId();
+    seenIds.add(a.id);
+    return a;
+  });
   migrateRuimtes();
   state.metingen.forEach(m => { if(!m.id) m.id = newId(); if(m.ruimte === undefined) m.ruimte = state.settings.defaultRuimte; if(m.verwarming === undefined) m.verwarming = ""; if(m.notitie === undefined) m.notitie = ""; if(!m.buitenBron) m.buitenBron = "handmatig"; if(m.cv === undefined){ m.cv = m.verwarming === "uit" ? "uit" : ""; m.airco = m.verwarming === "uit" ? "uit" : ""; m.cvTemp = null; m.aircoTemp = null; } });
 }
@@ -1814,6 +1830,7 @@ function renderRoomSection(focusRoom){
       if(ruimteList().some(r => r !== old && r.toLowerCase() === v.toLowerCase())){ inp.value = old; say(t("roomDup")(v)); return; }
       say("");
       state.settings.ruimtes = ruimteList().map(r => r === old ? v : r);
+      Object.values(chartFilters).forEach(f => { if(f && f.rf && f.rf.toLowerCase() === old.toLowerCase()) f.rf = v; });
       state.metingen.forEach(m => { if((m.ruimte || "").toLowerCase() === old.toLowerCase()) m.ruimte = v; });
       (state.afkoeltests || []).forEach(a => { if((a.ruimte || "").toLowerCase() === old.toLowerCase()) a.ruimte = v; });
       roomsChanged();
@@ -1823,6 +1840,7 @@ function renderRoomSection(focusRoom){
       const n = roomUseCount(old);
       if(n && !confirm(t("roomDelConfirm")(old, n))) return;
       state.settings.ruimtes = ruimteList().filter(r => r !== old);
+      Object.values(chartFilters).forEach(f => { if(f && f.rf && f.rf.toLowerCase() === old.toLowerCase()) f.rf = "all"; });
       state.metingen.forEach(m => { if((m.ruimte || "").toLowerCase() === old.toLowerCase()) m.ruimte = ROOM_DEFAULT; });
       (state.afkoeltests || []).forEach(a => { if((a.ruimte || "").toLowerCase() === old.toLowerCase()) a.ruimte = ROOM_DEFAULT; });
       say(""); roomsChanged();
@@ -1899,9 +1917,15 @@ function fmtDate(iso, withYear){
 }
 /* Een <input type="date" min="2000-01-01" max="2100-12-31"> vuurt al "change" af terwijl je het jaartal nog aan het typen bent
    (2 → 0002, 20 → 0020 …). Alleen een volledig, plausibel jaar telt als echte invoer. */
-function validISODate(v){ const m = /^(\d{4})-(\d{2})-(\d{2})$/.exec(v || ""); return !!m && Number(m[1]) >= 2000 && Number(m[1]) <= 2100; }
+function validISODate(v){
+  const m = /^(\d{4})-(\d{2})-(\d{2})$/.exec(typeof v === "string" ? v : "");
+  if(!m) return false;
+  const y = Number(m[1]), mo = Number(m[2]), d = Number(m[3]);
+  if(y < 2000 || y > 2100 || mo < 1 || mo > 12 || d < 1) return false;
+  return d <= new Date(Date.UTC(y, mo, 0)).getUTCDate();     // bestaat de dag in die maand?
+}
 function monthKey(iso){ return iso ? iso.slice(0,7) : ""; }
-function monthLabel(key){ const [y,m] = key.split("-").map(Number); const n = t("monthNames")[m-1]; return n.charAt(0).toUpperCase() + n.slice(1) + " " + y; }
+function monthLabel(key){ const [y,m] = String(key).split("-").map(Number); const n = t("monthNames")[m-1] || String(key); return n.charAt(0).toUpperCase() + n.slice(1) + " " + y; }
 function sortedMetingen(list){ return list.slice().sort((a,b) => tsOf(a) - tsOf(b)); }
 function phaseOf(m){ return null; }      // vóór/na-isolatie vervallen: geen fases meer
 function avg(arr){ return arr.length ? arr.reduce((a,b)=>a+b,0) / arr.length : null; }
@@ -2172,9 +2196,11 @@ async function signOutCloud(){
   clearTimeout(autoSaveTimer); cancelRetry();
   if(dirty) await writeStateToCloud();
   if(dirty && !confirm(t("signOutUnsavedWarn"))){ updateSaveStatus(); return false; }
+  const uid = cloudSession ? cloudSession.user.id : null;
+  if(uid) clearEncPw(uid);                  // vóór signOut: dat event zet cloudSession al op null
   if(cloudClient) await cloudClient.auth.signOut();
-  if(cloudSession) clearEncPw(cloudSession.user.id);
   cloudSession = null; encryptionPassword = null; dirty = false; lastSeenCiphertext = null;
+  resetSessionFlags();
   state = emptyState();
   setProfilePanel(false); setNavDrawer(false);
   renderAuthGate();
@@ -2265,7 +2291,7 @@ function renderEncryptionPrompt(){
       lastSeenCiphertext = data.ciphertext;
       const remembered = loadEncPw(cloudSession.user.id);
       if(remembered){
-        decryptState(data, remembered).then(d => acceptDecrypted(d, remembered)).catch(() => { clearEncPw(cloudSession.user.id); renderEncryptionExisting(data); });
+        decryptState(data, remembered).then(d => { try{ acceptDecrypted(d, remembered); } catch(e){ console.error(e); } }, () => { clearEncPw(cloudSession.user.id); renderEncryptionExisting(data); });
         return;
       }
       renderEncryptionExisting(data);
@@ -2289,8 +2315,10 @@ function renderEncryptionExisting(record){
   document.getElementById("encSubmitBtn").onclick = async () => {
     const btn = document.getElementById("encSubmitBtn"), err = document.getElementById("encError");
     btn.disabled = true; err.style.display = "none";
-    try{ const d = await decryptState(record, input.value); acceptDecrypted(d, input.value); }
-    catch(e){ err.textContent = t("encWrong"); err.style.display = "block"; btn.disabled = false; input.select(); }
+    let d;
+    try{ d = await decryptState(record, input.value); }
+    catch(e){ err.textContent = t("encWrong"); err.style.display = "block"; btn.disabled = false; input.select(); return; }
+    acceptDecrypted(d, input.value);         // fouten hierna zijn geen "verkeerd wachtwoord"
   };
 }
 function renderEncryptionNew(){
@@ -2554,7 +2582,7 @@ function wireEntryForm(){
       cvTemp: last.cvTemp ?? formKlimaat.cvTemp ?? 20, aircoTemp: last.aircoTemp ?? formKlimaat.aircoTemp ?? 21 };
     formKlimaat = null;
     formTimeTouched = false;
-    DRAFT_FIELDS.forEach(id => { const el = document.getElementById(id); if(el && id !== "fRuimte") el.value = ""; });
+    ["fDatum","fTijd","fBinnen","fBuiten","fNotitie"].forEach(id => { const el = document.getElementById(id); if(el) el.value = ""; });   // instelling cv/airco blijft staan
     lastFormMsg = { cls:"ok", text:t("addedMsg") };
     formModeTouched = false;
     scheduleAutoSave();
@@ -2578,7 +2606,7 @@ const tableOpenMonths = new Set();
 function tableRowHTML(m, iso){
     const d = m.binnen - m.buiten;
     const ph = phaseOf(m);
-    return `<tr data-id="${m.id}">
+    return `<tr data-id="${escapeHtml(m.id)}">
       <td><input class="t-date" type="date" min="2000-01-01" max="2100-12-31" data-f="datum" value="${escapeHtml(m.datum)}" /></td>
       <td><input class="t-time" type="time" data-f="tijd" value="${escapeHtml(m.tijd)}" /></td>
       <td class="num"><input class="t-num" type="text" inputmode="decimal" data-f="binnen" value="${escapeHtml(String(m.binnen).replace(".", state.lang==="en"?".":","))}" /></td>
@@ -2624,7 +2652,7 @@ function wireTable(){
         const f = inp.dataset.f;
         if(f === "binnen" || f === "buiten"){
           const n = parseNum(inp.value);
-          if(n === null){ inp.value = String(m[f]); return; }
+          if(n === null){ inp.value = String(m[f]).replace(".", state.lang === "en" ? "." : ","); return; }
           m[f] = n;
           if(f === "buiten") m.buitenBron = "handmatig";
         } else if(f === "cvTemp" || f === "aircoTemp"){
@@ -2717,7 +2745,7 @@ function xyView(el, key, xt, yt, min){
   return { xt: ticksIn(z.x0, z.x1, 6), yt: ticksIn(z.y0, z.y1, 5), zoomed:true };
 }
 function xyZoomAt(el, factor, cx, cy){
-  const v = el._xyView, b = el._xyBase; if(!v || !b) return;
+  const b = el._xyBase, v = xyZoom[el._xyKey] || b; if(!v || !b) return;
   if(cx == null){ cx = (v.x0 + v.x1) / 2; cy = (v.y0 + v.y1) / 2; }
   const z = clampXY({ x0: cx - (cx - v.x0)*factor, x1: cx + (v.x1 - cx)*factor, y0: cy - (cy - v.y0)*factor, y1: cy + (v.y1 - cy)*factor }, b, el._xyMin);
   if(z) xyZoom[el._xyKey] = z; else delete xyZoom[el._xyKey];
@@ -2756,7 +2784,7 @@ function wireXYZoom(el){
   const pts = new Map();
   let g = null, raf = 0, lastTap = { t: 0, x: 0, y: 0 };
   const geomPx = () => { const G = el._xyGeom, svg = el.querySelector(".chart-wrap svg"); if(!G || !svg) return null; const r = svg.getBoundingClientRect(); return { G, r, sc: G.W / r.width }; };
-  const dataAt = (cx, cy) => { const q = geomPx(); if(!q) return null; const v = el._xyView, px = (cx - q.r.left) * q.sc, py = (cy - q.r.top) * q.sc;
+  const dataAt = (cx, cy) => { const q = geomPx(); if(!q) return null; const v = xyZoom[el._xyKey] || el._xyBase, px = (cx - q.r.left) * q.sc, py = (cy - q.r.top) * q.sc;
     return { x: v.x0 + (px - q.G.m.l) / q.G.iw * (v.x1 - v.x0), y: v.y0 + (q.G.m.t + q.G.ih - py) / q.G.ih * (v.y1 - v.y0) }; };
   const redraw = () => { if(raf) return; raf = requestAnimationFrame(() => { raf = 0; if(el._xyRedraw) el._xyRedraw(); }); };
   const zoomAtClient = (f, cx, cy) => { const d = dataAt(cx, cy); if(!d) return; xyZoomAt(el, f, d.x, d.y); redraw(); };
@@ -2775,6 +2803,7 @@ function wireXYZoom(el){
     if(g.type === "pan" && pts.size === 1){
       const dx = e.clientX - g.x0, dy = e.clientY - g.y0;
       if(!g.moved && Math.hypot(dx, dy) < 6) return;
+      g.moved = true;                                  // slepen is geen tik (ook niet als er niets te verschuiven is)
       if(!xyZoom[el._xyKey]) return;                    // volledig uitgezoomd: niets te verschuiven
       g.moved = true;
       const ux = (g.v0.x1 - g.v0.x0) / (q.G.iw / q.sc), uy = (g.v0.y1 - g.v0.y0) / (q.G.ih / q.sc);
@@ -2846,10 +2875,10 @@ function timeBounds(list){
 function clampWin(start, end, b){
   let span = Math.max(minSpanMs(), end - start);
   if(span > end - start){ const c = (start + end) / 2; start = c - span / 2; }   // rond het midden begrenzen
-  span = Math.min(span, Math.max(DAY, b.hi - b.lo));
+  span = Math.min(span, Math.max(DAY, b.hi - b.lo, 90 * DAY));
+  if(span >= b.hi - b.lo) return { start: b.hi - span, end: b.hi };   // groter dan de data: eindig bij vandaag
   if(start < b.lo){ start = b.lo; }
   if(start + span > b.hi){ start = b.hi - span; }
-  if(start < b.lo) start = b.lo;
   return { start, end: start + span };
 }
 function timeWindow(list){
@@ -2903,7 +2932,9 @@ function wireTimeToolbar(){
     // Staat de periode op hele dagen, blader dan per kalenderdag (anders schuift hij rond de
     // zomer-/wintertijd een uur op).
     const aligned = dayStart(w.start) === w.start && dayStart(w.end) === w.end;
-    if(aligned){ const n = Math.round(span / DAY); const s0 = tsFrom(addDaysISO(tsToISO(w.start), dir * n), "00:00"); setZoom(s0, tsFrom(addDaysISO(tsToISO(s0), n), "00:00")); }
+    if(aligned){ const n = Math.round(span / DAY); const s0 = tsFrom(addDaysISO(tsToISO(w.start), dir * n), "00:00"); setZoom(s0, tsFrom(addDaysISO(tsToISO(s0), n), "00:00"));
+      // Tegen de grens aangelopen? Dan opnieuw op hele kalenderdagen uitlijnen (zomer-/wintertijd).
+      if(timeZoom && dayStart(timeZoom.start) !== timeZoom.start){ const b = timeBounds(timeList()), e = timeZoom.end >= b.hi - 60000 ? b.hi : tsFrom(addDaysISO(tsToISO(timeZoom.start), n), "00:00"); timeZoom = { start: tsFrom(addDaysISO(tsToISO(e - 1), -(n - 1)), "00:00"), end: e }; } }
     else setZoom(w.start + dir * span, w.end + dir * span);
     refreshTimeCard();
   });
@@ -2930,10 +2961,11 @@ function hourlyOnlineFor(w, onReady){
     const key = `${loc.lat.toFixed(3)},${loc.lon.toFixed(3)},${d}`;
     const map = weatherResolved[key];
     if(map){ Object.keys(map).forEach(k => { const ts = keyToTs(k); if(k.startsWith(d) && ts >= w.start - HOUR && ts <= w.end + HOUR && ts <= Date.now()) out.push({ ts, v: map[k] }); }); }
-    else { missing = true; fetchHourly(loc, d).then(m => { weatherResolved[key] = m; onReady(); }).catch(() => { weatherResolved[key] = {}; }); }
+    else if(!hourlyPending.has(key)){ missing = true; hourlyPending.add(key); fetchHourly(loc, d).then(m => { weatherResolved[key] = m; }).catch(() => { weatherResolved[key] = {}; }).finally(() => { hourlyPending.delete(key); onReady(); }); }
   }
   return out.sort((a, b) => a.ts - b.ts);
 }
+const hourlyPending = new Set();
 /* ---- Zoomen en verschuiven ----
    Mobiel: knijpen met twee vingers = zoomen, één vinger horizontaal slepen = verschuiven
    (verticaal scrollen van de pagina blijft werken dankzij touch-action: pan-y), dubbeltik = naar
@@ -2946,7 +2978,7 @@ function wireTimeZoom(el){
   const pts = new Map();
   let g = null, raf = 0, lastTap = { t: 0, x: 0 };
   const geom = () => el._geom;
-  const tsAt = clientX => { const G = geom(); if(!G) return null; const r = el.querySelector("svg").getBoundingClientRect(); const px = (clientX - r.left) * (G.W / r.width); return G.start + (px - G.m.l) / G.iw * (G.end - G.start); };
+  const tsAt = clientX => { const G = geom(); if(!G) return null; const r = el.querySelector("svg").getBoundingClientRect(); const px = (clientX - r.left) * (G.W / r.width); const w = timeWindow(timeList()); return w.start + (px - G.m.l) / G.iw * (w.end - w.start); };
   const redraw = () => { if(raf) return; raf = requestAnimationFrame(() => { raf = 0; drawTimeChart(el, timeList(), true); const lbl = document.getElementById("tnavLabel"); if(lbl) lbl.textContent = fmtWinLabel(timeWindow(timeList())); }); };
   const finish = () => { const bar = document.getElementById("timeToolbar"); if(bar){ bar.innerHTML = timeToolbarHTML(); wireTimeToolbar(); } drawTimeChart(el, timeList()); };
   el.addEventListener("pointerdown", e => {
@@ -2956,7 +2988,7 @@ function wireTimeZoom(el){
     const w = timeWindow(timeList());
     el._gesture = true;
     if(pts.size === 1) g = { type:"pan", x0: e.clientX, y0: e.clientY, w0: { start: w.start, end: w.end }, moved: false };
-    else if(pts.size === 2){ const [a, b] = [...pts.values()]; g = { type:"pinch", d0: Math.abs(a.x - b.x) || 1, c0: tsAt((a.x + b.x) / 2), w0: { start: w.start, end: w.end }, moved: true }; }
+    else if(pts.size === 2){ const [a, b] = [...pts.values()]; g = { type:"pinch", d0: Math.max(40, Math.abs(a.x - b.x)), c0: tsAt((a.x + b.x) / 2), w0: { start: w.start, end: w.end }, moved: true }; }
   });
   el.addEventListener("pointermove", e => {
     if(!pts.has(e.pointerId) || !g) return;
@@ -2970,7 +3002,7 @@ function wireTimeZoom(el){
       const shift = -dx / pxPerMs;
       setZoom(g.w0.start + shift, g.w0.end + shift); redraw();
     } else if(g.type === "pinch" && pts.size === 2){
-      const [a, b] = [...pts.values()], d = Math.abs(a.x - b.x) || 1;
+      const [a, b] = [...pts.values()], d = Math.max(40, Math.abs(a.x - b.x));
       const span = (g.w0.end - g.w0.start) * (g.d0 / d), f = (g.c0 - g.w0.start) / (g.w0.end - g.w0.start);
       setZoom(g.c0 - f * span, g.c0 - f * span + span); redraw();
     }
@@ -3059,10 +3091,14 @@ function laggedOutdoor(t0, t1, onReady){
   }
   if(missing) return null;
   const alpha = 1 - Math.exp(-1 / 12), out = [];
-  let ema = null;
+  let ema = null, miss = 0;
   for(let ts = Math.floor((t0 - DAY) / HOUR) * HOUR; ts <= t1 + HOUR; ts += HOUR){
     const v = hours[ts];
-    if(v === undefined) return null;               // gat in de weerdata: dan zonder buiten
+    if(v === undefined){                           // los ontbrekend uur (bijv. wintertijd): vorige waarde aanhouden
+      miss++; if(ema === null || miss > 2) return null;
+      out.push({ ts, v: ema }); continue;
+    }
+    miss = 0;
     ema = ema === null ? v : ema + alpha * (v - ema);
     out.push({ ts, v: ema });
   }
@@ -3113,7 +3149,7 @@ function drawTimeChart(el, listAll, fast){
   wireTimeZoom(el);
   const w = timeWindow(listAll);
   const list = listAll.filter(m => { const ts = tsOf(m); return ts >= w.start && ts < w.end; });
-  const hourly = (!fast || el._hourlyOk) ? hourlyOnlineFor(w, () => { if(document.getElementById("timeChart") === el) drawTimeChart(el, timeList()); }) : null;
+  const hourly = (!fast || el._hourlyOk) ? hourlyOnlineFor(w, () => { if(document.getElementById("timeChart") === el && !el._gesture) drawTimeChart(el, timeList()); }) : null;
   if(!fast){ const ce = document.getElementById("timeCon"); if(ce && el.id === "timeChart") ce.innerHTML = timeConclusionHTML(list, w, hourly); }
   const span = (w.end - w.start) / DAY;
   const daily = span > 10.5;
@@ -3245,9 +3281,9 @@ function drawTimeChart(el, listAll, fast){
     pts.forEach(p => { const d = Math.abs(X(p.ts) - px); if(d < bd){ bd = d; best = p; } });
     // In een aangevuld gat, ver van een echte meting: de schatting op die plek tonen.
     const tsC = w.start + (px - m.l) / iw * (w.end - w.start);
-    const fg = bd > 24 && fillsIn.find(f => f.ta < tsC && tsC < f.tb);
+    const fg = bd > 24 && fillsIn.find(f => f.path.length >= 2 && f.path[0].ts < tsC && tsC < f.path[f.path.length - 1].ts);
     if(fg){
-      const path = fg.path; let j = path.findIndex(p => p.ts >= tsC); if(j < 1) j = 1;
+      const path = fg.path; let j = path.findIndex(p => p.ts >= tsC); if(j < 0) j = path.length - 1; if(j < 1) j = 1;
       const p0 = path[j-1], p1 = path[j], v = p0.v + (p1.v - p0.v) * (tsC - p0.ts) / Math.max(1, p1.ts - p0.ts);
       const pick = daily ? (Math.abs(p0.ts - tsC) < Math.abs(p1.ts - tsC) ? p0 : p1) : null;
       const ts = daily ? pick.ts : tsC, val = daily ? pick.v : v, d0 = new Date(ts);
@@ -3350,7 +3386,7 @@ function drawScatterChart(el, listAll){
      comfortgrens kruist). Ijkpunt stookgrens: gemiddeld NL-huis ~15–16 °C, goed geïsoleerd ~12–13 °C.
    - Per klimaat: stookgrens uit wanneer je echt gaat stoken; koelgrens; thermostaat gehaald.
    - Koeltests: koelsnelheid en hoe vaak de instelling gehaald wordt.
-   - Afkoeltest: mediaan τ; < 35 u snel, 35–70 u gemiddeld, > 70 u goed.
+   - Afkoeltest: mediaan τ; < 15 u snel, 15–55 u gangbaar, ≥ 55 u goed (bronnen: zie ontwerpdocument).
    Onzekerheid: standaardfout van de regressie, met een ondergrens van 0,3 °C (thermometer). */
 const MEAS_UNCERTAINTY = 0.3;
 function predSE(r, x0){
@@ -3410,6 +3446,20 @@ function lstsq(X, y){
   }
   return A.map((row, i) => row[k] / row[i]);
 }
+/* (XᵀX)⁻¹ op positie [j][j]: de echte variantiefactor van coëfficiënt j in een meervoudige regressie. */
+function invDiag(X, j){
+  const k = X[0].length, ej = Array.from({ length: X.length }, () => 0);
+  const A = Array.from({ length: k }, () => Array(k + 1).fill(0));
+  X.forEach(row => { for(let p = 0; p < k; p++) for(let q = 0; q < k; q++) A[p][q] += row[p] * row[q]; });
+  A[j][k] = 1;
+  for(let c = 0; c < k; c++){
+    let piv = c; for(let r = c + 1; r < k; r++) if(Math.abs(A[r][c]) > Math.abs(A[piv][c])) piv = r;
+    if(Math.abs(A[piv][c]) < 1e-12) return null;
+    [A[c], A[piv]] = [A[piv], A[c]];
+    for(let r = 0; r < k; r++){ if(r === c) continue; const f = A[r][c] / A[c][c]; for(let q = c; q <= k; q++) A[r][q] -= f * A[c][q]; }
+  }
+  return A[j][k] / A[j][j];
+}
 /* Trendlijn mét zon en wind (en dagdeel): binnen = a + b·buiten + dagdeel + c·zon + d·wind.
    Alleen als ≥ 10 metingen weerdata hebben (≥ 70 % van de gebruikte), met genoeg variatie
    (sd zon ≥ 60 W/m², sd wind ≥ 5 km/h) en ruim meer metingen dan onbekenden. a geldt voor
@@ -3438,8 +3488,10 @@ function fitWeather(use, basis){
   const aW = a + (cw !== null ? cw * windRef / 10 : 0);
   const pred = m => aW + b * xOf(m, basis) + ((off && off[dagdeelOf(m.tijd)]) || 0) + (cz !== null ? cz * m.weer.zon / 100 : 0) + (cw !== null ? cw * (m.weer.wind - windRef) / 10 : 0);
   const sse = rows.reduce((acc, m) => acc + (m.binnen - pred(m)) ** 2, 0);
-  const xs = rows.map(m => xOf(m, basis)), mx = avg(xs), sxx = xs.reduce((acc, v) => acc + (v - mx) ** 2, 0);
-  if(sxx < 1e-9) return null;
+  const xs = rows.map(m => xOf(m, basis)), mx = avg(xs);
+  // sxx zo gekozen dat sres²/sxx de echte variantie van de helling is (rekening houdend met dagdeel, zon, wind).
+  const v11 = invDiag(X, 1), sxx = v11 && v11 > 0 ? 1 / v11 : xs.reduce((acc, v) => acc + (v - mx) ** 2, 0);
+  if(!(sxx > 1e-9)) return null;
   return { a: aW, b, n: rows.length, mx, sxx, sres: Math.sqrt(sse / Math.max(1, rows.length - k)), minX: Math.min(...xs), maxX: Math.max(...xs), spread: Math.sqrt(sxx / rows.length), off, dpCorr: !!off, weather: { zon: cz, wind: cw, windRef } };
 }
 /* Hoe sterk vallen koud/warm samen met het tijdstip? η² = deel van de spreiding in buitentemperatuur
@@ -3507,7 +3559,7 @@ function perDagdeelHTML(basis){
     const f = houseFit(base.filter(m => dagdeelOf(m.tijd) === k), basis);
     const st = f.status === "heat" ? "info" : f.status;
     const icon = { good:"✓", bad:"!", neutral:"≈", info:"i", insufficient:"…" }[st];
-    const val = f.r ? C.dpVal(fmtT(f.pred), f.grens !== undefined ? fmtT(f.grens, 0) : "") : C.dpNeed(f.n);
+    const val = f.status === "heat" ? "—" : f.r ? C.dpVal(fmtT(f.pred), f.grens !== undefined ? fmtT(f.grens, 0) : "") : C.dpNeed(f.n);
     return `<button type="button" class="dp-con ${st} ${cfOf("scatter").dp === k ? "on" : ""}" data-dp="${k}"><span class="con-icon" aria-hidden="true">${icon}</span><span class="l">${escapeHtml(dpLabel(k))}</span><span class="v">${escapeHtml(val)}</span></button>`;
   }).join("");
   return `<h3>${t("conPerDp")} · ${escapeHtml(C.fPred(fmtT(refT(), 0)))}</h3><div class="dp-con-list">${rows}</div>`;
@@ -3596,7 +3648,12 @@ function timeConclusionHTML(list, w, hourly){
       let best = null;
       const rm = {}; [...new Set(cand.map(roomOf))].forEach(r => { rm[r] = avg(cand.filter(m => roomOf(m) === r).map(m => m.binnen)); });
       const yv = cand.map(m => m.binnen - rm[roomOf(m)]);      // per ruimte gecentreerd
-      for(let L = 0; L <= 12; L++){ const r = pearson(cand.map(m => hourlyAt(hourly, tsOf(m) - L*HOUR)), yv); if(r !== null && (!best || r > best.r)) best = { L, r }; }
+      for(let L = 0; L <= 12; L++){
+        const xs = cand.map(m => hourlyAt(hourly, tsOf(m) - L*HOUR));
+        const ok = xs.map((x, i) => x === null ? -1 : i).filter(i => i >= 0);      // ontbrekende uren overslaan, niet als 0 °C tellen
+        if(ok.length < 8) continue;
+        const r = pearson(ok.map(i => xs[i]), ok.map(i => yv[i])); if(r !== null && (!best || r > best.r)) best = { L, r };
+      }
       if(best && best.r >= 0.5){ damp.push(D.lag(best.L, best.r.toLocaleString(state.lang === "en" ? "en-GB" : "nl-NL", { maximumFractionDigits: 2 }))); facts.push([D.fLag, `~${best.L} u`]); }
       else if(best) damp.push(D.lagWeak(best.r.toLocaleString(state.lang === "en" ? "en-GB" : "nl-NL", { maximumFractionDigits: 2 })));
     }
@@ -3760,14 +3817,17 @@ function pairTaus(list){
 function fitDetailsHTML(f, listAll, basis){
   if(!f.r) return moreHTML("scatter", [], f.status === "insufficient" ? [t("dc").fit.needMore] : []);
   const D = t("dc").fit, r = f.r, secs = [], needs = [];
-  const ys = f.use.map(p => p.binnen), myy = avg(ys), sstY = ys.reduce((a, v) => a + (v - myy) ** 2, 0);
-  const r2 = sstY > 1e-9 ? Math.max(0, 1 - f.use.reduce((a, p) => a + (p.binnen - fitPred(f, p)) ** 2, 0) / sstY) : 0;
-  const resid = f.use.map(p => p.binnen - fitPred(f, p)), sres = Math.sqrt(avg(resid.map(e => e * e)));
+  // Alleen de metingen die de lijn echt gebruikt heeft (met dagdeel- en weerdata waar die meetellen).
+  const inFit = p => (!r.off || r.off[dagdeelOf(p.tijd)] !== undefined) && (!r.weather || (wxOf(p) && numOrNull(p.weer.zon) !== null && numOrNull(p.weer.wind) !== null));
+  const fitRows = f.use.filter(inFit).length >= 3 ? f.use.filter(inFit) : f.use;
+  const ys = fitRows.map(p => p.binnen), myy = avg(ys), sstY = ys.reduce((a, v) => a + (v - myy) ** 2, 0);
+  const r2 = sstY > 1e-9 ? Math.max(0, 1 - fitRows.reduce((a, p) => a + (p.binnen - fitPred(f, p)) ** 2, 0) / sstY) : 0;
+  const resid = fitRows.map(p => p.binnen - fitPred(f, p)), sres = Math.sqrt(avg(resid.map(e => e * e)));
   secs.push(secHTML(D.sTrend, [D.trend(fmtT(r.a), num2(r.b), f.vrijOnly ? D.srcVrij : D.srcAll, r.n, fmtT(r.minX), fmtT(r.maxX)), D.fitQ(Math.round(r2 * 100), fmtT(sres)), r2 < 0.4 ? D.fitQLow : ""]));
   const xs = [0, 5, 10, 15, 20].filter(x => x >= r.minX - 8 && x <= r.maxX + 8);
   secs.push(secHTML(D.sPred, [D.preds(xs.map(x => `${fmtT(x, 0)} → ${fmtT(r.a + r.b * x)} ± ${fmtT(Math.max(MEAS_UNCERTAINTY, 2 * predSE(r, x)))}${x < r.minX - 2 || x > r.maxX + 2 ? D.extrap : ""}`).join(" · "))]));
   if(f.grens !== undefined){
-    const se = Math.max(MEAS_UNCERTAINTY, r.sres) / Math.abs(r.b) * Math.sqrt(1 / r.n + (f.grens - r.mx) ** 2 / r.sxx);
+    const se = Math.max(r.sres, MEAS_UNCERTAINTY / 2) / Math.abs(r.b) * Math.sqrt(1 / r.n + (f.grens - r.mx) ** 2 / r.sxx);
     secs.push(secHTML(D.sGrens, [D.grensRange(fmtT(f.grens, 0), fmtT(f.grens - 2 * se, 0), fmtT(f.grens + 2 * se, 0)), f.grensExtrap ? D.grensFar : ""]));
     if(f.grens < r.minX - 1) needs.push(D.needCold);
   } else secs.push(secHTML(D.sGrens, [D.grensNone(fmtT(f.comfort, 0))]));
@@ -3797,7 +3857,7 @@ function fitDetailsHTML(f, listAll, basis){
   } else needs.push(D.needVrij);
   // uitschieters
   const thr = Math.max(1, 2.5 * Math.max(r.sres, 0.2));
-  const odd = f.use.map(m => ({ m, e: m.binnen - fitPred(f, m) })).filter(o => Math.abs(o.e) >= thr).sort((a, b) => Math.abs(b.e) - Math.abs(a.e)).slice(0, 4);
+  const odd = fitRows.map(m => ({ m, e: m.binnen - fitPred(f, m) })).filter(o => Math.abs(o.e) >= thr).sort((a, b) => Math.abs(b.e) - Math.abs(a.e)).slice(0, 4);
   secs.push(secHTML(D.sOdd, [odd.length ? listHTML(odd.map(o => oddTxt(o, D))) : D.oddNone]));
   const W = t("wc");
   if(r.weather){
@@ -3903,7 +3963,8 @@ function coolDetailsHTML(pts){
       const calm = withW.filter(p => windOf(p) < 15);
       if(calm.length) items.push(W.cCalm(hoursTxt(median(calm.map(p => p.c.tau))), calm.length));
       const rW = withW.length >= 3 ? linReg(withW.map(p => ({ x: windOf(p), y: p.c.tau }))) : null;
-      if(rW && rW.maxX - rW.minX >= 8){ const d = -rW.b * 10, pct = Math.round(d / med * 100); items.push(W.cWind(hoursTxt(Math.abs(d)), pct, pct < 10 ? W.wGood : pct < 25 ? W.wMid : W.wBad)); }
+      if(rW && rW.maxX - rW.minX >= 8 && rW.b >= 0) items.push(W.windNone);
+      else if(rW && rW.maxX - rW.minX >= 8){ const d = -rW.b * 10, pct = Math.round(d / med * 100); items.push(W.cWind(hoursTxt(Math.abs(d)), pct, pct < 10 ? W.wGood : pct < 25 ? W.wMid : W.wBad)); }
       else needs.push(W.cNeed);
       if(use.some(p => wolkOf(p) !== null && wolkOf(p) <= 30)) items.push(W.cClear);
       secs.push(secHTML(W.cSec, items));
@@ -3928,7 +3989,7 @@ function klimConclusionHTML(S){
   if(S.koelG){ paras.push(C.koel(fmtT(S.koelG.T))); facts.push([C.fKoel, "~" + fmtT(S.koelG.T)]); }
   const dom = arr => { const c = {}; arr.forEach(x => { const k = dagdeelOf(x.m.tijd); if(k) c[k] = (c[k] || 0) + 1; }); const best = Object.entries(c).sort((a, b) => b[1] - a[1])[0]; return best && best[1] / arr.length >= 0.7 ? best[0] : null; };
   if(S.verw.length >= 3 && S.vrij.length >= 3){ const dw = dom(S.verw), dv = dom(S.vrij); if(dw && dv && dw !== dv) paras.push(t("dc").klim.skew(dpLabel(dw).toLowerCase(), dpLabel(dv).toLowerCase())); }
-  if(S.verwPct !== null){ paras.push(S.verwPct >= 70 ? C.reg(S.verwPct) : C.regBad(S.verwPct)); facts.push([C.fReg, S.verwPct + "%"]); if(S.verwPct < 70 && status === "good") status = "neutral"; }
+  if(S.verwPct !== null){ paras.push(S.verwPct >= 70 ? C.reg(S.verwPct) : C.regBad(S.verwPct)); facts.push([C.fReg, S.verwPct + "%"]); if(S.verwPct < 70 && status === "good"){ status = "neutral"; head = C.head_neutral; } }
   if(status === "insufficient" && facts.length){ status = "info"; head = C.head_info; }
   return conBox(status, head, paras, facts);
 }
@@ -3966,9 +4027,9 @@ function coolConclusionHTML(pts){
   const paras = [C.body(hoursTxt(med), use.length), C.night(fmtT(night)), C.bench];
   if(use.length >= 2) paras.push(C.spread(hoursTxt(taus[0]), hoursTxt(taus[taus.length - 1])));
   if(calmOnly) paras.push(W.cUseCalm); else if(windyN) paras.push(W.cWindy(windyN));
-  if(pts.length - (clean.length ? clean.length : pts.length)) paras.push(C.excluded(pts.length - clean.length));
+  if(!clean.length) paras.push(C.allFlagged); else if(pts.length - clean.length) paras.push(C.excluded(pts.length - clean.length));
   const facts = [[C.fTau, hoursTxt(med)], [C.fNight, "~" + fmtT(night)], [C.fN, String(use.length)]];
-  return conBox(status, C["head_" + status], paras, facts, { level: use.length >= 5 ? "high" : use.length >= 3 ? "medium" : "low" });
+  return conBox(status, C["head_" + status], paras, facts, { level: !clean.length ? "low" : use.length >= 5 ? "high" : use.length >= 3 ? "medium" : "low" });
 }
 
 /* ================= SAMENVATTING ================= */
@@ -3999,7 +4060,7 @@ function renderSummary(){
   {
     const allS = sortedMetingen(v.type === "import" ? state.metingen : cfApply("scatter", state.metingen));
     const cfl = v.type === "import" ? "" : cfLabel("scatter");
-    const basis = scatterBasis(), an = houseFit(allS, basis), C = t("con2").fit;
+    const basis = scatterBasis(), an = houseFit(allS, basis, v.type === "import" ? "all" : undefined), C = t("con2").fit;
     html += `<h3>${t("sumHouse")}</h3>`;
     if(cfl) html += `<p class="summary-hint" style="margin-top:0;">${escapeHtml(t("conFollows")(cfl))}</p>`;
     if(an.r) html += `<div class="stamp-row">
@@ -4069,8 +4130,10 @@ function klimaatStats(list){
   const verw = withK.filter(x => x.k.mode === "verwarmen");
   const koel = withK.filter(x => x.k.mode === "koelen");
   const counts = {}; withK.forEach(x => { const key = x.k.mode === "gemengd" ? "onbekend" : x.k.mode; counts[key] = (counts[key]||0) + 1; });
-  const stook = findGrens(vrij.map(x => kx(x.m)), verw.map(x => kx(x.m)), true);
-  const koelG = findGrens(vrij.map(x => kx(x.m)), koel.map(x => kx(x.m)), false);
+  // Alleen metingen die de gekozen buitenbasis hebben (bij "gem. 24 u" niet terugvallen op "nu").
+  const hasB = x => xOf(x.m, kBasis()) !== null, X = arr => arr.filter(hasB).map(x => xOf(x.m, kBasis()));
+  const stook = findGrens(X(vrij), X(verw), true);
+  const koelG = findGrens(X(vrij), X(koel), false);
   const regPct = arr => { const k = arr.filter(x => x.k.reg); return k.length ? Math.round(k.filter(x => x.k.reg !== "niet").length / k.length * 100) : null; };
   return { all, withK, vrij, verw, koel, counts, stook, koelG, verwPct: regPct(verw), koelPct: regPct(koel) };
 }
@@ -4147,7 +4210,7 @@ function drawKlimaatChart(el){
   if(!el) return;
   const S = klimaatStats(cfApply("klimaat", state.metingen));
   const ce = document.getElementById("klimaatCon"); if(ce) ce.innerHTML = attachMore(klimConclusionHTML(S), klimDetailsHTML(S));
-  const pts = S.withK.filter(x => x.k.mode !== "onbekend" && x.k.mode !== "gemengd");
+  const pts = S.withK.filter(x => x.k.mode !== "onbekend" && x.k.mode !== "gemengd" && xOf(x.m, kBasis()) !== null);
   if(pts.length < 2){ el.innerHTML = cfActive("klimaat") ? cfEmptyHTML() : `<div class="chart-empty">${escapeHtml(t("chartNeed"))}</div>`; return; }
   const col = { vrij:"var(--k-vrij)", verwarmen:"var(--k-verw)", koelen:"var(--k-koel)" };
   const W = chartWidth(el), H = Math.round(Math.min(320, Math.max(220, W*0.42)));
@@ -4361,7 +4424,7 @@ function importRows(rows){
     if(!r || r.every(c => c === null || c === undefined || c === "")) return;
     const datum = normDate(r[cols.datum]);
     const binnen = parseNum(r[cols.binnen]), buiten = parseNum(r[cols.buiten]);
-    if(!datum || binnen === null || buiten === null){ empty++; return; }
+    if(!datum || !validISODate(datum) || binnen === null || buiten === null){ empty++; return; }
     const tijd = cols.tijd >= 0 ? normTime(r[cols.tijd]) : "";
     const ruimte = ensureRuimte((cols.ruimte >= 0 && r[cols.ruimte]) ? String(r[cols.ruimte]).trim() : defRuimte);
     const key = `${datum}|${tijd}|${ruimte.toLowerCase()}`;
@@ -4370,8 +4433,8 @@ function importRows(rows){
     const vw = cols.verwarming >= 0 ? String(r[cols.verwarming]||"").toLowerCase() : "";
     state.metingen.push({ id:newId(), datum, tijd, binnen, buiten, ruimte,
       verwarming: /aan|on|ja|yes|1/.test(vw) ? "aan" : /uit|off|nee|no|0/.test(vw) ? "uit" : "",
-      cv: (() => { if(cols.cv < 0) return ""; const x = String(r[cols.cv]||"").toLowerCase(); return /aan|on|ja|yes|1/.test(x) ? "aan" : /uit|off|nee|no|0/.test(x) ? "uit" : ""; })(),
-      airco: (() => { if(cols.airco < 0) return ""; const x = String(r[cols.airco]||"").toLowerCase(); return /koel|cool/.test(x) ? "koelen" : /verw|heat|warm/.test(x) ? "verwarmen" : /uit|off|nee|no|0/.test(x) ? "uit" : ""; })(),
+      cv: (() => { if(cols.cv < 0) return ""; const x = String(r[cols.cv] ?? "").toLowerCase(); return /aan|on|ja|yes|1/.test(x) ? "aan" : /uit|off|nee|no|0/.test(x) ? "uit" : ""; })(),
+      airco: (() => { if(cols.airco < 0) return ""; const x = String(r[cols.airco] ?? "").toLowerCase(); return /koel|cool/.test(x) ? "koelen" : /verw|heat|warm/.test(x) ? "verwarmen" : /uit|off|nee|no|0/.test(x) ? "uit" : ""; })(),
       cvTemp: null, aircoTemp: null,
       notitie: cols.notitie >= 0 ? String(r[cols.notitie]||"").trim() : "" });
     added++;
@@ -4446,7 +4509,7 @@ function exportXlsx(){
   const rows = exportRows();
   if(typeof XLSX !== "undefined"){
     const ws = XLSX.utils.json_to_sheet(rows);
-    ws["!cols"] = [{wch:12},{wch:8},{wch:12},{wch:12},{wch:10},{wch:14},{wch:12},{wch:30},{wch:8}];
+    ws["!cols"] = (rows.length ? Object.keys(rows[0]) : []).map(k => ({ wch: Math.min(40, Math.max(8, String(k).length + 2)) }));
     const wb = XLSX.utils.book_new(); XLSX.utils.book_append_sheet(wb, ws, "Metingen");
     const cool = coolExportRows();
     if(cool.length) XLSX.utils.book_append_sheet(wb, XLSX.utils.json_to_sheet(cool), state.lang==="en" ? "Cool-down tests" : "Afkoeltests");
@@ -4473,9 +4536,13 @@ let formBuitenMode = "eigen", formBuitenFetched = null, fetchSeq = 0, formModeTo
 const weatherCache = {};
 function addDaysISO(iso, n){ const [y,m,d] = iso.split("-").map(Number); const dt = new Date(y, m-1, d + n); return `${dt.getFullYear()}-${pad2(dt.getMonth()+1)}-${pad2(dt.getDate())}`; }
 function daysBetween(a, b){ const pa = a.split("-").map(Number), pb = b.split("-").map(Number); return Math.round((Date.UTC(pb[0],pb[1]-1,pb[2]) - Date.UTC(pa[0],pa[1]-1,pa[2])) / 86400000); }
+const weatherFetchedAt = {};
 async function fetchHourly(loc, datum){
   const key = `${loc.lat.toFixed(3)},${loc.lon.toFixed(3)},${datum}`;
+  // Gisteren/vandaag/morgen zijn (deels) verwachting: na een uur opnieuw ophalen voor echte waarden.
+  if(weatherCache[key] && weatherFetchedAt[key] && Math.abs(daysBetween(datum, todayISO())) <= 1 && Date.now() - weatherFetchedAt[key] > HOUR){ delete weatherCache[key]; }
   if(weatherCache[key]) return weatherCache[key];
+  weatherFetchedAt[key] = Date.now();
   const pr = fetchHourlyUncached(loc, datum).then(m => { weatherResolved[key] = m; return m; }).catch(err => { delete weatherCache[key]; throw err; });
   weatherCache[key] = pr;   // lopende aanvraag delen i.p.v. dezelfde dag twee keer op te halen
   return pr;
@@ -4556,7 +4623,7 @@ async function fetchHourlyUncached(loc, datum){
   // Afgerond op 2 decimalen (~1 km): ruim nauwkeurig voor een weermodel met ~2 km-raster, en je
   // exacte adres gaat zo nooit naar Open-Meteo.
   const url = `${base}?latitude=${loc.lat.toFixed(2)}&longitude=${loc.lon.toFixed(2)}&hourly=temperature_2m,shortwave_radiation,cloud_cover,wind_speed_10m,precipitation&timezone=auto&start_date=${datum}&end_date=${addDaysISO(datum, 1)}`;
-  const res = await fetch(url);
+  const res = await fetch(url, typeof AbortSignal !== "undefined" && AbortSignal.timeout ? { signal: AbortSignal.timeout(15000) } : undefined);
   if(!res.ok) throw new Error("HTTP " + res.status);
   const data = await res.json();
   if(!data.hourly || !Array.isArray(data.hourly.time)) throw new Error("onverwacht antwoord");
@@ -4637,7 +4704,9 @@ async function searchLocations(q){
       return { bron: pdokTypeLabel(doc.type), label: doc.weergavenaam, naam: doc.weergavenaam, lat: Number(m[2]), lon: Number(m[1]) };
     }).filter(Boolean))
     .catch(() => []);
-  const om = fetch(`https://geocoding-api.open-meteo.com/v1/search?name=${encodeURIComponent(q)}&count=4&language=${state.lang}&format=json`)
+  // Open-Meteo alleen voor plaatsnamen: bevat de zoekterm een cijfer (huisnummer/postcode), dan gaat hij
+  // uitsluitend naar PDOK (overheid) — zo komt je adres nooit bij Open-Meteo terecht.
+  const om = /\d/.test(q) ? Promise.resolve([]) : fetch(`https://geocoding-api.open-meteo.com/v1/search?name=${encodeURIComponent(q)}&count=4&language=${state.lang}&format=json`)
     .then(r => r.json())
     .then(d => ((d && d.results) || []).map(r => ({ bron: t("locSrcPlace"), label: [r.name, r.admin2 && r.admin2 !== r.name ? r.admin2 : null, r.admin1, r.country_code].filter(Boolean).join(", "), naam: r.name, lat: r.latitude, lon: r.longitude })))
     .catch(() => []);
@@ -4651,11 +4720,12 @@ function pdokTypeLabel(type){
   const en = { adres:"Address", postcode:"Postcode", weg:"Street", woonplaats:"Town", buurt:"Neighbourhood", wijk:"District", gemeente:"Municipality", provincie:"Province" };
   return ((state.lang === "en" ? en : nl)[type]) || type || "";
 }
+let locSearchSeq = 0;
 function wireLocationSettings(){
   const setLoc = loc => {
     state.settings.locatie = loc; formModeTouched = false;
-    state.metingen.forEach(m => { delete m.buiten24; });
-    state.afkoeltests.forEach(a => { if(a.buitenGemBron !== "handmatig"){ a.buitenGem = null; a.buitenGemBron = null; delete a.buitenUur; } });
+    state.metingen.forEach(m => { delete m.buiten24; if(m.weer && m.weer.src !== "handmatig") delete m.weer; if(m.buitenBron !== "online") m.buitenOnline = null; });
+    state.afkoeltests.forEach(a => { if(a.buitenGemBron !== "handmatig"){ a.buitenGem = null; a.buitenGemBron = null; delete a.buitenUur; } if(a.weer && a.weer.src !== "handmatig") delete a.weer; });
     scheduleAutoSave(); renderAll(); backfillOnline();
   };
   const results = document.getElementById("locResults");
@@ -4663,7 +4733,9 @@ function wireLocationSettings(){
     const q = document.getElementById("locQuery").value.trim();
     if(q.length < 2) return;
     results.innerHTML = `<span class="none">${t("checking")}</span>`;
+    const seq = ++locSearchSeq;
     const list = await searchLocations(q);
+    if(seq !== locSearchSeq) return;                 // er loopt al een nieuwere zoekopdracht
     if(!list.length){ results.innerHTML = `<span class="none">${escapeHtml(t("setLocNoResults"))}</span>`; return; }
     results.innerHTML = list.map((r, i) => `<button data-i="${i}"><span class="loc-src">${escapeHtml(r.bron)}</span>${escapeHtml(r.label)}</button>`).join("");
     results.querySelectorAll("button").forEach(b => b.onclick = () => { const r = list[Number(b.dataset.i)]; setLoc({ naam: r.naam, lat: r.lat, lon: r.lon }); });
@@ -4693,7 +4765,7 @@ async function hourlyBetween(loc, fromTs, toTs){
   for(let d = tsToISO(fromTs); d <= tsToISO(toTs); d = addDaysISO(d, 1)) days.push(d);
   const merged = {};
   for(const d of days){ Object.assign(merged, await fetchHourly(loc, d)); }
-  return Object.keys(merged).filter(k => { const ts = keyToTs(k); return ts >= fromTs && ts <= toTs; }).map(k => merged[k]);
+  return Object.keys(merged).filter(k => { const ts = keyToTs(k); return ts > fromTs && ts <= toTs; }).map(k => merged[k]);
 }
 async function mean24(loc, m){
   const end = tsOf(m);
@@ -4722,7 +4794,7 @@ async function refreshOnlineFor(m){
   if(!loc){ if(m.buitenBron !== "online") m.buitenOnline = null; return; }
   try{
     const v = await fetchOutdoorTemp(loc, m.datum, m.tijd);
-    if(state !== stateRef || !state.metingen.includes(m)) return;
+    if(state !== stateRef || !state.metingen.includes(m) || state.settings.locatie !== loc) return;
     m.buitenOnline = v;
     if(m.buitenBron === "online" && v !== null) m.buiten = v;
     if(m.buitenBron === "online" && v === null) m.buitenBron = "handmatig";
@@ -4739,10 +4811,11 @@ async function backfillOnline(){
   backfillRunning = true;
   let changed = false;
   const stateRef = state;
+  const stale = () => state !== stateRef || state.settings.locatie !== loc;   // uitgelogd of andere locatie gekozen
   try{
     for(const m of state.metingen.slice()){
       if(m.buiten24 !== undefined || !validISODate(m.datum)) continue;
-      try{ const v = await mean24(loc, m); if(state !== stateRef) return; if(v !== null || tsOf(m) < Date.now() - 3*86400000){ m.buiten24 = v; changed = true; } }
+      try{ const v = await mean24(loc, m); if(stale()) return; if(v !== null || tsOf(m) < Date.now() - 3*86400000){ m.buiten24 = v; changed = true; } }
       catch(err){ console.warn("24-uursgemiddelde ophalen mislukt:", err); break; }
     }
     for(const a of state.afkoeltests.slice()){
@@ -4750,7 +4823,7 @@ async function backfillOnline(){
       if(typeof a.buitenGem === "number" && Array.isArray(a.buitenUur)) continue;
       try{
         const ser = await hourlySeries(loc, coolStartTs(a) - 3600000, coolEndTs(a) + 3600000);
-        if(state !== stateRef) return;
+        if(stale()) return;
         if(ser.length){
           const inRange = ser.filter(x => x.ts >= Math.floor(coolStartTs(a)/3600000)*3600000 && x.ts <= Math.ceil(coolEndTs(a)/3600000)*3600000);
           a.buitenUur = ser; a.buitenGem = Math.round(avg((inRange.length ? inRange : ser).map(x => x.v)) * 10) / 10; a.buitenGemBron = "online"; changed = true;
@@ -4761,18 +4834,21 @@ async function backfillOnline(){
     // Weer (zon, wind, bewolking, regen) per meting en per afkoelnacht
     for(const m of state.metingen.slice()){
       if(m.weer !== undefined || !validISODate(m.datum) || tsOf(m) > Date.now()) continue;
-      try{ const v = await weerAt(loc, m); if(state !== stateRef) return; if(v || tsOf(m) < Date.now() - 3*86400000){ m.weer = v; changed = true; } }
+      try{ const v = await weerAt(loc, m); if(stale()) return; if(v || tsOf(m) < Date.now() - 3*86400000){ m.weer = v; changed = true; } }
       catch(err){ console.warn("Weer ophalen mislukt:", err); break; }
     }
     for(const a of state.afkoeltests.slice()){
       if(a.weer !== undefined || !coolComplete(a) || coolEndTs(a) > Date.now()) continue;
-      try{ const v = await weerOver(loc, coolStartTs(a), coolEndTs(a)); if(state !== stateRef) return; if(v || coolEndTs(a) < Date.now() - 3*86400000){ a.weer = v; changed = true; } }
+      try{ const v = await weerOver(loc, coolStartTs(a), coolEndTs(a)); if(stale()) return; if(v || coolEndTs(a) < Date.now() - 3*86400000){ a.weer = v; changed = true; } }
       catch(err){ console.warn("Weer afkoelnacht ophalen mislukt:", err); break; }
     }
   } finally {
     backfillRunning = false;
+    // Kwam er tijdens deze ronde een nieuw verzoek (bijv. na opnieuw inloggen of een andere locatie),
+    // dan altijd nog een ronde starten — ook als deze ronde voortijdig stopte.
+    if(backfillAgain){ backfillAgain = false; setTimeout(backfillOnline, 0); }
   }
-  if(state !== stateRef) return;
+  if(stale()) return;
   if(changed){
     scheduleAutoSave();
     // Niet midden in het typen alles opnieuw opbouwen: alleen als er geen invoerveld focus heeft.
@@ -4780,7 +4856,6 @@ async function backfillOnline(){
     if(!ae || !["INPUT","SELECT","TEXTAREA"].includes(ae.tagName)) renderAll({ skipProfile:true });
     else { renderTabs(); renderSummary(); redrawCharts(); }
   }
-  if(backfillAgain){ backfillAgain = false; backfillOnline(); }
 }
 
 /* ================= AFKOELTESTS =================
@@ -4941,7 +5016,14 @@ function wireCandidates(){
   });
 }
 let lastCoolMsg = null;
+/* Ingevulde maar nog niet opgeslagen velden van het afkoeltest-formulier bewaren bij opnieuw tekenen
+   (achtergrond-ophaalacties, taal of donkere modus wisselen). */
+const COOL_FIELDS = ["cStartDatum","cStartTijd","cStartBinnen","cEindDatum","cEindTijd","cEindBinnen","cRuimte","cNotitie","cWind","cWolk"];
+let coolDraft = null;
+function captureCoolDraft(){ if(!document.getElementById("coolSaveBtn")) return; coolDraft = {}; COOL_FIELDS.forEach(id => { const el = document.getElementById(id); if(el) coolDraft[id] = el.value; }); }
+function restoreCoolDraft(){ if(!coolDraft) return; COOL_FIELDS.forEach(id => { const el = document.getElementById(id); if(el && coolDraft[id] !== undefined) el.value = coolDraft[id]; }); }
 function renderCoolView(main){
+  captureCoolDraft();
   const tomorrow = addDaysISO(todayISO(), 1);
   const form = `
     <p class="card-note" style="margin-bottom:14px;">${escapeHtml(t("coolHow"))}</p>
@@ -4971,6 +5053,7 @@ function renderCoolView(main){
   html += cardHTML(ICONS.therm, t("coolChart"), `${cfBarHTML("afkoel")}<div id="coolChart"></div><div id="coolCon" class="chart-con"></div>${howtoHTML("howtoCool")}`);
   html += cardHTML(ICONS.list, t("coolTable"), coolTableHTML(), String(state.afkoeltests.length));
   main.innerHTML = html;
+  restoreCoolDraft();
   lastCoolMsg = null;
   wireEnterSubmit(main);
   document.getElementById("coolSaveBtn").onclick = () => {
@@ -4983,9 +5066,10 @@ function renderCoolView(main){
     };
     if(!state.settings.locatie){ const w = manualWeer({ wind: (document.getElementById("cWind") || {}).value, wolk: (document.getElementById("cWolk") || {}).value }); if(w) a.weer = w; }
     if(!validISODate(a.startDatum) || !a.startTijd || a.startBinnen === null){ msg.textContent = t("coolErrStart"); msg.className = "form-msg err"; return; }
-    if(a.eindBinnen !== null && validISODate(a.eindDatum) && a.eindTijd && coolEndTs(a) <= coolStartTs(a)){ msg.textContent = t("coolErrOrder"); msg.className = "form-msg err"; return; }
+    if(validISODate(a.eindDatum) && a.eindTijd && tsFrom(a.eindDatum, a.eindTijd) <= coolStartTs(a)){ msg.textContent = t("coolErrOrder"); msg.className = "form-msg err"; return; }
     state.afkoeltests.push(a);
     lastCoolMsg = { cls:"ok", text:t("coolSaved") };
+    coolDraft = null; document.getElementById("coolSaveBtn").remove();   // niet opnieuw vastleggen
     scheduleAutoSave(); renderAll(); backfillOnline();
   };
   wireCoolTable();
@@ -4999,7 +5083,7 @@ function coolTableHTML(){
   const num = v => (v === null || v === undefined) ? "" : String(v).replace(".", state.lang==="en"?".":",");
   const rows = list.map(a => {
     const c = coolCalc(a), ph = coolPhase(a);
-    return `<tr data-id="${a.id}">
+    return `<tr data-id="${escapeHtml(a.id)}">
       <td class="stack"><input class="t-date" type="date" min="2000-01-01" max="2100-12-31" data-f="startDatum" value="${escapeHtml(a.startDatum)}" /><input class="t-time" type="time" data-f="startTijd" value="${escapeHtml(a.startTijd)}" /></td>
       <td class="num"><input class="t-num" type="text" inputmode="decimal" data-f="startBinnen" value="${escapeHtml(num(a.startBinnen))}" /></td>
       <td class="stack"><input class="t-date" type="date" min="2000-01-01" max="2100-12-31" data-f="eindDatum" value="${escapeHtml(a.eindDatum||"")}" /><input class="t-time" type="time" data-f="eindTijd" value="${escapeHtml(a.eindTijd||"")}" /></td>
@@ -5152,11 +5236,11 @@ function renderProfilePanel(){
   wireEnterSubmit(body);
   if(profileTab === "settings"){
     body.innerHTML = `
-      <div>
+      <div data-submit-block>
         <label class="profile-field">${t("setComfort")}<input type="text" inputmode="decimal" id="setComfort" value="${escapeHtml(String(comfortT()).replace(".", state.lang === "en" ? "." : ","))}" /></label>
         <p class="profile-hint">${escapeHtml(t("setComfortHint"))}</p>
       </div>
-      <div>
+      <div data-submit-block>
         <label class="profile-field">${t("setRef")}<input type="number" step="1" id="setRef" value="${escapeHtml(state.settings.refBuiten)}" /></label>
         <p class="profile-hint">${escapeHtml(t("setRefHint"))}</p>
       </div>
@@ -5233,7 +5317,13 @@ function renderAll(opts){
     if(inp) inp.focus();
   }
 }
+/* Opslagstatus en timers terugzetten bij uit-/inloggen (anders blijft bijv. een oude conflictmelding staan). */
+function resetSessionFlags(){
+  clearTimeout(autoSaveTimer); cancelRetry();
+  saveConflictFlag = false; saveErrorFlag = false;
+}
 function bootApp(){
+  resetSessionFlags(); coolDraft = null; formWeer = { zon: "", wind: "", regen: "" };
   state.activeView = { type:"overview" };
   Object.keys(chartFilters).forEach(k => delete chartFilters[k]); scatterBasisUser = null; timePeriod = "1"; timeZoom = null; timeView = "temp"; tableOpenMonths.clear(); formKlimaat = null; formDraft = null; formTimeTouched = false; lastImportMsg = ""; formModeTouched = false;
   dirty = false; stateGeneration = 0; savedGeneration = 0;
@@ -5261,7 +5351,9 @@ if(cloudClient && cloudClient.auth.onAuthStateChange){
   cloudClient.auth.onAuthStateChange((event, session) => {
     if(session && cloudSession && session.user.id === cloudSession.user.id) cloudSession = session;
     if(event === "SIGNED_OUT" && cloudSession && encryptionPassword){
-      cloudSession = null; encryptionPassword = null; state = emptyState(); dirty = false;
+      clearEncPw(cloudSession.user.id);
+      cloudSession = null; encryptionPassword = null; state = emptyState(); dirty = false; lastSeenCiphertext = null;
+      resetSessionFlags();
       setProfilePanel(false); setNavDrawer(false); renderAuthGate();
     }
   });
