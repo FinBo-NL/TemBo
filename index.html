@@ -864,6 +864,86 @@ const I18N = {
       needRooms: "Meet in een tweede ruimte op ongeveer hetzelfde moment om ruimtes eerlijk te vergelijken.",
       fCoolRate: "Afkoelen (alles uit)", fTau: "τ uit metingen", fHeatRate: "Opwarmen (verwarming)", fBelow: "Uren onder comfort", fLag: "Vertraging", fRatio: "Demping",
     },
+    dc: {
+      need: "Voor nog meer detail",
+      fit: {
+        sTrend: "Trendlijn", sPred: "Schattingen per buitentemperatuur", sGrens: "Stookgrens", sDp: "Per dagdeel", sRooms: "Per ruimte", sBasis: "Buiten nu of 24-uursgemiddelde", sHeat: "Effect van verwarmen", sOdd: "Opvallende metingen",
+        trend: (a, b, src, n, lo, hi) => `Binnen ≈ ${a} + ${b} × buiten, op basis van ${n} metingen ${src}, met buiten van ${lo} tot ${hi}.`,
+        srcVrij: "met alles uit", srcAll: "zonder thermostaat-regeling",
+        fitQ: (r2, s) => `De lijn verklaart ${r2}% van de verschillen binnen (R²); metingen liggen gemiddeld ${s} van de lijn.`,
+        fitQLow: "Dat is weinig: binnen hangt hier ook sterk af van andere dingen (zon, eerder gestookt, bewoners, ramen).",
+        preds: list => `Verwacht binnen: ${list}.`, extrap: " (doortrekking)",
+        grensRange: (g, lo, hi) => `Geschatte stookgrens ~${g}, waarschijnlijk tussen ${lo} en ${hi}.`,
+        grensFar: "De stookgrens ligt buiten je gemeten buitentemperaturen; meet bij kouder weer om hem echt vast te stellen.",
+        grensNone: c => `De lijn kruist je comfortgrens van ${c} niet: binnen daalt nauwelijks mee met buiten in het gemeten bereik.`,
+        row: (k, v, g, n) => `${k}: ~${v} bij de referentie${g ? `, stookgrens ~${g}` : ""} (${n} metingen)`,
+        rowNeed: (k, n) => `${k}: te weinig metingen (${n})`,
+        warmest: (a, b, d) => `${a} is bij hetzelfde weer ~${d} warmer dan ${b}.`,
+        basis: (rn, r24, txt) => `Met de buitentemperatuur op het moment zelf verklaart de lijn ${rn}%, met het gemiddelde van de 24 uur ervoor ${r24}%. ${txt}`,
+        basis24: "Binnen reageert dus vooral op het weer van de afgelopen dag (traag huis); kies 'Buiten gem. 24 u' voor de zuiverste lijn.",
+        basisNu: "Binnen reageert vrij direct op het weer van het moment (snel huis).",
+        basisSame: "Beide geven een vergelijkbaar beeld.",
+        basisNeed: "Met een ingestelde locatie vergelijkt Tembo ook met het 24-uursgemiddelde buiten (hoe traag het huis reageert).",
+        heat: (d, n) => `Met de verwarming aan (instelling niet bereikt) was het binnen gemiddeld ${d} dan de lijn zonder verwarming bij hetzelfde weer (${n} metingen).`,
+        heatReg: n => `${n} meting(en) waarbij de thermostaat de instelling haalde tellen niet mee.`,
+        oddWarm: (w, v, e) => `${w}: ${v}, ~${e} warmer dan de lijn — zon, koken, bezoek of net gestookt?`,
+        oddCold: (w, v, e) => `${w}: ${v}, ~${e} kouder dan de lijn — raam open, tocht of thermometer bij een raam?`,
+        oddNone: "Geen metingen die sterk van de lijn afwijken.",
+        needCold: "Meet ook bij kouder weer (onder ~8 °C) met alles uit, zodat de stookgrens niet doorgetrokken hoeft te worden.",
+        needVrij: "Meer metingen met alles uit maken de lijn zuiverder (nu gemengd met verwarmen).",
+        needMore: "Met 12 of meer metingen over minstens 8 °C buitenbereik wordt de zekerheid 'hoog'.",
+      },
+      klim: {
+        sGrens: "Stook- en koelgrens", sVerw: "Verwarmen", sKoel: "Koelen", sVrij: "Alles uit", sBands: "Per buitentemperatuur", sDp: "Per dagdeel",
+        grensHow: (g, nv, nw, err) => `Stookgrens ~${g}: bepaald uit ${nv} metingen met alles uit en ${nw} met verwarming; ${err} meting(en) passen niet bij die grens (bijv. gestookt bij zacht weer of juist niet bij kou).`,
+        grensFit: g => `Volgens de lijn 'Binnen t.o.v. buiten' (alles uit) zakt het binnen onder je comfortgrens bij ~${g} buiten.`,
+        grensEarly: "Je stookt dus eerder dan nodig voor je comfortgrens — mogelijk te besparen door de verwarming later te laten aanslaan.",
+        grensLate: "Je stookt later dan de lijn voorspelt: je accepteert een iets lagere binnentemperatuur, of zon en bewoners helpen mee.",
+        grensMatch: "Dat sluit goed aan bij wanneer je echt gaat stoken.",
+        koelHow: (g, nv, nk, err) => `Koelgrens ~${g}: bepaald uit ${nv} metingen met alles uit en ${nk} met koelen; ${err} meting(en) wijken af.`,
+        sys: (n, sp, bin, pct) => `${n} metingen; gemiddeld ingesteld op ${sp}, gemeten ${bin}${pct !== null ? `; instelling gehaald bij ${pct}%` : ""}.`,
+        verwNot: (n, lo, hi, d) => `Niet gehaald bij ${n} meting(en), bij buiten ${lo}; gemiddeld ${d} onder de instelling.`,
+        koelNot: (n, lo, hi, d) => `Niet gehaald bij ${n} meting(en), bij buiten ${lo}; gemiddeld ${d} boven de instelling.`,
+        vrij: (n, bin, below, c, lo, loIn) => `${n} metingen, gemiddeld ${bin} binnen; ${below} daarvan onder je comfortgrens van ${c}. Bij de koudste (${lo} buiten) was het binnen ${loIn}.`,
+        band: (r, n, pv, pw, pk) => `${r}: ${n} metingen — ${pv}% alles uit, ${pw}% verwarmd, ${pk}% gekoeld`,
+        dpRow: (k, n, pw, pk) => `${k}: ${n} metingen, ${pw}% verwarmd, ${pk}% gekoeld`,
+        none: "Geen metingen in deze selectie.",
+        needVerw: "Noteer bij metingen ook wanneer de verwarming aan staat (met de instelling); dan bepaalt Tembo de stookgrens uit je echte gedrag.",
+        needKoel: "Noteer ook metingen met de airco op koelen voor de koelgrens.",
+        needVrij: "Meet ook bij verschillend weer met alles uit (minstens 3 keer), dan bepaalt Tembo waar je stookgrens ligt.",
+      },
+      koel: {
+        sOverview: "Overzicht", sOut: "Invloed van buiten", sReach: "Instelling halen", sRooms: "Per ruimte",
+        range: (lo, loW, hi, hiW) => `Langzaamste test ${lo} (${loW}), snelste ${hi} (${hiW}).`,
+        drop: (d, dur) => `Gemiddeld ${d} koeler in ${dur}.`,
+        pred: list => `Verwachte koelsnelheid: ${list}.`,
+        slopeNone: "Nog geen duidelijk verband met de buitentemperatuur (te weinig tests of te weinig spreiding in buitentemperatuur).",
+        grens: g => `Boven ~${g} buiten wordt de instelling meestal niet meer gehaald.`,
+        short: d => `Bij niet gehaalde tests bleef het gemiddeld ${d} boven de instelling.`,
+        all: "Alle tests met een instelling haalden die.", none: "Geen enkele test haalde de instelling.",
+        room: (r, n, v) => `${r}: ${n} test(s), gemiddeld ${v}`,
+        needVar: "Doe koeltests bij verschillende buitentemperaturen (bijv. 22, 26 en 30 °C) om te zien waar de grens ligt.",
+        needSp: "Vul bij koelen de ingestelde temperatuur in, dan ziet Tembo of die gehaald wordt.",
+      },
+      cool: {
+        sSpread: "Spreiding", sTrend: "Verloop over tijd", sOut: "Invloed van buiten", sPrac: "Wat betekent dit in de praktijk", sCheck: "Controle met gewone metingen", sExcl: "Niet meegeteld", sRooms: "Per ruimte",
+        spread: (mean, med, lo, hi, cv) => `Gemiddeld ${mean}, mediaan ${med}, van ${lo} tot ${hi} (variatie ${cv}%).`,
+        spreadHigh: "Dat is veel spreiding: vergelijk alleen tests onder vergelijkbare omstandigheden (wind, ventilatie, binnendeuren dicht).",
+        trend: d => `τ veranderde ${d} per maand over je tests.`, trendFlat: "τ is over je tests stabiel.",
+        out: (r, txt) => `Samenhang tussen τ en de buitentemperatuur: r = ${r}. ${txt}`,
+        outCold: "Bij kouder weer koelt het relatief sneller af — vaak door meer wind of ventilatie.",
+        outWarm: "Bij warmer weer koelt het relatief sneller af — mogelijk door ventilatie of ramen open.",
+        outNone: "Geen duidelijke invloed van de buitentemperatuur.",
+        prac: (a, b, c) => `Daling in een nacht van 8 uur bij 5 / 10 / 15 °C verschil binnen–buiten: ${a} / ${b} / ${c}.`,
+        hour1: h => `Bij 10 °C verschil duurt het ~${h} voordat het binnen 1 °C kouder is.`,
+        check: (v, n) => `Uit je gewone metingen (opeenvolgende metingen met alles uit, ${n} periodes) volgt τ ~${v}.`,
+        checkOk: "Dat komt goed overeen met de afkoeltests.", checkDiff: "Dat wijkt af van de afkoeltests; de tests zijn meestal nauwkeuriger (deuren dicht, hele nacht).",
+        excl: (h, r, f, sm) => `${h} met verwarming/koeling aan, ${r} met een tussentijdse stijging, ${f} met een rommelige meting, ${sm} met te weinig verschil binnen–buiten.`,
+        room: (r, n, v) => `${r}: ${n} test(s), τ ~${v}`,
+        needMore: "Met 5 of meer tests wordt de mediaan betrouwbaar.",
+        needCold: "Tests met een groot verschil binnen–buiten (koude nachten) zijn het nauwkeurigst.",
+      },
+    },
     setComfort: "Comfortgrens binnen (°C)",
     setComfortHint: "Onder deze binnentemperatuur vind je het te koud. Tembo gebruikt dit voor de geschatte stookgrens en de conclusies.",
     sumHouse: "Hoe houdt je huis zich?",
@@ -1257,6 +1337,86 @@ const I18N = {
       needHeat: "Measure just before and a while after switching on the heating: then you see how fast it warms up.",
       needRooms: "Measure in a second room at about the same time to compare rooms fairly.",
       fCoolRate: "Cooling (all off)", fTau: "τ from readings", fHeatRate: "Warming (heating)", fBelow: "Hours below comfort", fLag: "Lag", fRatio: "Damping",
+    },
+    dc: {
+      need: "For even more detail",
+      fit: {
+        sTrend: "Trend line", sPred: "Estimates per outdoor temperature", sGrens: "Heating threshold", sDp: "Per time of day", sRooms: "Per room", sBasis: "Outdoor now or 24-hour average", sHeat: "Effect of heating", sOdd: "Notable readings",
+        trend: (a, b, src, n, lo, hi) => `Indoor ≈ ${a} + ${b} × outdoor, based on ${n} readings ${src}, with outdoor from ${lo} to ${hi}.`,
+        srcVrij: "with everything off", srcAll: "without thermostat control",
+        fitQ: (r2, s) => `The line explains ${r2}% of the indoor differences (R²); readings lie on average ${s} from the line.`,
+        fitQLow: "That is little: indoor also depends strongly on other things here (sun, earlier heating, occupants, windows).",
+        preds: list => `Expected indoor: ${list}.`, extrap: " (extrapolated)",
+        grensRange: (g, lo, hi) => `Estimated heating threshold ~${g}, probably between ${lo} and ${hi}.`,
+        grensFar: "The heating threshold lies outside your measured outdoor temperatures; measure in colder weather to pin it down.",
+        grensNone: c => `The line does not cross your comfort limit of ${c}: indoor hardly drops with outdoor in the measured range.`,
+        row: (k, v, g, n) => `${k}: ~${v} at the reference${g ? `, threshold ~${g}` : ""} (${n} readings)`,
+        rowNeed: (k, n) => `${k}: too few readings (${n})`,
+        warmest: (a, b, d) => `In the same weather ${a} is ~${d} warmer than ${b}.`,
+        basis: (rn, r24, txt) => `With the outdoor temperature at the moment itself the line explains ${rn}%, with the average of the previous 24 hours ${r24}%. ${txt}`,
+        basis24: "So indoor mainly responds to the weather of the past day (slow house); pick 'Outdoor avg. 24 h' for the cleanest line.",
+        basisNu: "Indoor responds fairly directly to the current weather (fast house).",
+        basisSame: "Both give a similar picture.",
+        basisNeed: "With a location set, Tembo also compares with the 24-hour outdoor average (how slowly the house responds).",
+        heat: (d, n) => `With heating on (setting not reached) indoor was on average ${d} than the no-heating line in the same weather (${n} readings).`,
+        heatReg: n => `${n} reading(s) where the thermostat reached its setting are left out.`,
+        oddWarm: (w, v, e) => `${w}: ${v}, ~${e} warmer than the line — sun, cooking, visitors or recent heating?`,
+        oddCold: (w, v, e) => `${w}: ${v}, ~${e} colder than the line — window open, draught or thermometer near a window?`,
+        oddNone: "No readings that differ strongly from the line.",
+        needCold: "Also measure in colder weather (below ~8 °C) with everything off, so the heating threshold need not be extrapolated.",
+        needVrij: "More readings with everything off make the line cleaner (now mixed with heating).",
+        needMore: "With 12 or more readings over at least 8 °C of outdoor range the confidence becomes 'high'.",
+      },
+      klim: {
+        sGrens: "Heating and cooling threshold", sVerw: "Heating", sKoel: "Cooling", sVrij: "Everything off", sBands: "Per outdoor temperature", sDp: "Per time of day",
+        grensHow: (g, nv, nw, err) => `Heating threshold ~${g}: determined from ${nv} readings with everything off and ${nw} with heating; ${err} reading(s) do not fit that threshold (e.g. heated in mild weather, or not in the cold).`,
+        grensFit: g => `According to the 'Indoor vs. outdoor' line (everything off), indoor drops below your comfort limit at ~${g} outside.`,
+        grensEarly: "So you heat earlier than your comfort limit requires — possible savings by letting the heating kick in later.",
+        grensLate: "You heat later than the line predicts: you accept a slightly lower indoor temperature, or sun and occupants help.",
+        grensMatch: "That matches well with when you actually start heating.",
+        koelHow: (g, nv, nk, err) => `Cooling threshold ~${g}: determined from ${nv} readings with everything off and ${nk} with cooling; ${err} reading(s) differ.`,
+        sys: (n, sp, bin, pct) => `${n} readings; set on average to ${sp}, measured ${bin}${pct !== null ? `; setting reached in ${pct}%` : ""}.`,
+        verwNot: (n, lo, hi, d) => `Not reached in ${n} reading(s), at outdoor ${lo}; on average ${d} below the setting.`,
+        koelNot: (n, lo, hi, d) => `Not reached in ${n} reading(s), at outdoor ${lo}; on average ${d} above the setting.`,
+        vrij: (n, bin, below, c, lo, loIn) => `${n} readings, on average ${bin} indoor; ${below} of them below your comfort limit of ${c}. At the coldest (${lo} outside) indoor was ${loIn}.`,
+        band: (r, n, pv, pw, pk) => `${r}: ${n} readings — ${pv}% everything off, ${pw}% heated, ${pk}% cooled`,
+        dpRow: (k, n, pw, pk) => `${k}: ${n} readings, ${pw}% heated, ${pk}% cooled`,
+        none: "No readings in this selection.",
+        needVerw: "Also record when the heating is on (with its setting); then Tembo derives the heating threshold from your actual behaviour.",
+        needKoel: "Also record readings with the AC on cooling for the cooling threshold.",
+        needVrij: "Also measure with everything off in different weather (at least 3 times), then Tembo can tell where your heating threshold is.",
+      },
+      koel: {
+        sOverview: "Overview", sOut: "Effect of outdoor", sReach: "Reaching the setting", sRooms: "Per room",
+        range: (lo, loW, hi, hiW) => `Slowest test ${lo} (${loW}), fastest ${hi} (${hiW}).`,
+        drop: (d, dur) => `On average ${d} cooler in ${dur}.`,
+        pred: list => `Expected cooling rate: ${list}.`,
+        slopeNone: "No clear link with outdoor temperature yet (too few tests or too little spread in outdoor temperature).",
+        grens: g => `Above ~${g} outside the setting is usually no longer reached.`,
+        short: d => `In tests that did not reach it, indoor stayed on average ${d} above the setting.`,
+        all: "All tests with a setting reached it.", none: "No test reached the setting.",
+        room: (r, n, v) => `${r}: ${n} test(s), on average ${v}`,
+        needVar: "Do cooling tests at different outdoor temperatures (e.g. 22, 26 and 30 °C) to see where the limit is.",
+        needSp: "Enter the AC set temperature when cooling, then Tembo can tell whether it was reached.",
+      },
+      cool: {
+        sSpread: "Spread", sTrend: "Over time", sOut: "Effect of outdoor", sPrac: "What it means in practice", sCheck: "Check against normal readings", sExcl: "Left out", sRooms: "Per room",
+        spread: (mean, med, lo, hi, cv) => `Mean ${mean}, median ${med}, from ${lo} to ${hi} (variation ${cv}%).`,
+        spreadHigh: "That is a lot of spread: only compare tests under similar conditions (wind, ventilation, inner doors closed).",
+        trend: d => `τ changed ${d} per month across your tests.`, trendFlat: "τ is stable across your tests.",
+        out: (r, txt) => `Correlation between τ and outdoor temperature: r = ${r}. ${txt}`,
+        outCold: "In colder weather it cools relatively faster — often due to more wind or ventilation.",
+        outWarm: "In warmer weather it cools relatively faster — possibly ventilation or windows open.",
+        outNone: "No clear effect of outdoor temperature.",
+        prac: (a, b, c) => `Drop in an 8-hour night at 5 / 10 / 15 °C indoor–outdoor difference: ${a} / ${b} / ${c}.`,
+        hour1: h => `At a 10 °C difference it takes ~${h} for indoor to get 1 °C colder.`,
+        check: (v, n) => `Your normal readings (consecutive readings with everything off, ${n} periods) give τ ~${v}.`,
+        checkOk: "That agrees well with the cool-down tests.", checkDiff: "That differs from the cool-down tests; the tests are usually more accurate (doors closed, whole night).",
+        excl: (h, r, f, sm) => `${h} with heating/cooling on, ${r} with an intermediate rise, ${f} with a rough fit, ${sm} with too small an indoor–outdoor difference.`,
+        room: (r, n, v) => `${r}: ${n} test(s), τ ~${v}`,
+        needMore: "With 5 or more tests the median becomes reliable.",
+        needCold: "Tests with a large indoor–outdoor difference (cold nights) are the most accurate.",
+      },
     },
     setComfort: "Indoor comfort limit (°C)",
     setComfortHint: "Below this indoor temperature you find it too cold. Tembo uses it for the estimated heating threshold and the conclusions.",
@@ -3020,7 +3180,7 @@ function drawScatterChart(el, listAll){
   const list = listAll.filter(p => xOf(p, basis) !== null);
   const missing = listAll.length - list.length;
   const an = houseFit(listAll, basis);
-  const conEl = document.getElementById("scatterCon"); if(conEl) conEl.innerHTML = fitConclusionHTML(an);
+  const conEl = document.getElementById("scatterCon"); if(conEl) conEl.innerHTML = attachMore(fitConclusionHTML(an), fitDetailsHTML(an, listAll, basis));
   if(list.length < 2){ el.innerHTML = `<div class="chart-empty">${escapeHtml(cfActive("scatter") ? t("cfEmpty") : t("chartNeed"))}${missing ? "<br>" + escapeHtml(t("basis24Missing")(missing)) : ""}</div>`; return; }
   const C = t("con2").fit, col = "var(--accent)", cGrens = "var(--k-verw)";
   const inTrend = new Set((an.r ? an.use : []).map(p => p.id));
@@ -3335,6 +3495,162 @@ function timeConclusionHTML(list, w, hourly){
   return box.replace(/<\/div>$/, more + "</div>");
 }
 
+/* ================= DETAILS PER CONCLUSIE =================
+   Elke grafiek krijgt onder het oordeel een inklapbaar blok "Alle details" met dezelfde opbouw als
+   het temperatuurverloop. Alles wordt berekend uit de metingen die de grafiek op dat moment toont
+   (periode, ruimte, dagdeel, klimaat), dus het beweegt mee met de filters. */
+function secHTML(title, items){ const it = (items || []).filter(Boolean); return it.length ? `<div class="con-sec"><div class="con-sec-h">${escapeHtml(title)}</div>${it.map(x => x.startsWith("<") ? x : `<p>${escapeHtml(x)}</p>`).join("")}</div>` : ""; }
+function listHTML(items){ return items.length ? `<ul>${items.map(x => `<li>${escapeHtml(x)}</li>`).join("")}</ul>` : ""; }
+function moreHTML(key, secs, needs){
+  const nd = [...new Set((needs || []).filter(Boolean))];
+  const all = secs.filter(Boolean).concat(nd.length ? [secHTML(t("dc").need, [listHTML(nd)])] : []);
+  return all.length ? `<details class="con-more" data-conmore="${key}" ${conMoreOpen[key] !== false ? "open" : ""}><summary>${escapeHtml(t("tc").more(all.length))}</summary>${all.join("")}</details>` : "";
+}
+function attachMore(box, more){ return more ? box.replace(/<\/div>$/, more + "</div>") : box; }
+function rTxt(r){ return r.toLocaleString(state.lang === "en" ? "en-GB" : "nl-NL", { maximumFractionDigits: 2 }); }
+function num2(v){ return v.toLocaleString(state.lang === "en" ? "en-GB" : "nl-NL", { maximumFractionDigits: 2, minimumFractionDigits: 2 }); }
+function r2Of(r, pts){ const my = avg(pts.map(p => p.y)), sst = pts.reduce((a, p) => a + (p.y - my) ** 2, 0); const sse = pts.reduce((a, p) => a + (p.y - (r.a + r.b * p.x)) ** 2, 0); return sst > 1e-9 ? Math.max(0, 1 - sse / sst) : 0; }
+/* τ uit paren opeenvolgende metingen met alles uit (zelfde ruimte), zoals bij het temperatuurverloop. */
+function pairTaus(list){
+  const by = {}; sortedMetingen(list).forEach(m => { const r = m.ruimte || ROOM_DEFAULT; (by[r] = by[r] || []).push(m); });
+  const out = [];
+  Object.values(by).forEach(arr => { for(let i = 1; i < arr.length; i++){ const a = arr[i-1], b = arr[i], dtH = (tsOf(b) - tsOf(a)) / HOUR;
+    if(klimaatOf(a).mode !== "vrij" || klimaatOf(b).mode !== "vrij" || dtH < 1 || dtH > 16 || a.binnen - b.binnen < 0.2) continue;
+    const To = (a.buiten + b.buiten) / 2, d0 = a.binnen - To, d1 = b.binnen - To;
+    if(d0 >= 3 && d1 > 0.5){ const tau = dtH / Math.log(d0 / d1); if(tau > 5 && tau < 2000) out.push(tau); } } });
+  return out;
+}
+
+/* --- Binnen t.o.v. buiten --- */
+function fitDetailsHTML(f, listAll, basis){
+  if(!f.r) return moreHTML("scatter", [], f.status === "insufficient" ? [t("dc").fit.needMore] : []);
+  const D = t("dc").fit, r = f.r, secs = [], needs = [];
+  const pts = f.use.map(p => ({ x: xOf(p, basis), y: p.binnen })), r2 = r2Of(r, pts);
+  const resid = f.use.map(p => p.binnen - (r.a + r.b * xOf(p, basis))), sres = Math.sqrt(avg(resid.map(e => e * e)));
+  secs.push(secHTML(D.sTrend, [D.trend(fmtT(r.a), num2(r.b), f.vrijOnly ? D.srcVrij : D.srcAll, r.n, fmtT(r.minX), fmtT(r.maxX)), D.fitQ(Math.round(r2 * 100), fmtT(sres)), r2 < 0.4 ? D.fitQLow : ""]));
+  const xs = [0, 5, 10, 15, 20].filter(x => x >= r.minX - 8 && x <= r.maxX + 8);
+  secs.push(secHTML(D.sPred, [D.preds(xs.map(x => `${fmtT(x, 0)} → ${fmtT(r.a + r.b * x)} ± ${fmtT(Math.max(MEAS_UNCERTAINTY, 2 * predSE(r, x)))}${x < r.minX - 2 || x > r.maxX + 2 ? D.extrap : ""}`).join(" · "))]));
+  if(f.grens !== undefined){
+    const se = Math.max(MEAS_UNCERTAINTY, r.sres) / Math.abs(r.b) * Math.sqrt(1 / r.n + (f.grens - r.mx) ** 2 / r.sxx);
+    secs.push(secHTML(D.sGrens, [D.grensRange(fmtT(f.grens, 0), fmtT(f.grens - 2 * se, 0), fmtT(f.grens + 2 * se, 0)), f.grensExtrap ? D.grensFar : ""]));
+    if(f.grens < r.minX - 1) needs.push(D.needCold);
+  } else secs.push(secHTML(D.sGrens, [D.grensNone(fmtT(f.comfort, 0))]));
+  // per dagdeel / per ruimte (alleen als dat filter op "Alle" staat)
+  const groupRows = (keys, keyOf, label) => { const rows = [], ok = [];
+    keys.forEach(k => { const g = houseFit(listAll.filter(m => keyOf(m) === k), basis); if(g.r){ rows.push(D.row(label(k), fmtT(g.pred), g.grens !== undefined ? fmtT(g.grens, 0) : "", g.n)); ok.push({ k, g }); } else if(g.n) rows.push(D.rowNeed(label(k), g.n)); });
+    if(ok.length >= 2){ ok.sort((a, b) => b.g.pred - a.g.pred); rows.push(D.warmest(label(ok[0].k), label(ok[ok.length-1].k), fmtT(ok[0].g.pred - ok[ok.length-1].g.pred))); }
+    return rows; };
+  if(cfOf("scatter").dp === "all"){ const rows = groupRows(DAGDELEN, m => dagdeelOf(m.tijd), dpLabel); if(rows.length) secs.push(secHTML(D.sDp, [listHTML(rows)])); }
+  const rooms = [...new Set(listAll.map(m => m.ruimte || ROOM_DEFAULT))];
+  if(cfOf("scatter").rf === "all" && rooms.length > 1){ const rows = groupRows(rooms, m => m.ruimte || ROOM_DEFAULT, x => x); if(rows.length) secs.push(secHTML(D.sRooms, [listHTML(rows)])); }
+  // nu vs 24 u
+  const both = f.use.filter(has24);
+  if(both.length >= 4){
+    const rn = linReg(both.map(p => ({ x: p.buiten, y: p.binnen }))), r24 = linReg(both.map(p => ({ x: p.buiten24, y: p.binnen })));
+    if(rn && r24){ const a = r2Of(rn, both.map(p => ({ x: p.buiten, y: p.binnen }))), b = r2Of(r24, both.map(p => ({ x: p.buiten24, y: p.binnen })));
+      secs.push(secHTML(D.sBasis, [D.basis(Math.round(a * 100), Math.round(b * 100), b - a > 0.1 ? D.basis24 : a - b > 0.1 ? D.basisNu : D.basisSame)])); }
+  } else if(!state.settings.locatie) needs.push(D.basisNeed);
+  // verwarmen t.o.v. de lijn zonder verwarming
+  if(f.vrijOnly){
+    const heat = listAll.filter(m => !isRegulated(m) && klimaatOf(m).mode === "verwarmen" && xOf(m, basis) !== null);
+    const items = [];
+    if(heat.length){ const d = avg(heat.map(m => m.binnen - (r.a + r.b * xOf(m, basis)))); items.push(D.heat(`${fmtT(Math.abs(d))} ${d >= 0 ? t("tc").warmer : t("tc").colder}`, heat.length)); }
+    if(f.excluded) items.push(D.heatReg(f.excluded));
+    secs.push(secHTML(D.sHeat, items));
+  } else needs.push(D.needVrij);
+  // uitschieters
+  const thr = Math.max(1, 2.5 * Math.max(r.sres, 0.2));
+  const odd = f.use.map(m => ({ m, e: m.binnen - (r.a + r.b * xOf(m, basis)) })).filter(o => Math.abs(o.e) >= thr).sort((a, b) => Math.abs(b.e) - Math.abs(a.e)).slice(0, 4);
+  secs.push(secHTML(D.sOdd, [odd.length ? listHTML(odd.map(o => (o.e > 0 ? D.oddWarm : D.oddCold)(whenTxt(o.m), fmtT(o.m.binnen), fmtT(Math.abs(o.e))))) : D.oddNone]));
+  if(f.conf !== "high") needs.push(D.needMore);
+  return moreHTML("scatter", secs, needs);
+}
+
+/* --- Per klimaat --- */
+function klimDetailsHTML(S){
+  const D = t("dc").klim, secs = [], needs = [], comfort = comfortT();
+  if(!S.withK.length) return moreHTML("klimaat", [secHTML(D.sGrens, [D.none])]);
+  const g = [];
+  if(S.stook){
+    g.push(D.grensHow(fmtT(S.stook.T), S.vrij.length, S.verw.length, S.stook.err));
+    const f = houseFit(S.vrij.map(x => x.m), kBasis(), "vrij");
+    if(f.grens !== undefined){ g.push(D.grensFit(fmtT(f.grens, 0))); const d = S.stook.T - f.grens; g.push(d > 1 ? D.grensEarly : d < -1 ? D.grensLate : D.grensMatch); }
+  } else needs.push(S.verw.length < 3 ? D.needVerw : D.needVrij);
+  if(S.koelG) g.push(D.koelHow(fmtT(S.koelG.T), S.vrij.length, S.koel.length, S.koelG.err)); else if(S.koel.length < 3) needs.push(D.needKoel);
+  secs.push(secHTML(D.sGrens, g));
+  const sysSec = (arr, title, below) => {
+    if(!arr.length) return "";
+    const sps = arr.filter(x => x.k.sp !== null), withReg = arr.filter(x => x.k.reg), niet = arr.filter(x => x.k.reg === "niet");
+    const items = [D.sys(arr.length, sps.length ? fmtT(avg(sps.map(x => x.k.sp))) : "—", fmtT(avg(arr.map(x => x.m.binnen))), withReg.length ? Math.round(withReg.filter(x => x.k.reg !== "niet").length / withReg.length * 100) : null)];
+    if(niet.length){ const outs = niet.map(x => kx(x.m)); items.push((below ? D.verwNot : D.koelNot)(niet.length, Math.max(...outs) - Math.min(...outs) < 0.05 ? fmtT(outs[0]) : `${fmtT(Math.min(...outs))} – ${fmtT(Math.max(...outs))}`, "", fmtT(avg(niet.map(x => Math.abs(x.m.binnen - x.k.sp)))))); }
+    return secHTML(title, items);
+  };
+  secs.push(sysSec(S.verw, D.sVerw, true), sysSec(S.koel, D.sKoel, false));
+  if(S.vrij.length){ const lo = S.vrij.reduce((a, x) => kx(x.m) < kx(a.m) ? x : a); secs.push(secHTML(D.sVrij, [D.vrij(S.vrij.length, fmtT(avg(S.vrij.map(x => x.m.binnen))), S.vrij.filter(x => x.m.binnen < comfort - 0.05).length, fmtT(comfort, 0), fmtT(kx(lo.m)), fmtT(lo.m.binnen))])); }
+  const known = S.withK.filter(x => ["vrij","verwarmen","koelen"].includes(x.k.mode));
+  const bands = [[-99, 5, "< 5 °C"], [5, 10, "5–10 °C"], [10, 15, "10–15 °C"], [15, 20, "15–20 °C"], [20, 99, "≥ 20 °C"]].map(([lo, hi, l]) => {
+    const a = known.filter(x => kx(x.m) >= lo && kx(x.m) < hi); if(!a.length) return null;
+    const p = md => Math.round(a.filter(x => x.k.mode === md).length / a.length * 100);
+    return D.band(l, a.length, p("vrij"), p("verwarmen"), p("koelen"));
+  }).filter(Boolean);
+  if(bands.length >= 2) secs.push(secHTML(D.sBands, [listHTML(bands)]));
+  if(cfOf("klimaat").dp === "all"){
+    const rows = DAGDELEN.map(k => { const a = known.filter(x => dagdeelOf(x.m.tijd) === k); if(!a.length) return null; const p = md => Math.round(a.filter(x => x.k.mode === md).length / a.length * 100); return D.dpRow(dpLabel(k), a.length, p("verwarmen"), p("koelen")); }).filter(Boolean);
+    if(rows.length >= 2) secs.push(secHTML(D.sDp, [listHTML(rows)]));
+  }
+  return moreHTML("klimaat", secs, needs);
+}
+
+/* --- Koeltests --- */
+function koelDetailsHTML(KT){
+  if(!KT.length) return "";
+  const D = t("dc").koel, secs = [], needs = [];
+  const wt = k => `${fmtDate(k.a.datum)} ${k.a.tijd}`;
+  const lo = KT.reduce((a, k) => k.rate < a.rate ? k : a), hi = KT.reduce((a, k) => k.rate > a.rate ? k : a);
+  secs.push(secHTML(D.sOverview, [KT.length > 1 ? D.range(fmtRate(lo.rate), wt(lo), fmtRate(hi.rate), wt(hi)) : "", D.drop(fmtT(avg(KT.map(k => k.drop))), hoursTxt(avg(KT.map(k => k.dtH))))]));
+  const r = KT.length >= 3 ? linReg(KT.map(k => ({ x: k.out, y: k.rate }))) : null;
+  if(r && r.maxX - r.minX >= 3){ const xs = [20, 25, 30].filter(x => x >= r.minX - 5 && x <= r.maxX + 5); secs.push(secHTML(D.sOut, [D.pred(xs.map(x => `${fmtT(x, 0)} → ${fmtRate(Math.max(0, r.a + r.b * x))}`).join(" · "))])); }
+  else { secs.push(secHTML(D.sOut, [D.slopeNone])); needs.push(D.needVar); }
+  const withSp = KT.filter(k => k.reached !== null), ok = withSp.filter(k => k.reached), not = withSp.filter(k => !k.reached);
+  if(withSp.length){
+    const items = [];
+    if(!not.length) items.push(D.all); else if(!ok.length) items.push(D.none);
+    else { const G = findGrens(ok.map(k => k.out), not.map(k => k.out), false); if(G) items.push(D.grens(fmtT(G.T))); }
+    if(not.length) items.push(D.short(fmtT(avg(not.map(k => k.b.binnen - k.sp)))));
+    secs.push(secHTML(D.sReach, items));
+  } else needs.push(D.needSp);
+  const rooms = [...new Set(KT.map(k => k.a.ruimte || ROOM_DEFAULT))];
+  if(rooms.length > 1) secs.push(secHTML(D.sRooms, [listHTML(rooms.map(rm => { const a = KT.filter(k => (k.a.ruimte || ROOM_DEFAULT) === rm); return D.room(rm, a.length, fmtRate(avg(a.map(k => k.rate)))); }))]));
+  return moreHTML("koel", secs, needs);
+}
+
+/* --- Afkoeltests --- */
+function coolDetailsHTML(pts){
+  if(!pts.length) return "";
+  const D = t("dc").cool, secs = [], needs = [];
+  const clean = pts.filter(p => !p.c.heated && !p.c.rough && !p.c.rise && !p.c.small), use = clean.length ? clean : pts;
+  const taus = use.map(p => p.c.tau), med = median(taus), mean = avg(taus);
+  const cv = taus.length > 1 ? Math.sqrt(avg(taus.map(v => (v - mean) ** 2))) / mean : 0;
+  if(use.length > 1) secs.push(secHTML(D.sSpread, [D.spread(hoursTxt(mean), hoursTxt(med), hoursTxt(Math.min(...taus)), hoursTxt(Math.max(...taus)), Math.round(cv * 100)), cv > 0.35 ? D.spreadHigh : ""]));
+  if(use.length >= 3){
+    const t0 = coolStartTs(use[0].a), rT = linReg(use.map(p => ({ x: (coolStartTs(p.a) - t0) / (30 * DAY), y: p.c.tau })));
+    if(rT && (coolStartTs(use[use.length-1].a) - t0) >= 14 * DAY) secs.push(secHTML(D.sTrend, [Math.abs(rT.b) >= 3 ? D.trend((rT.b > 0 ? "+" : "−") + hoursTxt(Math.abs(rT.b))) : D.trendFlat]));
+    const withOut = use.filter(p => typeof p.c.out === "number");
+    if(withOut.length >= 3){ const rr = pearson(withOut.map(p => p.c.out), withOut.map(p => p.c.tau)); if(rr !== null) secs.push(secHTML(D.sOut, [D.out(rTxt(rr), rr >= 0.5 ? D.outCold : rr <= -0.5 ? D.outWarm : D.outNone)])); }
+  }
+  const drop = dT => fmtT(dT * (1 - Math.exp(-8 / med)));
+  secs.push(secHTML(D.sPrac, [D.prac(drop(5), drop(10), drop(15)), D.hour1(hoursTxt(-med * Math.log(1 - 1 / 10)))]));
+  const rooms = [...new Set(use.map(p => p.a.ruimte || ROOM_DEFAULT))];
+  const pt = pairTaus(cfApply("afkoel", state.metingen, { ts: tsOf, room: m => m.ruimte, m: () => null }));
+  if(pt.length >= 3){ const mp = median(pt); secs.push(secHTML(D.sCheck, [D.check(hoursTxt(mp), pt.length), Math.abs(mp - med) / med <= 0.3 ? D.checkOk : D.checkDiff])); }
+  const excl = pts.length - use.length;
+  if(excl) secs.push(secHTML(D.sExcl, [D.excl(pts.filter(p => p.c.heated).length, pts.filter(p => p.c.rise).length, pts.filter(p => p.c.rough).length, pts.filter(p => p.c.small).length)]));
+  if(rooms.length > 1) secs.push(secHTML(D.sRooms, [listHTML(rooms.map(rm => { const a = use.filter(p => (p.a.ruimte || ROOM_DEFAULT) === rm); return D.room(rm, a.length, hoursTxt(median(a.map(p => p.c.tau)))); }))]));
+  if(use.length < 5) needs.push(D.needMore);
+  if(use.some(p => typeof p.c.out === "number" && p.a.startBinnen - p.c.out < 8)) needs.push(D.needCold);
+  return moreHTML("afkoel", secs, needs);
+}
+
 /* --- Per klimaat --- */
 function klimConclusionHTML(S){
   const C = t("con2").klim, paras = [], facts = [];
@@ -3558,7 +3874,7 @@ function renderKlimaatView(main){
 function drawKlimaatChart(el){
   if(!el) return;
   const S = klimaatStats(cfApply("klimaat", state.metingen));
-  const ce = document.getElementById("klimaatCon"); if(ce) ce.innerHTML = klimConclusionHTML(S);
+  const ce = document.getElementById("klimaatCon"); if(ce) ce.innerHTML = attachMore(klimConclusionHTML(S), klimDetailsHTML(S));
   const pts = S.withK.filter(x => x.k.mode !== "onbekend" && x.k.mode !== "gemengd");
   if(pts.length < 2){ el.innerHTML = cfActive("klimaat") ? cfEmptyHTML() : `<div class="chart-empty">${escapeHtml(t("chartNeed"))}</div>`; return; }
   const col = { vrij:"var(--k-vrij)", verwarmen:"var(--k-verw)", koelen:"var(--k-koel)" };
@@ -3681,7 +3997,7 @@ function drawKoelChart(el, KTall){
   if(!el) return;
   if(!KTall.length){ el.innerHTML = ""; return; }
   const KT = cfApply("koel", KTall, { ts: k => tsOf(k.a), room: k => k.a.ruimte, m: () => null });
-  const ce = document.getElementById("koelCon"); if(ce) ce.innerHTML = koelConclusionHTML(KT);
+  const ce = document.getElementById("koelCon"); if(ce) ce.innerHTML = attachMore(koelConclusionHTML(KT), koelDetailsHTML(KT));
   if(!KT.length){ el.innerHTML = cfEmptyHTML(); return; }
   const hasIso = !!state.settings.isolatieDatum;
   const colorOf = k => !hasIso || !k.phase ? "var(--k-koel)" : k.phase === "voor" ? "var(--c-voor)" : "var(--c-na)";
@@ -4374,7 +4690,7 @@ function drawCoolChart(el){
   if(!el) return;
   const ptsAll = sortedCool().map(a => ({ a, c: coolCalc(a) })).filter(p => p.c.tau);
   const pts = cfApply("afkoel", ptsAll, { ts: p => coolStartTs(p.a), room: p => p.a.ruimte, m: () => null });
-  const ce = document.getElementById("coolCon"); if(ce) ce.innerHTML = coolConclusionHTML(pts);
+  const ce = document.getElementById("coolCon"); if(ce) ce.innerHTML = attachMore(coolConclusionHTML(pts), coolDetailsHTML(pts));
   if(!ptsAll.length){ el.innerHTML = `<div class="chart-empty">${escapeHtml(t("coolNeed"))}</div>`; return; }
   if(!pts.length){ el.innerHTML = cfEmptyHTML(); return; }
   const hasIso = !!state.settings.isolatieDatum;
