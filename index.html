@@ -1256,10 +1256,13 @@ const I18N = {
     tpN: n => `${n} meting${n===1?"":"en"}`,
     tlInAvg: "Binnen (daggemiddelde)", tlOutAvg: "Buiten (daggemiddelde)", tlOutBand: "Buiten laagste – hoogste",
     tFill: "Gaten aanvullen", tlFill: "Binnen geschat (aangevuld)", ttFill: "Binnen geschat",
-    fillNote: (n, out) => `Gestippelde oranje lijn = geschat, waar je meer dan 36 uur niet gemeten hebt (tot 14 dagen). Berekend uit ${n} vergelijkbare metingen (zelfde ruimte en klimaatstand): het gemiddelde dagverloop binnen${out ? " en de online buitentemperatuur per uur" : ""}, en altijd precies aansluitend op je echte meting ervóór en erna. Telt niet mee in conclusies, tabellen of export.`,
+    tlFillOut: "Buiten online (aangevuld)", ttFillOut: "Buiten online", tlFillDiff: "Verschil geschat (aangevuld)", ttFillDiff: "Verschil geschat", tlFillOutBand: "Buiten online laagste – hoogste",
+    fillOutNote: "Buiten in de gaten = de online uurtemperatuur (Open-Meteo), licht verschoven zodat hij precies aansluit op je eigen buitenmeting ervóór en erna.",
+    fillDiffNote: "Verschil in de gaten = geschatte binnentemperatuur min de online buitentemperatuur.",
+    fillNote: (n, out) => `Gestippeld = geschat, waar je meer dan 36 uur niet gemeten hebt (tot 14 dagen). Berekend uit ${n} vergelijkbare metingen (zelfde ruimte en klimaatstand): het gemiddelde dagverloop binnen${out ? " en de online buitentemperatuur per uur" : ""}, en altijd precies aansluitend op je echte meting ervóór en erna. Telt niet mee in conclusies, tabellen of export.`,
     fillTtNote: n => `op basis van ${n} vergelijkbare metingen`,
     fillTtNoteM: tau => `huismodel: online buitentemperatuur per uur en τ ~${tau}`,
-    fillNoteM: (n, tau, mixed) => `Gestippelde oranje lijn = geschat, waar je meer dan 36 uur niet gemeten hebt (tot 14 dagen). Berekend met een eenvoudig huismodel: uur voor uur de online buitentemperatuur en de tijdconstante van je huis (τ ~${tau}), plus het gemiddelde dagverloop binnen uit ${n} vergelijkbare metingen en zon/wind als je metingen daar invloed van laten zien. De lijn sluit altijd precies aan op je echte meting ervóór en erna.${mixed ? " Waar cv/airco aan stond of uurdata ontbrak: alleen het gemiddelde dagverloop." : ""} Telt niet mee in conclusies, tabellen of export.`,
+    fillNoteM: (n, tau, mixed) => `Gestippeld = geschat, waar je meer dan 36 uur niet gemeten hebt (tot 14 dagen). Berekend met een eenvoudig huismodel: uur voor uur de online buitentemperatuur en de tijdconstante van je huis (τ ~${tau}), plus het gemiddelde dagverloop binnen uit ${n} vergelijkbare metingen en zon/wind als je metingen daar invloed van laten zien. De lijn sluit altijd precies aan op je echte meting ervóór en erna.${mixed ? " Waar cv/airco aan stond of uurdata ontbrak: alleen het gemiddelde dagverloop." : ""} Telt niet mee in conclusies, tabellen of export.`,
     tlDiffAvg: "Verschil (daggemiddelde)", tlDiffBand: "Laagste – hoogste van de dag",
     tblRecent: n => `Laatste ${n} meting${n===1?"":"en"}`,
     tblOlder: n => `Oudere metingen (${n}) — per maand`,
@@ -1854,10 +1857,13 @@ const I18N = {
     tpN: n => `${n} reading${n===1?"":"s"}`,
     tlInAvg: "Indoor (daily avg.)", tlOutAvg: "Outdoor (daily avg.)", tlOutBand: "Outdoor lowest – highest",
     tFill: "Fill gaps", tlFill: "Indoor estimated (filled)", ttFill: "Indoor estimated",
-    fillNote: (n, out) => `Dotted orange line = estimated, where you did not measure for more than 36 hours (up to 14 days). Calculated from ${n} comparable readings (same room and climate mode): the average indoor daily pattern${out ? " and the hourly online outdoor temperature" : ""}, always joining your real reading before and after exactly. Not used in conclusions, tables or export.`,
+    tlFillOut: "Outdoor online (filled)", ttFillOut: "Outdoor online", tlFillDiff: "Difference estimated (filled)", ttFillDiff: "Difference estimated", tlFillOutBand: "Outdoor online lowest – highest",
+    fillOutNote: "Outdoor in the gaps = the online hourly temperature (Open-Meteo), shifted slightly so it joins your own outdoor reading before and after exactly.",
+    fillDiffNote: "Difference in the gaps = estimated indoor temperature minus online outdoor temperature.",
+    fillNote: (n, out) => `Dotted = estimated, where you did not measure for more than 36 hours (up to 14 days). Calculated from ${n} comparable readings (same room and climate mode): the average indoor daily pattern${out ? " and the hourly online outdoor temperature" : ""}, always joining your real reading before and after exactly. Not used in conclusions, tables or export.`,
     fillTtNote: n => `based on ${n} comparable readings`,
     fillTtNoteM: tau => `house model: online outdoor temperature per hour and τ ~${tau}`,
-    fillNoteM: (n, tau, mixed) => `Dotted orange line = estimated, where you did not measure for more than 36 hours (up to 14 days). Calculated with a simple house model: hour by hour the online outdoor temperature and your house's time constant (τ ~${tau}), plus the average indoor daily pattern from ${n} comparable readings and sun/wind if your readings show an effect. The line always joins your real reading before and after exactly.${mixed ? " Where heating/AC was on or hourly data was missing: only the average daily pattern." : ""} Not used in conclusions, tables or export.`,
+    fillNoteM: (n, tau, mixed) => `Dotted = estimated, where you did not measure for more than 36 hours (up to 14 days). Calculated with a simple house model: hour by hour the online outdoor temperature and your house's time constant (τ ~${tau}), plus the average indoor daily pattern from ${n} comparable readings and sun/wind if your readings show an effect. The line always joins your real reading before and after exactly.${mixed ? " Where heating/AC was on or hourly data was missing: only the average daily pattern." : ""} Not used in conclusions, tables or export.`,
     tlDiffAvg: "Difference (daily avg.)", tlDiffBand: "Lowest – highest of the day",
     tblRecent: n => `Latest ${n} reading${n===1?"":"s"}`,
     tblOlder: n => `Older readings (${n}) — per month`,
@@ -3088,7 +3094,7 @@ function timeToolbarHTML(){
     <span class="tnav"><button type="button" class="tnav-btn" data-tzoom="out" aria-label="${escapeHtml(t("zoomOut"))}" title="${escapeHtml(t("zoomOut"))}">−</button><button type="button" class="tnav-btn" data-tzoom="in" aria-label="${escapeHtml(t("zoomIn"))}" title="${escapeHtml(t(w.end - w.start <= minSpanMs() + 60000 ? "zoomMax" : "zoomIn"))}" ${w.end - w.start <= minSpanMs() + 60000 ? "disabled" : ""}>+</button>${timeZoom ? `<button type="button" class="tnav-reset" data-tzoom="reset">${t("zoomReset")}</button>` : ""}</span>
     <span class="seg small">${["temp","diff"].map(k => `<button type="button" data-tview="${k}" class="${timeView===k?"on":""}">${t(k==="temp"?"tvTemp":"tvDiff")}</button>`).join("")}</span>
     <span class="cf-group">${cfSelectsHTML("time")}${cfResetHTML("time")}</span>
-    ${timeView === "temp" && cfOf("time").dp === "all" && cfOf("time").kf === "all" && hasFillableGap(list) ? `<span class="seg small"><button type="button" data-tfill class="${fillGaps ? "on" : ""}" aria-pressed="${fillGaps}">${t("tFill")}</button></span>` : ""}
+    ${(timeView === "temp" || state.settings.locatie) && cfOf("time").dp === "all" && cfOf("time").kf === "all" && hasFillableGap(list) ? `<span class="seg small"><button type="button" data-tfill class="${fillGaps ? "on" : ""}" aria-pressed="${fillGaps}">${t("tFill")}</button></span>` : ""}
   </div>`;
 }
 function setZoom(start, end){
@@ -3372,7 +3378,7 @@ function estimateGap(a, b, onReady){
   pts.push({ ts: tb, v: b.binnen });
   return { a, b, ta, tb, pts, n: train.length, outdoor: !!O && bOut > 0, method: "profiel" };
 }
-function fillsAllowed(){ return fillGaps && timeView === "temp" && cfOf("time").dp === "all" && cfOf("time").kf === "all"; }
+function fillsAllowed(){ return fillGaps && (timeView === "temp" || !!state.settings.locatie) && cfOf("time").dp === "all" && cfOf("time").kf === "all"; }
 function hasFillableGap(list){ for(let i = 1; i < list.length; i++){ const dt = tsOf(list[i]) - tsOf(list[i-1]); if(dt > FILL_MIN && dt <= FILL_MAX) return true; } return false; }
 /* Alle gaten die het venster raken; bij de dagweergave per lege dag het gemiddelde van de schatting. */
 function gapFills(listAll, w, daily, all, onReady){
@@ -3383,17 +3389,34 @@ function gapFills(listAll, w, daily, all, onReady){
     if(dt > FILL_MAX || tb < w.start - DAY || ta > w.end + DAY) continue;
     if(daily ? daysBetween(a.datum, b.datum) < 2 : dt <= FILL_MIN) continue;
     const f = estimateGap(a, b, onReady);
+    // Buiten in het gat: online uurtemperatuur, verschoven zodat hij op je eigen buitenmetingen aansluit.
+    const O = hourlyOutdoor(ta, tb, onReady);
+    let outAt = null;
+    if(O){ const oa = a.buiten - O.at(ta, "To"), ob = b.buiten - O.at(tb, "To"); outAt = ts => O.at(ts, "To") + oa + (ob - oa) * (ts - ta) / dt; }
+    const outPts = outAt ? f.pts.map(p => ({ ts: p.ts, v: p.ts === ta ? a.buiten : p.ts === tb ? b.buiten : outAt(p.ts) })) : null;
     if(daily){
       const pa = all.find(p => p.datum === a.datum), pb = all.find(p => p.datum === b.datum);
       if(!pa || !pb) continue;
-      const days = [];
+      const days = [], oDays = [], dDays = [];
       for(let d = addDaysISO(a.datum, 1); d < b.datum; d = addDaysISO(d, 1)){
         const vals = f.pts.filter(p => tsToISO(p.ts) === d).map(p => p.v);
         if(vals.length) days.push({ ts: tsFrom(d, "12:00"), v: avg(vals), datum: d });
+        if(outPts){
+          const ov = outPts.filter(p => tsToISO(p.ts) === d).map(p => p.v);
+          if(ov.length){ oDays.push({ ts: tsFrom(d, "12:00"), v: avg(ov), lo: Math.min(...ov), hi: Math.max(...ov), datum: d }); if(vals.length) dDays.push({ ts: tsFrom(d, "12:00"), v: avg(vals) - avg(ov), datum: d }); }
+        }
       }
       f.path = [{ ts: pa.ts, v: pa.bin }].concat(days, [{ ts: pb.ts, v: pb.bin }]);
       f.days = days;
-    } else f.path = f.pts;
+      if(outPts){
+        f.outPath = [{ ts: pa.ts, v: pa.bu }].concat(oDays, [{ ts: pb.ts, v: pb.bu }]);
+        f.outBand = [{ ts: pa.ts, lo: pa.buMin, hi: pa.buMax }].concat(oDays, [{ ts: pb.ts, lo: pb.buMin, hi: pb.buMax }]);
+        f.diffPath = [{ ts: pa.ts, v: pa.d }].concat(dDays, [{ ts: pb.ts, v: pb.d }]);
+      }
+    } else {
+      f.path = f.pts;
+      if(outPts){ f.outPath = outPts; f.diffPath = f.pts.map((p, k) => ({ ts: p.ts, v: p.v - outPts[k].v })); }
+    }
     out.push(f);
   }
   return out;
@@ -3431,7 +3454,7 @@ function drawTimeChart(el, listAll, fast){
   const drawPts = (before ? [before] : []).concat(pts, after ? [after] : []);
   const fills = (fast && el._fills && el._fillsDaily === daily) ? el._fills : gapFills(listAll, w, daily, all, () => { if(document.getElementById("timeChart") === el && !el._gesture) drawTimeChart(el, timeList()); });
   el._fills = fills; el._fillsDaily = daily;
-  const fillsIn = fills.filter(f => f.tb > w.start && f.ta < w.end);
+  const fillsIn = fills.filter(f => f.tb > w.start && f.ta < w.end && (!diff || f.diffPath));
   if(!pts.length && !(before && after) && !(hourly && hourly.length) && !fillsIn.length){
     el._geom = null;
     const isToday = w.start <= Date.now() && Date.now() < w.end && w.end - w.start <= 1.05 * DAY;
@@ -3453,7 +3476,8 @@ function drawTimeChart(el, listAll, fast){
   const edgeVals = (outP, inP, edgeTs) => { if(!outP || !inP) return []; const f = (edgeTs - outP.ts) / (inP.ts - outP.ts); const a = valsOf(outP), b = valsOf(inP); return a.map((v, k) => v + (b[k] - v) * f); };
   yVals = yVals.concat(edgeVals(before, pts[0] || after, w.start), edgeVals(after, pts[pts.length-1] || before, w.end));
   if(showHourly) yVals = yVals.concat(hourly.filter(h => h.ts >= w.start && h.ts <= w.end).map(h => h.v));
-  fillsIn.forEach(f => { const inW = f.path.filter(p => p.ts >= w.start && p.ts <= w.end); yVals = yVals.concat((inW.length ? inW : f.path).map(p => p.v)); });
+  const fillPathsOf = f => diff ? [f.diffPath] : [f.path].concat(f.outPath ? [f.outPath] : [], f.outBand ? [f.outBand.flatMap(p => [{ ts: p.ts, v: p.lo }, { ts: p.ts, v: p.hi }])] : []);
+  fillsIn.forEach(f => fillPathsOf(f).forEach(P => { const inW = P.filter(p => p.ts >= w.start && p.ts <= w.end && isFinite(p.v)); yVals = yVals.concat((inW.length ? inW : P).map(p => p.v).filter(v => isFinite(v))); }));
   if(!yVals.length) yVals = [0, 20];
   const yt = niceTicks(Math.min(...yVals), Math.max(...yVals), 5);
   const Y = v => m.t + ih - (v - yt.lo) / (yt.hi - yt.lo) * ih;
@@ -3495,7 +3519,13 @@ function drawTimeChart(el, listAll, fast){
   const r = daily ? 3 : 4;
   let marks = "";
   if(showHourly) marks += `<path d="${hourly.map((h, i) => `${i?"L":"M"}${X(h.ts).toFixed(1)},${Y(h.v).toFixed(1)}`).join("")}" fill="none" stroke="${cOut}" stroke-width="1.5" stroke-dasharray="2 3" opacity=".75"/>`;
-  fillsIn.forEach(f => { marks += `<path class="fill-est" d="${f.path.map((p, i) => `${i?"L":"M"}${X(p.ts).toFixed(1)},${Y(p.v).toFixed(1)}`).join("")}" fill="none" stroke="${cIn}" stroke-width="1.8" stroke-dasharray="2 4" stroke-linecap="round" opacity=".85"/>`; });
+  const dotted = (P, c) => `<path class="fill-est" d="${P.map((p, i) => `${i?"L":"M"}${X(p.ts).toFixed(1)},${Y(p.v).toFixed(1)}`).join("")}" fill="none" stroke="${c}" stroke-width="1.8" stroke-dasharray="2 4" stroke-linecap="round" opacity=".85"/>`;
+  fillsIn.forEach(f => {
+    if(diff){ marks += dotted(f.diffPath, cDiff); return; }
+    if(f.outBand && f.outBand.every(p => isFinite(p.lo) && isFinite(p.hi))) marks += `<path d="M${f.outBand.map(p => `${X(p.ts).toFixed(1)},${Y(p.hi).toFixed(1)}`).join("L")}L${f.outBand.slice().reverse().map(p => `${X(p.ts).toFixed(1)},${Y(p.lo).toFixed(1)}`).join("L")}Z" fill="color-mix(in srgb, ${cOut} 8%, transparent)" stroke="none"/>`;
+    if(f.outPath && !showHourly) marks += dotted(f.outPath, cOut);
+    marks += dotted(f.path, cIn);
+  });
   segs.forEach(seg => {
     if(diff){
       if(daily) marks += `<path d="${bandOf(seg, "dMin", "dMax")}" fill="color-mix(in srgb, ${cDiff} 16%, transparent)" stroke="none"/>`;
@@ -3524,9 +3554,9 @@ function drawTimeChart(el, listAll, fast){
     <rect class="hit" x="${m.l}" y="${m.t}" width="${iw}" height="${ih}" fill="transparent"/></svg>`;
   const sw = (c, lbl, band, dash) => `<span class="key"><i class="sw${band ? " band" : ""}${dash ? " dashc" : ""}" style="${dash ? `border-color:${c}; border-top-style:dotted` : `background:${band ? `color-mix(in srgb, ${c} 25%, transparent)` : c}`}"></i>${escapeHtml(lbl)}</span>`;
   const legend = diff
-    ? sw(cDiff, daily ? t("tlDiffAvg") : t("tvDiff")) + (daily ? sw(cDiff, t("tlDiffBand"), true) : "")
-    : sw(cIn, daily ? t("tlInAvg") : t("lBinnen")) + sw(cOut, daily ? t("tlOutAvg") : t("lBuiten")) + (daily ? sw(cOut, t("tlOutBand"), true) : "") + (showHourly ? sw(cOut, t("tlHourly"), false, true) : "") + (fillsIn.length ? sw(cIn, t("tlFill"), false, true) : "");
-  el.innerHTML = `<div class="chart-legend">${legend}${iso ? `<span class="key"><i class="sw dash"></i>${t("lIsolatie")}</span>` : ""}</div><div class="chart-wrap tc-zoom">${svg}</div><p class="zoom-hint">${escapeHtml(t("zoomHint"))}</p>${fillsIn.length ? `<p class="card-note" style="margin-top:4px;">${escapeHtml(fillsIn.some(f => f.method === "model") ? t("fillNoteM")(Math.max(...fillsIn.map(f => f.n)), hoursTxt(median(fillsIn.filter(f => f.method === "model").map(f => f.tau))), fillsIn.some(f => f.method !== "model")) : t("fillNote")(Math.max(...fillsIn.map(f => f.n)), fillsIn.some(f => f.outdoor)))}</p>` : ""}${daily ? `<p class="card-note" style="margin-top:4px;">${escapeHtml(t("tpDailyNote")(list.length, pts.length))}</p>` : ""}`;
+    ? sw(cDiff, daily ? t("tlDiffAvg") : t("tvDiff")) + (daily ? sw(cDiff, t("tlDiffBand"), true) : "") + (fillsIn.length ? sw(cDiff, t("tlFillDiff"), false, true) : "")
+    : sw(cIn, daily ? t("tlInAvg") : t("lBinnen")) + sw(cOut, daily ? t("tlOutAvg") : t("lBuiten")) + (daily ? sw(cOut, t("tlOutBand"), true) : "") + (showHourly ? sw(cOut, t("tlHourly"), false, true) : "") + (fillsIn.length ? sw(cIn, t("tlFill"), false, true) : "") + (!showHourly && fillsIn.some(f => f.outPath) ? sw(cOut, t("tlFillOut"), false, true) : "");
+  el.innerHTML = `<div class="chart-legend">${legend}${iso ? `<span class="key"><i class="sw dash"></i>${t("lIsolatie")}</span>` : ""}</div><div class="chart-wrap tc-zoom">${svg}</div><p class="zoom-hint">${escapeHtml(t("zoomHint"))}</p>${fillsIn.length ? `<p class="card-note" style="margin-top:4px;">${escapeHtml(fillsIn.some(f => f.method === "model") ? t("fillNoteM")(Math.max(...fillsIn.map(f => f.n)), hoursTxt(median(fillsIn.filter(f => f.method === "model").map(f => f.tau))), fillsIn.some(f => f.method !== "model")) : t("fillNote")(Math.max(...fillsIn.map(f => f.n)), fillsIn.some(f => f.outdoor)))}${fillsIn.some(f => f.outPath) ? " " + escapeHtml(t(diff ? "fillDiffNote" : "fillOutNote")) : ""}</p>` : ""}${daily ? `<p class="card-note" style="margin-top:4px;">${escapeHtml(t("tpDailyNote")(list.length, pts.length))}</p>` : ""}`;
   el._hourlyOk = true;
   const wrap = el.querySelector(".chart-wrap"), svgEl = wrap.querySelector("svg"), tip = attachTooltip(wrap), xh = svgEl.querySelector(".xhair");
   const showAt = clientX => {
@@ -3538,11 +3568,13 @@ function drawTimeChart(el, listAll, fast){
     const fg = bd > 24 && fillsIn.find(f => f.path.length >= 2 && f.path[0].ts < tsC && tsC < f.path[f.path.length - 1].ts);
     if(fg){
       const path = fg.path; let j = path.findIndex(p => p.ts >= tsC); if(j < 0) j = path.length - 1; if(j < 1) j = 1;
-      const p0 = path[j-1], p1 = path[j], v = p0.v + (p1.v - p0.v) * (tsC - p0.ts) / Math.max(1, p1.ts - p0.ts);
+      const p0 = path[j-1], p1 = path[j];
       const pick = daily ? (Math.abs(p0.ts - tsC) < Math.abs(p1.ts - tsC) ? p0 : p1) : null;
-      const ts = daily ? pick.ts : tsC, val = daily ? pick.v : v, d0 = new Date(ts);
+      const ts = daily ? pick.ts : tsC, d0 = new Date(ts);
+      const at = P => { if(!P || P.length < 2) return null; if(daily){ const q = P.find(p => p.ts === ts); return q ? q.v : null; } let k = P.findIndex(p => p.ts >= ts); if(k < 0) k = P.length - 1; if(k < 1) k = 1; const a0 = P[k-1], a1 = P[k]; return a0.v + (a1.v - a0.v) * (ts - a0.ts) / Math.max(1, a1.ts - a0.ts); };
+      const val = at(path), vo = at(fg.outPath), vd = at(fg.diffPath);
       xh.setAttribute("x1", X(ts)); xh.setAttribute("x2", X(ts)); xh.setAttribute("opacity", "0.5");
-      tip.show(`<div class="tt-head">${escapeHtml(fmtDate(tsToISO(ts), true))}${daily ? "" : " · ~" + pad2(d0.getHours()) + ":00"}</div>${ttRow(cIn, t("ttFill"), "~" + fmtT(val))}<div class="tt-row"><span>${escapeHtml(fg.method === "model" ? t("fillTtNoteM")(hoursTxt(fg.tau)) : t("fillTtNote")(fg.n))}</span></div>`, X(ts) / sc, Y(val) / sc);
+      tip.show(`<div class="tt-head">${escapeHtml(fmtDate(tsToISO(ts), true))}${daily ? "" : " · ~" + pad2(d0.getHours()) + ":00"}</div>${ttRow(cIn, t("ttFill"), "~" + fmtT(val))}${vo !== null ? ttRow(cOut, t("ttFillOut"), "~" + fmtT(vo)) : ""}${vd !== null ? `<div class="tt-row"><span>${escapeHtml(t("ttFillDiff"))}</span><span class="tt-val">${fmtDelta(vd)}</span></div>` : ""}<div class="tt-row"><span>${escapeHtml(fg.method === "model" ? t("fillTtNoteM")(hoursTxt(fg.tau)) : t("fillTtNote")(fg.n))}</span></div>`, X(ts) / sc, Y(diff && vd !== null ? vd : Math.max(val, vo ?? val)) / sc);
       return;
     }
     if(!pts.length){ tip.hide(); return; }
