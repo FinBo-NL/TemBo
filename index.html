@@ -314,6 +314,20 @@
     border:1px solid var(--rule); background:transparent; color:var(--text);
   }
   .btn:hover{border-color:var(--accent); color:var(--accent);}
+  .btn.small{font-size:12px; padding:4px 10px;}
+  .rem-list{list-style:none; margin:0; padding:0;}
+  .rem-list li{display:flex; gap:10px; align-items:center; justify-content:space-between; padding:8px 0; border-bottom:1px solid var(--rule); font-size:14px;}
+  .rem-list li:last-child{border-bottom:none;}
+  .rem-btns{display:flex; gap:6px; align-items:center; flex-shrink:0;}
+  .rem-x{border:none; background:transparent; color:var(--text-soft); font-size:18px; line-height:1; cursor:pointer; padding:2px 6px;}
+  .rem-x:hover{color:var(--accent);}
+  @media (max-width:520px){ .rem-list li{flex-direction:column; align-items:flex-start;} .rem-btns{flex-wrap:wrap;} }
+  .gas-miss{border:1px solid var(--rule); border-left:3px solid var(--warm); border-radius:4px; padding:8px 12px; margin-bottom:14px;}
+  .gas-miss-h{font-size:12px; font-weight:700; text-transform:uppercase; letter-spacing:.06em; color:var(--text-soft); margin-bottom:4px;}
+  .gas-miss-row{display:flex; justify-content:space-between; align-items:center; gap:10px; padding:3px 0; font-size:14px;}
+  .gtable{width:100%; border-collapse:collapse;}
+  .gtable th, .gtable td{padding:6px 6px; border-bottom:1px solid var(--rule); text-align:left; font-size:13px;}
+  .gtable th.num, .gtable td.num{text-align:right;}
   .btn.primary{background:var(--deep); border-color:var(--deep); color:#fff;}
   html[data-mode="dark"] .btn.primary{color:#0c121c;}
   .btn.primary:hover{opacity:.9; color:#fff;}
@@ -1035,6 +1049,79 @@ const I18N = {
     coolRangeTip: (lo, hi) => `waarschijnlijk tussen ${lo} en ${hi} (bij ±0,1 °C meetonzekerheid op begin en eind)`,
     coolWeakN: n => `${n} test(s) met een te kleine daling of te klein verschil binnen–buiten tellen niet mee (te gevoelig voor meetfouten).`,
     coolRange: (lo, hi) => `Rekening houdend met ±0,1 °C meetonzekerheid ligt τ waarschijnlijk tussen ${lo} en ${hi}.`,
+    gas: {
+      nav: "Gasverbruik", title: "Gasmeterstand doorgeven", stand: "Meterstand (m³)", save: "Stand opslaan", saved: "Meterstand opgeslagen ✓",
+      how: "Lees de gasmeter af, bij voorkeur elke week op dezelfde dag en ongeveer dezelfde tijd. Neem alle cijfers over, ook achter de komma (meestal rood). Tembo koppelt het verbruik aan de buitentemperatuur van die dagen.",
+      errStand: "Vul een geldige meterstand in (bijv. 4521,368).", errDate: "Vul een geldige datum in.",
+      errLower: v => `Deze stand is lager dan de vorige (${v} m³). Klopt de datum of de stand? Bij een nieuwe meter: geef de nieuwe stand een notitie "nieuwe meter".`,
+      errHigher: v => `Deze stand is hoger dan een latere stand (${v} m³). Controleer de datum.`,
+      missTitle: "Nog niet doorgegeven", missWeek: (w, from, to) => `week ${w} (${from} – ${to})`, missFill: "Invullen",
+      thisWeek: w => `Deze week (week ${w}) nog geen meterstand.`,
+      chartWeek: "Gasverbruik per week", chartFit: "Verbruik t.o.v. graaddagen",
+      lBar: "m³ per week", lExp: "verwacht (uit je verbruik per graaddag)", lGd: "graaddagen per week", lNext: "verwachting komende 7 dagen",
+      lDot: "periode tussen twee standen", lLine: "lijn: basis + m³ per graaddag",
+      xGd: "graaddagen per dag", yM3: "m³ per dag",
+      ttWeek: (w, from, to) => `Week ${w} · ${from} – ${to}`, ttM3: "Verbruik", ttExp: "Verwacht", ttGd: "Graaddagen", ttCost: "Kosten", ttTin: "Binnen gem.", ttTout: "Buiten gem.", ttPer: "Periode",
+      table: "Gasmeterstanden", thStand: "Stand (m³)", thUse: "Verbruik (m³)", thPerDay: "Per dag (m³)", thGd: "Graaddagen", thPerGd: "m³/graaddag", noRows: "Nog geen meterstanden.",
+      need: "Geef minstens twee meterstanden door (bijvoorbeeld elke zondag). Na een week of vier met wisselend weer berekent Tembo je verbruik per graaddag en het warmteverlies van je huis.",
+      needSpread: n => `${n} periode(s) gemeten, maar het weer was nog te gelijk. Tembo heeft periodes nodig met duidelijk verschillende buitentemperaturen (minstens ~3 graaddagen per dag verschil) om verwarming en warm water uit elkaar te halen.`,
+      needOut: "Tembo mist de buitentemperatuur van te veel dagen tussen je meterstanden. Stel een locatie in (Profiel → Instellingen), dan haalt Tembo de daggemiddelden online op; anders telt een periode pas mee als je op de meeste dagen ervan ook buiten meet.",
+      needSlope: "Je verbruik hangt (nog) niet duidelijk samen met de buitentemperatuur, bijvoorbeeld omdat de verwarming nog niet aan was. Dit wordt duidelijker zodra het stookseizoen echt begint.",
+      head: w => `Je huis verliest ~${w} W per graad verschil binnen–buiten`,
+      headGd: v => `~${v} m³ gas per graaddag`,
+      pGd: (k, base) => `Per graaddag gebruik je ~${k} m³ gas voor verwarming. Daarnaast gaat er ~${base} m³ per week naar warm water en koken: dat is wat overblijft bij 0 graaddagen.`,
+      pBase0: "Het basisverbruik (warm water, koken) is nog niet goed te scheiden van de verwarming; Tembo rekent daarom voorlopig met 0. Weken met weinig graaddagen (zacht weer) maken dit nauwkeuriger.",
+      pHtc: (w, eta) => `Omgerekend (gas per graaddag × 9,77 kWh per m³ × ${eta}% ketelrendement, per uur) verliest je huis ~${w} W per °C verschil binnen–buiten: bij 10 °C verschil is dat ~${(Number(String(w).replace(/\D/g, "")) / 100).toLocaleString("nl-NL", { maximumFractionDigits: 1 })} kW aan verwarming.`,
+      pBench: "Ter vergelijking: in een Brits overheidsonderzoek met bewoonde woningen (energielabel C en D) lag dit tussen 127 en 269 W/K (SMETER). Lager is beter; een groter huis heeft vanzelf een hoger getal.",
+      pCap: (c, tau) => `Samen met je tijdconstante τ ~${tau} uit de afkoeltests komt dat neer op een warmtecapaciteit van ~${c} kWh per °C: zoveel warmte geeft je huis af als het binnen 1 °C afkoelt.`,
+      pNext: (gd, m3, eur) => `Komende 7 dagen (weersverwachting): ~${gd} graaddagen → naar verwachting ~${m3} m³ gas${eur ? ` (~${eur})` : ""}.`,
+      pTot: (m3, d) => `Totaal sinds je eerste stand: ${m3} m³ in ${d} dagen.`,
+      pOdd: list => `Opvallend veel of weinig vergeleken met het weer in de periode ${list}. Was er iets anders (bezoek, weg geweest, extra douchen, open ramen)?`,
+      pNoLoc: "Zonder locatie gebruikt Tembo voor de buitentemperatuur je eigen buitenmetingen per dag. Dat is grof: stel een locatie in (Profiel → Instellingen) voor de echte daggemiddelden.",
+      pGdDef: "Graaddagen: per dag het aantal graden dat het daggemiddelde buiten onder 18 °C ligt, gewogen met 0,8 (april–september), 1,0 (maart, oktober) en 1,1 (november–februari), zoals energieleveranciers in Nederland rekenen.",
+      pNeg: n => `${n} periode(s) met een lagere stand dan ervoor tellen niet mee. Controleer die standen in de tabel.`,
+      fGd: "m³ per graaddag", fBase: "Warm water/koken", fHtc: "Warmteverlies", fNext: "Verwacht 7 dagen", fWeek: "Gem. per week",
+      sumTitle: "Gasverbruik", sumLast: "Laatste stand", sumWeek: "Laatste hele week", sumAvg4: "Gem. laatste 4 weken", perWeek: v => `${v} m³/week`,
+      week: w => `wk ${w}`,
+    },
+    lucht: {
+      title: "Slim luchten",
+      best: (when) => `Beste moment om te luchten: ${when}`,
+      noDry: "Luchten droogt de komende 36 uur nauwelijks",
+      cool: (when) => `Huis afkoelen door te luchten: ${when}`,
+      pBest: (tOut, rv, ahO, tIn, rvIn, src, ahI, dry, dT) => `Buiten is het dan ~${tOut} bij ${rv}% luchtvochtigheid: ${ahO} g vocht per m³ lucht. Binnen ${tIn} bij ${rvIn}% (${src}): ${ahI} g/m³. Elke m³ lucht die je ververst voert dus ~${dry} g vocht af, bij ${dT} verschil binnen–buiten: van de komende 36 uur levert dit moment de meeste vochtafvoer per graad warmteverlies.`,
+      pNoDry: (ahO, ahI) => `De buitenlucht bevat dan ongeveer evenveel of meer vocht (${ahO} g/m³) dan binnen (${ahI} g/m³). Luchten geeft dan wel frisse lucht, maar haalt geen vocht weg.`,
+      pWorst: (when, tOut, wind) => `Het minst gunstig is ${when} (buiten ${tOut}${wind ? `, wind ${wind}` : ""}): dan kost luchten de meeste warmte. Als het dan moet, kort: ± 5 minuten.`,
+      pCool: (tIn, tOut) => `Binnen is het ${tIn}; buiten wordt het dan ${tOut}. Zet ramen tegenover elkaar open (en de pui als dat kan) zolang het buiten koeler is, en sluit ze zodra het buiten warmer wordt dan binnen.`,
+      pHow: "Zo lucht je het zuinigst: ramen of deuren een kwartier tegenover elkaar wijd open (bij kou ± 5 minuten) en daarna weer dicht. Een raam urenlang op een kier koelt muren en meubels af en kost meer warmte (ID/Consumentenbond). Ook bij koud of regenachtig weer droogt luchten, omdat koude lucht weinig vocht bevat; alleen bij mist of motregen werkt het tijdelijk minder.",
+      pRv: "Ideaal binnen is 40–60% luchtvochtigheid; langdurig boven 60–70% wordt schimmel waarschijnlijker (ID). Ventilatieroosters of mechanische ventilatie horen altijd aan te staan; luchten is vooral nodig tijdens en na koken en douchen (RIVM).",
+      pOwn: (lbl, d) => `Bij jou: met ${lbl} was het binnen gemiddeld ${d} dan met alles dicht bij dezelfde buitentemperatuur.`,
+      rvHigh: v => `Je laatste gemeten luchtvochtigheid binnen was ${v}%: aan de hoge kant. Lucht vandaag een paar keer kort en krachtig.`,
+      assumed: "aangenomen; vul bij een meting de luchtvochtigheid in", measured: "gemeten",
+      needRv: "Vul bij je metingen de luchtvochtigheid binnen in (een hygrometer kost ± €10); dan rekent Tembo met jouw echte vocht in plaats van 55%.",
+      needLoc: "Stel een locatie in (Profiel → Instellingen): dan kijkt Tembo in de weersverwachting wanneer luchten het meeste vocht afvoert en de minste warmte kost.",
+      loading: "De weersverwachting wordt opgehaald…",
+      today: "vandaag", tomorrow: "morgen", tonight: "vannacht",
+      fOut: "Buiten (dan)", fAh: "Vocht buiten / binnen", fDry: "Afvoer per m³",
+    },
+    rem: {
+      title: "Te doen",
+      gasFirst: "Geef je eerste gasmeterstand door; daarna elke week, bijvoorbeeld op zondag.",
+      gasMiss: list => `Gasmeterstand ontbreekt voor ${list}.`,
+      gasNow: w => `Deze week (week ${w}) nog geen gasmeterstand doorgegeven.`,
+      meet: (n, d) => `Je laatste meting was ${n} dag(en) geleden (${d}). Meet even binnen en buiten.`,
+      meetNone: "Nog geen meting: voer hieronder je eerste meting in.",
+      cool: (when, tOut, wind, dT) => `${when} is een goede nacht voor een afkoeltest: buiten ~${tOut}${wind ? `, wind ~${wind}` : ""}, ~${dT} verschil met binnen. Zet om 22:00 de verwarming uit, ramen dicht, en noteer binnen.`,
+      go: "Doorgeven", goMeet: "Meten", goCool: "Afkoeltest", ics: "In agenda", hide: "Verbergen",
+      icsCoolTitle: "Tembo: afkoeltest starten", icsCoolDesc: "Verwarming uit, ramen en deuren dicht, binnentemperatuur noteren. Morgenochtend eindtemperatuur noteren.",
+      icsGasTitle: "Tembo: gasmeterstand doorgeven", icsGasDesc: "Lees de gasmeter af en vul de stand in bij Tembo → Gasverbruik.",
+      icsMeetTitle: "Tembo: temperatuur meten", icsMeetDesc: "Meet binnen (en eventueel luchtvochtigheid) en vul het in bij Tembo.",
+      setTitle: "Herinneringen", setMeet: "Herinner me na zoveel dagen zonder meting (0 = uit)", setMeetTijd: "Meettijd (voor de agenda)",
+      setGasDag: "Gasmeterstand opnemen op", setGasTijd: "Tijd", icsGas: "Gas-herinnering in agenda (.ics)", icsMeet: "Meet-herinnering in agenda (.ics)",
+      setHint: "Tembo laat bovenaan het overzicht zien wat er nog open staat. Een melding op je telefoon terwijl Tembo dicht is, vraagt een server die Tembo niet heeft; daarom kun je de herinneringen als terugkerende afspraak in je agenda zetten (iPhone, Android, Outlook). Je agenda geeft dan de melding.",
+      setGas: "Gas", setEta: "Rendement cv-ketel (%)", setEtaHint: "Een HR-ketel haalt in de praktijk ~85–95%. Wordt gebruikt om m³ gas om te rekenen naar warmte.", setPrijs: "Gasprijs (€ per m³, optioneel)",
+    },
+    fRv: "Luchtvochtigheid binnen (%)", fRvPh: "optioneel", errRv: "Luchtvochtigheid moet tussen 1 en 100% liggen.", thRv: "% RV",
     fc: {
       leg: "Verwachting komende 7 nachten", now: "nu", lTest: "duur van de test", lFlag: "telt niet mee (waarschuwing)",
       hidden: list => `Niet (nog) in de grafiek: ${list}.`,
@@ -1636,6 +1723,79 @@ const I18N = {
     coolRangeTip: (lo, hi) => `probably between ${lo} and ${hi} (with ±0.1 °C measuring uncertainty at start and end)`,
     coolWeakN: n => `${n} test(s) with too small a drop or indoor–outdoor difference are left out (too sensitive to measuring errors).`,
     coolRange: (lo, hi) => `Allowing for ±0.1 °C measuring uncertainty, τ is probably between ${lo} and ${hi}.`,
+    gas: {
+      nav: "Gas use", title: "Enter gas meter reading", stand: "Meter reading (m³)", save: "Save reading", saved: "Meter reading saved ✓",
+      how: "Read the gas meter, preferably every week on the same day and around the same time. Copy all digits, including those after the decimal point (usually red). Tembo links the use to the outdoor temperature of those days.",
+      errStand: "Enter a valid meter reading (e.g. 4521.368).", errDate: "Enter a valid date.",
+      errLower: v => `This reading is lower than the previous one (${v} m³). Is the date or reading right? For a new meter: add the note "new meter".`,
+      errHigher: v => `This reading is higher than a later reading (${v} m³). Check the date.`,
+      missTitle: "Not entered yet", missWeek: (w, from, to) => `week ${w} (${from} – ${to})`, missFill: "Fill in",
+      thisWeek: w => `No meter reading yet this week (week ${w}).`,
+      chartWeek: "Gas use per week", chartFit: "Use versus degree days",
+      lBar: "m³ per week", lExp: "expected (from your use per degree day)", lGd: "degree days per week", lNext: "forecast next 7 days",
+      lDot: "period between two readings", lLine: "line: base + m³ per degree day",
+      xGd: "degree days per day", yM3: "m³ per day",
+      ttWeek: (w, from, to) => `Week ${w} · ${from} – ${to}`, ttM3: "Use", ttExp: "Expected", ttGd: "Degree days", ttCost: "Cost", ttTin: "Indoor avg.", ttTout: "Outdoor avg.", ttPer: "Period",
+      table: "Gas meter readings", thStand: "Reading (m³)", thUse: "Use (m³)", thPerDay: "Per day (m³)", thGd: "Degree days", thPerGd: "m³/degree day", noRows: "No meter readings yet.",
+      need: "Enter at least two meter readings (e.g. every Sunday). After about four weeks of varying weather Tembo calculates your use per degree day and your house's heat loss.",
+      needSpread: n => `${n} period(s) measured, but the weather was still too similar. Tembo needs periods with clearly different outdoor temperatures (at least ~3 degree days per day apart) to separate heating from hot water.`,
+      needOut: "Tembo lacks the outdoor temperature for too many days between your meter readings. Set a location (Profile → Settings) and Tembo fetches the daily means online; otherwise a period only counts if you also measure outdoor on most of its days.",
+      needSlope: "Your use does not (yet) clearly follow the outdoor temperature, for example because the heating was not on yet. This becomes clearer once the heating season really starts.",
+      head: w => `Your house loses ~${w} W per degree indoor–outdoor difference`,
+      headGd: v => `~${v} m³ gas per degree day`,
+      pGd: (k, base) => `Per degree day you use ~${k} m³ gas for heating. On top of that ~${base} m³ per week goes to hot water and cooking: what remains at 0 degree days.`,
+      pBase0: "The base use (hot water, cooking) cannot yet be separated from heating; Tembo therefore uses 0 for now. Weeks with few degree days (mild weather) make this more accurate.",
+      pHtc: (w, eta) => `Converted (m³ per degree day × 9.77 kWh per m³ × ${eta}% boiler efficiency, per hour) your house loses ~${w} W per °C indoor–outdoor difference: at a 10 °C difference that is ~${(Number(String(w).replace(/\D/g, "")) / 100).toLocaleString("en-GB", { maximumFractionDigits: 1 })} kW of heating.`,
+      pBench: "For comparison: in a UK government study of occupied homes (EPC bands C and D) this was between 127 and 269 W/K (SMETER). Lower is better; a bigger house naturally has a higher number.",
+      pCap: (c, tau) => `Together with your time constant τ ~${tau} from the cool-down tests this means a heat capacity of ~${c} kWh per °C: the heat your house releases when indoor cools by 1 °C.`,
+      pNext: (gd, m3, eur) => `Next 7 days (weather forecast): ~${gd} degree days → expected ~${m3} m³ gas${eur ? ` (~${eur})` : ""}.`,
+      pTot: (m3, d) => `Total since your first reading: ${m3} m³ in ${d} days.`,
+      pOdd: list => `Notably high or low compared with the weather: ${list}. Was anything different (guests, away, extra showers, open windows)?`,
+      pNoLoc: "Without a location Tembo uses your own outdoor readings per day for the outdoor temperature. That is rough: set a location (Profile → Settings) for real daily means.",
+      pGdDef: "Degree days: per day the number of degrees the daily mean outdoor is below 18 °C, weighted 0.8 (April–September), 1.0 (March, October) and 1.1 (November–February), as Dutch energy suppliers do.",
+      pNeg: n => `${n} period(s) with a lower reading than before are left out. Check those readings in the table.`,
+      fGd: "m³ per degree day", fBase: "Hot water/cooking", fHtc: "Heat loss", fNext: "Expected 7 days", fWeek: "Avg. per week",
+      sumTitle: "Gas use", sumLast: "Last reading", sumWeek: "Last full week", sumAvg4: "Avg. last 4 weeks", perWeek: v => `${v} m³/week`,
+      week: w => `wk ${w}`,
+    },
+    lucht: {
+      title: "Smart airing",
+      best: (when) => `Best time to air the house: ${when}`,
+      noDry: "Airing hardly dries the house in the next 36 hours",
+      cool: (when) => `Cool the house by airing: ${when}`,
+      pBest: (tOut, rv, ahO, tIn, rvIn, src, ahI, dry, dT) => `Outdoor it will be ~${tOut} at ${rv}% humidity: ${ahO} g moisture per m³ air. Indoor ${tIn} at ${rvIn}% (${src}): ${ahI} g/m³. Every m³ of air you refresh removes ~${dry} g of moisture at a ${dT} indoor–outdoor difference: of the next 36 hours this moment gives the most moisture removal per degree of heat loss.`,
+      pNoDry: (ahO, ahI) => `The outdoor air then holds about as much or more moisture (${ahO} g/m³) than indoor (${ahI} g/m³). Airing gives fresh air but removes no moisture.`,
+      pWorst: (when, tOut, wind) => `Least favourable is ${when} (outdoor ${tOut}${wind ? `, wind ${wind}` : ""}): airing then costs the most heat. If you must, keep it short: about 5 minutes.`,
+      pCool: (tIn, tOut) => `Indoor it is ${tIn}; outdoor it will be ${tOut}. Open windows on opposite sides (and the patio door if possible) while it is cooler outside, and close them once outdoor gets warmer than indoor.`,
+      pHow: "The most economical way: open windows or doors on opposite sides wide for a quarter of an hour (about 5 minutes in cold weather), then close them. A window ajar for hours cools walls and furniture and costs more heat (ID/Consumentenbond). Airing also dries the house in cold or rainy weather, because cold air holds little moisture; only in fog or drizzle does it work less for a while.",
+      pRv: "Ideal indoor humidity is 40–60%; long periods above 60–70% make mould more likely (ID). Trickle vents or mechanical ventilation should always be on; airing is mainly needed during and after cooking and showering (RIVM).",
+      pOwn: (lbl, d) => `For you: with ${lbl} indoor was on average ${d} than with everything closed at the same outdoor temperature.`,
+      rvHigh: v => `Your last measured indoor humidity was ${v}%: on the high side. Air briefly and thoroughly a few times today.`,
+      assumed: "assumed; enter humidity with a reading", measured: "measured",
+      needRv: "Enter indoor humidity with your readings (a hygrometer costs about €10); Tembo then uses your real humidity instead of 55%.",
+      needLoc: "Set a location (Profile → Settings): Tembo then checks the weather forecast for when airing removes the most moisture at the least heat loss.",
+      loading: "Fetching the weather forecast…",
+      today: "today", tomorrow: "tomorrow", tonight: "tonight",
+      fOut: "Outdoor (then)", fAh: "Moisture out / in", fDry: "Removed per m³",
+    },
+    rem: {
+      title: "To do",
+      gasFirst: "Enter your first gas meter reading; then every week, for example on Sunday.",
+      gasMiss: list => `Gas meter reading missing for ${list}.`,
+      gasNow: w => `No gas meter reading entered yet this week (week ${w}).`,
+      meet: (n, d) => `Your last reading was ${n} day(s) ago (${d}). Measure indoor and outdoor.`,
+      meetNone: "No reading yet: enter your first reading below.",
+      cool: (when, tOut, wind, dT) => `${when} is a good night for a cool-down test: outdoor ~${tOut}${wind ? `, wind ~${wind}` : ""}, ~${dT} difference with indoor. At 22:00 switch the heating off, close the windows and note the indoor temperature.`,
+      go: "Enter", goMeet: "Measure", goCool: "Cool-down test", ics: "Add to calendar", hide: "Hide",
+      icsCoolTitle: "Tembo: start cool-down test", icsCoolDesc: "Heating off, windows and doors closed, note indoor temperature. Tomorrow morning note the end temperature.",
+      icsGasTitle: "Tembo: enter gas meter reading", icsGasDesc: "Read the gas meter and enter it in Tembo → Gas use.",
+      icsMeetTitle: "Tembo: measure temperature", icsMeetDesc: "Measure indoor (and humidity if you can) and enter it in Tembo.",
+      setTitle: "Reminders", setMeet: "Remind me after this many days without a reading (0 = off)", setMeetTijd: "Measuring time (for the calendar)",
+      setGasDag: "Read the gas meter on", setGasTijd: "Time", icsGas: "Gas reminder to calendar (.ics)", icsMeet: "Measuring reminder to calendar (.ics)",
+      setHint: "Tembo shows what is still open at the top of the overview. A phone notification while Tembo is closed needs a server Tembo does not have; you can therefore add the reminders as a recurring event to your calendar (iPhone, Android, Outlook). Your calendar then gives the notification.",
+      setGas: "Gas", setEta: "Boiler efficiency (%)", setEtaHint: "A condensing boiler achieves ~85–95% in practice. Used to convert m³ gas into heat.", setPrijs: "Gas price (€ per m³, optional)",
+    },
+    fRv: "Indoor humidity (%)", fRvPh: "optional", errRv: "Humidity must be between 1 and 100%.", thRv: "% RH",
     fc: {
       leg: "Forecast next 7 nights", now: "now", lTest: "test duration", lFlag: "left out (warning)",
       hidden: list => `Not (yet) in the chart: ${list}.`,
@@ -1894,9 +2054,10 @@ function newId(){ return "m" + Date.now().toString(36) + Math.random().toString(
 function emptyState(){
   return {
     version: 1, lang: "nl", darkMode: false,
-    settings: { comfortTemp: 19, kiepDicht: true, defaultRuimte: "Woonkamer", ruimtes: ["Woonkamer"], refBuiten: 10, locatie: null, autoBuiten: true, lastKlimaat: { cv:"uit", cvTemp:20, airco:"uit", aircoTemp:21 } },
+    settings: { comfortTemp: 19, kiepDicht: true, gasRendement: 90, gasPrijs: null, remMeetDagen: 2, remMeetTijd: "20:00", remGasDag: 0, remGasTijd: "10:00", defaultRuimte: "Woonkamer", ruimtes: ["Woonkamer"], refBuiten: 10, locatie: null, autoBuiten: true, lastKlimaat: { cv:"uit", cvTemp:20, airco:"uit", aircoTemp:21 } },
     metingen: [],
     afkoeltests: [],
+    gasStanden: [],
     activeView: { type: "overview" },
   };
 }
@@ -1916,6 +2077,9 @@ function migrateState(){
   if(typeof state.settings.kiepDicht !== "boolean") state.settings.kiepDicht = true;
   if(!Array.isArray(state.metingen)) state.metingen = [];
   if(!Array.isArray(state.afkoeltests)) state.afkoeltests = [];
+  if(!Array.isArray(state.gasStanden)) state.gasStanden = [];
+  state.gasStanden = state.gasStanden.filter(g => g && validISODate(g.datum) && typeof g.stand === "number" && isFinite(g.stand)).map(g => ({ id: typeof g.id === "string" && /^[\w-]+$/.test(g.id) ? g.id : newId(), datum: g.datum, tijd: /^\d{2}:\d{2}$/.test(g.tijd || "") ? g.tijd : "", stand: g.stand, notitie: typeof g.notitie === "string" ? g.notitie : "" }));
+  (state.metingen || []).forEach(m => { if(m && m.rv !== undefined && !(typeof m.rv === "number" && m.rv > 0 && m.rv <= 100)) delete m.rv; });
   if(!Array.isArray(state.afkoelGenegeerd)) state.afkoelGenegeerd = [];
   if(!Array.isArray(state.koeltestGenegeerd)) state.koeltestGenegeerd = [];
   if(!Array.isArray(state.dataIgnore)) state.dataIgnore = [];
@@ -2569,6 +2733,7 @@ function renderTabs(){
       <button class="tab ${v.type==="overview"?"active":""}" data-go="overview"><span>${t("navAll")}</span><span class="tab-count">${state.metingen.length}</span></button>
       <button class="tab ${v.type==="klimaat"?"active":""}" data-go="klimaat"><span>${t("navKlimaat")}</span><span class="tab-count"></span></button>
       <button class="tab ${v.type==="afkoel"?"active":""}" data-go="afkoel"><span>${t("navCool")}</span><span class="tab-count">${state.afkoeltests.length}${(() => { const n = coolCandidates().length; return n ? ` <span class="new-badge">+${n}</span>` : ""; })()}</span></button>
+      <button class="tab ${v.type==="gas"?"active":""}" data-go="gas"><span>${escapeHtml(t("gas").nav)}</span><span class="tab-count">${(state.gasStanden || []).length}${(() => { const g = gasReminderInfo(), n = g.missing.length + (g.current ? 1 : 0); return n ? ` <span class="new-badge">!${n}</span>` : ""; })()}</span></button>
     </div>
     <div class="tab-group">
       <div class="tab-group-head collapsible" id="monthsHead">
@@ -2595,6 +2760,9 @@ const ICONS = {
   list: `<svg class="cat-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><path d="M9 6h11M9 12h11M9 18h11"/><circle cx="4.5" cy="6" r="1"/><circle cx="4.5" cy="12" r="1"/><circle cx="4.5" cy="18" r="1"/></svg>`,
   upload: `<svg class="cat-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 16V5M7 10l5-5 5 5M5 20h14"/></svg>`,
   moon: `<svg class="cat-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M19 14.5A7.5 7.5 0 1 1 9.5 5a6 6 0 0 0 9.5 9.5z"/><path d="M16 3v3M14.5 4.5h3"/></svg>`,
+  flame: `<svg class="cat-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3c1 3.5 5 5.5 5 10a5 5 0 0 1-10 0c0-2.4 1.2-3.9 2.5-5 .2 1.6 1 2.6 2 3 0-3 .5-5.5.5-8z"/></svg>`,
+  bell: `<svg class="cat-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M6 16V11a6 6 0 0 1 12 0v5l1.5 2h-15z"/><path d="M10 20a2 2 0 0 0 4 0"/></svg>`,
+  wind: `<svg class="cat-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M3 9h11a3 3 0 1 0-3-3"/><path d="M3 15h15a3 3 0 1 1-3 3"/><path d="M3 12h7"/></svg>`,
   trash: `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M6 6l12 12M18 6L6 18"/></svg>`,
 };
 /* "Zo lees je deze grafiek": inklapbare uitleg onder een grafiek. Open/dicht wordt per grafiek
@@ -2618,18 +2786,20 @@ function renderMain(){
   if(v.type === "import"){ main.innerHTML = renderImportView(); wireImportView(); return; }
   if(v.type === "afkoel"){ renderCoolView(main); return; }
   if(v.type === "klimaat"){ renderKlimaatView(main); return; }
+  if(v.type === "gas"){ renderGasView(main); return; }
   const list = visibleMetingen();
   let html = "";
   if(v.type === "overview"){
     if(!formModeTouched) formBuitenMode = (state.settings.locatie && state.settings.autoBuiten) ? "online" : "eigen";
+    html += `<div id="remBox"></div>`;
     html += cardHTML(ICONS.plus, t("newEntry"), entryFormHTML());
   }
-  if(v.type === "overview"){ html += cardHTML(ICONS.scatter, t("tot").title, `<div class="chart-con">${totalVerdictHTML()}</div>`); html += dataIssuesHTML(); }
+  if(v.type === "overview"){ html += cardHTML(ICONS.scatter, t("tot").title, `<div class="chart-con">${totalVerdictHTML()}</div>`); html += cardHTML(ICONS.wind, t("lucht").title, `<div id="luchtBox" class="chart-con"></div>`); html += dataIssuesHTML(); }
   html += cardHTML(ICONS.therm, t("chartTime"), `<div id="timeToolbar">${timeToolbarHTML()}</div><div id="timeChart"></div><div id="timeCon" class="chart-con"></div>`);
   html += cardHTML(ICONS.scatter, t("chartScatter"), `${cfBarHTML("scatter")}<div id="scatterChart"></div><div id="scatterCon" class="chart-con"></div>${howtoHTML("howtoScatter")}${scatterBasis()==="24" ? `<p class="card-note" style="margin-top:6px;">${escapeHtml(t("basis24Hint"))}</p>` : ""}`, basisToggleHTML());
   html += cardHTML(ICONS.list, t("tableTitle"), tableHTML(list), String(list.length));
   main.innerHTML = html;
-  if(v.type === "overview"){ restoreFormDraft(); wireEntryForm(); }
+  if(v.type === "overview"){ restoreFormDraft(); wireEntryForm(); refreshOverviewExtras(); }
   else formDraft = null;
   wireTable();
   wireFilterRow();
@@ -2641,6 +2811,7 @@ function redrawCharts(){
   if(v.type === "afkoel"){ drawCoolChart(document.getElementById("coolChart")); return; }
   if(v.type === "klimaat"){ drawKlimaatChart(document.getElementById("klimaatChart")); drawKoelChart(document.getElementById("koelChart"), koelTests()); return; }
   if(v.type === "import") return;
+  if(v.type === "gas"){ drawGasCharts(); return; }
   drawTimeChart(document.getElementById("timeChart"), timeList());
   drawScatterChart(document.getElementById("scatterChart"), cfApply("scatter", visibleMetingen()));
 }
@@ -2655,7 +2826,7 @@ function basisToggleHTML(){
 let formKlimaat = null;
 let formTimeTouched = false;   // true zodra je datum/tijd zelf wijzigt; dan loopt de klok niet meer mee
 let formDraft = null;   // ingetypte waarden bewaren als het scherm opnieuw wordt opgebouwd (filter, taal …)
-const DRAFT_FIELDS = ["fDatum","fTijd","fBinnen","fBuiten","fRuimte","fNotitie","fCvTemp","fAirTemp"];
+const DRAFT_FIELDS = ["fDatum","fTijd","fBinnen","fBuiten","fRuimte","fRv","fNotitie","fCvTemp","fAirTemp"];
 function captureFormDraft(){
   if(!document.getElementById("addBtn")) return;
   formDraft = {};
@@ -2689,6 +2860,7 @@ function entryFormHTML(){
           <button type="button" data-src="eigen" class="${formBuitenMode==="eigen"?"on":""}">${t("srcOptOwn")}</button>
         </span>` : ""}<span class="src-hint" id="fBuitenSrc"></span></label>
       <label>${t("fRuimte")}<select id="fRuimte">${ruimteOptions(ruimteList()[0])}</select></label>
+      <label>${escapeHtml(t("fRv"))}<input type="text" inputmode="decimal" id="fRv" placeholder="${escapeHtml(t("fRvPh"))}" /></label>
       <div class="klimaat-box wide">
         <div class="klimaat-title">${t("fKlimaat")}</div>
         <div class="klimaat-row"><span class="klimaat-sys">${t("kCv")}</span>
@@ -2748,6 +2920,8 @@ function wireEntryForm(){
     const msg = document.getElementById("formMsg");
     if(!validISODate(datum)){ msg.textContent = t("errDate"); msg.className = "form-msg err"; return; }
     if(binnen === null || buiten === null){ msg.textContent = t("errTemps"); msg.className = "form-msg err"; return; }
+    const rvRaw = (document.getElementById("fRv") || { value: "" }).value.trim(), rv = rvRaw ? parseNum(rvRaw) : null;
+    if(rvRaw && !(rv > 0 && rv <= 100)){ msg.textContent = t("errRv"); msg.className = "form-msg err"; return; }
     state.metingen.push({
       id:newId(), datum, tijd: document.getElementById("fTijd").value || "",
       binnen, buiten,
@@ -2758,6 +2932,7 @@ function wireEntryForm(){
       cvTemp: formKlimaat.cv === "aan" ? parseNum(document.getElementById("fCvTemp").value) : null,
       aircoTemp: (formKlimaat.airco === "verwarmen" || formKlimaat.airco === "koelen") ? parseNum(document.getElementById("fAirTemp").value) : null,
       notitie: document.getElementById("fNotitie").value.trim(),
+      ...(rv !== null ? { rv } : {}),
       ...(!state.settings.locatie && manualWeer(formWeer) ? { weer: manualWeer(formWeer) } : {}),
     });
     formWeer = { zon: "", wind: "", regen: "" };
@@ -2767,7 +2942,7 @@ function wireEntryForm(){
       cvTemp: last.cvTemp ?? formKlimaat.cvTemp ?? 20, aircoTemp: last.aircoTemp ?? formKlimaat.aircoTemp ?? 21 };
     formKlimaat = null;
     formTimeTouched = false;
-    ["fDatum","fTijd","fBinnen","fBuiten","fNotitie"].forEach(id => { const el = document.getElementById(id); if(el) el.value = ""; });   // instelling cv/airco blijft staan
+    ["fDatum","fTijd","fBinnen","fBuiten","fRv","fNotitie"].forEach(id => { const el = document.getElementById(id); if(el) el.value = ""; });   // instelling cv/airco blijft staan
     lastFormMsg = { cls:"ok", text:t("addedMsg") };
     formModeTouched = false;
     scheduleAutoSave();
@@ -2795,7 +2970,7 @@ function tableRowHTML(m, iso){
     return `<tr data-id="${escapeHtml(m.id)}">
       <td><input class="t-date" type="date" min="2000-01-01" max="2100-12-31" data-f="datum" value="${escapeHtml(m.datum)}" /></td>
       <td><input class="t-time" type="time" data-f="tijd" value="${escapeHtml(m.tijd)}" /></td>
-      <td class="num"><input class="t-num" type="text" inputmode="decimal" data-f="binnen" value="${escapeHtml(String(m.binnen).replace(".", state.lang==="en"?".":","))}" /></td>
+      <td class="num"><input class="t-num" type="text" inputmode="decimal" data-f="binnen" value="${escapeHtml(String(m.binnen).replace(".", state.lang==="en"?".":","))}" /><input class="t-num" style="margin-top:4px" type="text" inputmode="decimal" data-f="rv" placeholder="${escapeHtml(t("thRv"))}" title="${escapeHtml(t("fRv"))}" aria-label="${escapeHtml(t("fRv"))}" value="${typeof m.rv === "number" ? escapeHtml(String(m.rv).replace(".", state.lang==="en"?".":",")) + "%" : ""}" /></td>
       <td class="num"><span class="buiten-cell"><input class="t-num" type="text" data-f="buiten" value="${escapeHtml(String(m.buiten).replace(".", state.lang==="en"?".":","))}" />${m.buitenBron==="online" ? `<i class="online-dot" title="${escapeHtml(t("srcBadge"))}"></i>` : (m.buitenOnline !== null && m.buitenOnline !== undefined ? `<span class="online-was" title="${escapeHtml(t("srcOnlineWas")(fmtT(m.buitenOnline)))}">${escapeHtml(fmtT(m.buitenOnline).replace(" °C","°"))}</span>` : "")}</span></td>
       <td class="num"><span class="mono small-num">${has24(m) ? escapeHtml(fmtT(m.buiten24).replace(" °C","°")) : "—"}</span></td>
       <td class="num"><span class="delta">${fmtDelta(d)}</span></td>
@@ -2841,6 +3016,10 @@ function wireTable(){
           if(n === null){ inp.value = String(m[f]).replace(".", state.lang === "en" ? "." : ","); return; }
           m[f] = n;
           if(f === "buiten") m.buitenBron = "handmatig";
+        } else if(f === "rv"){
+          const raw = inp.value.replace("%", "").trim(), n = raw ? parseNum(raw) : null;
+          if(raw && !(n > 0 && n <= 100)){ inp.value = typeof m.rv === "number" ? String(m.rv) + "%" : ""; return; }
+          if(n === null) delete m.rv; else m.rv = n;
         } else if(f === "cvTemp" || f === "aircoTemp"){
           const n = parseNum(inp.value);
           if(inp.value.trim() !== "" && n === null){ inp.value = m[f] ?? ""; return; }
@@ -4502,6 +4681,7 @@ function renderSummary(){
   const v = state.activeView || {};
   if(v.type === "afkoel"){ renderCoolSummary(el); return; }
   if(v.type === "klimaat"){ renderKlimaatSummary(el); return; }
+  if(v.type === "gas"){ renderGasSummary(el); return; }
   const list = v.type === "import" ? sortedMetingen(state.metingen) : visibleMetingen();
   const title = v.type === "month" ? monthLabel(v.key) : t("navAll");
   const deltas = list.map(p => p.binnen - p.buiten);
@@ -4562,6 +4742,538 @@ function wireActions(){
   updateSaveStatus();
 }
 
+
+/* ================= GASVERBRUIK (v30) =================
+   Handmatig, bij voorkeur eens per week: datum, tijd en meterstand (m³). Het verbruik tussen twee
+   standen wordt gekoppeld aan de buitentemperatuur van die dagen:
+   - graaddagen (zoals energieleveranciers in NL rekenen): per dag max(0, 18 − daggemiddelde buiten),
+     gewogen met 0,8 (apr–sep), 1,0 (mrt, okt) en 1,1 (nov–feb);
+   - m³ per graaddag + basisverbruik (warm water, koken) uit een lijn door alle periodes, gewogen
+     naar lengte: m³ per dag = basis + k · graaddagen per dag;
+   - warmteverlies (W/K) = k · 9,77 kWh/m³ · rendement / 24 · 1000 (graaddagen-methode).
+   Daggemiddelden buiten: Open-Meteo (daily temperature_2m_mean, zelfde afgeronde locatie, ook de
+   verwachting voor de komende dagen); zonder locatie het gemiddelde van je eigen buitenmetingen. */
+const GAS_KWH = 9.77;
+const dailyMean = {}, dailyAt = {}, dailyPending = new Set();
+function dmKey(loc, d){ return `${loc.lat.toFixed(2)},${loc.lon.toFixed(2)}|${d}`; }
+function ensureDailyMeans(d0, d1, onReady){
+  const loc = state.settings.locatie; if(!loc || !validISODate(d0) || !validISODate(d1)) return;
+  const today = todayISO(), cut = addDaysISO(today, -60), maxF = addDaysISO(today, 14), recent = addDaysISO(today, -3);
+  if(d1 > maxF) d1 = maxF;
+  if(d0 > d1) return;
+  // Recente dagen en de verwachting na 3 uur opnieuw ophalen (verwachting → gemeten waarde).
+  const stale = d => { const k = dmKey(loc, d); return dailyMean[k] === undefined || (d >= recent && Date.now() - (dailyAt[k] || 0) > 3 * HOUR); };
+  const need = (a, b) => { for(let d = a; d <= b; d = addDaysISO(d, 1)) if(stale(d)) return true; return false; };
+  const req = (base, a, b) => {
+    if(a > b || !need(a, b)) return;
+    const pk = `${base}|${dmKey(loc, a)}|${b}`; if(dailyPending.has(pk)) return; dailyPending.add(pk);
+    const url = `${base}?latitude=${loc.lat.toFixed(2)}&longitude=${loc.lon.toFixed(2)}&daily=temperature_2m_mean&timezone=auto&start_date=${a}&end_date=${b}`;
+    fetch(url, typeof AbortSignal !== "undefined" && AbortSignal.timeout ? { signal: AbortSignal.timeout(15000) } : undefined)
+      .then(r => r.ok ? r.json() : Promise.reject(new Error("HTTP " + r.status)))
+      .then(dt => { const D = dt && dt.daily; if(!D || !Array.isArray(D.time)) throw new Error("onverwacht antwoord");
+        D.time.forEach((d, i) => { const k = dmKey(loc, d), v = D.temperature_2m_mean ? D.temperature_2m_mean[i] : null; dailyMean[k] = typeof v === "number" ? v : null; dailyAt[k] = Date.now(); }); })
+      .catch(err => { console.warn("Daggemiddelden ophalen mislukt:", err); for(let d = a; d <= b; d = addDaysISO(d, 1)){ const k = dmKey(loc, d); if(dailyMean[k] === undefined){ dailyMean[k] = null; dailyAt[k] = Date.now(); } } })
+      .finally(() => { dailyPending.delete(pk); if(onReady) onReady(); });
+  };
+  req("https://archive-api.open-meteo.com/v1/archive", d0, d1 < cut ? d1 : addDaysISO(cut, -1));
+  req("https://api.open-meteo.com/v1/forecast", d0 > cut ? d0 : cut, d1);
+}
+function ownDayMean(d){
+  const L = state.metingen.filter(m => m.datum === d);
+  if(!L.length) return null;
+  const w24 = L.filter(has24);
+  return avg((w24.length ? w24.map(m => m.buiten24) : L.map(m => m.buiten)));
+}
+function dayMeanOut(d){
+  const loc = state.settings.locatie;
+  if(loc){ const v = dailyMean[dmKey(loc, d)]; if(typeof v === "number") return v; }
+  const own = ownDayMean(d); if(own !== null) return own;
+  // Zonder online data: tussen je eigen meetdagen (hooguit 2 dagen ernaast) lineair invullen.
+  for(let k = 1; k <= 2; k++){ const a = ownDayMean(addDaysISO(d, -k)); for(let j = 1; j <= 2; j++){ const b = ownDayMean(addDaysISO(d, j)); if(a !== null && b !== null) return a + (b - a) * k / (k + j); } }
+  return null;
+}
+function gdWeight(d){ const m = Number(d.slice(5, 7)); return m >= 4 && m <= 9 ? 0.8 : (m === 3 || m === 10) ? 1.0 : 1.1; }
+function graaddag(d){ const T = dayMeanOut(d); return T === null ? null : Math.max(0, 18 - T) * gdWeight(d); }
+function isoWeek(iso){
+  const [y, m, d] = iso.split("-").map(Number), dt = new Date(Date.UTC(y, m - 1, d)), day = (dt.getUTCDay() + 6) % 7;
+  dt.setUTCDate(dt.getUTCDate() - day + 3);
+  const fy = dt.getUTCFullYear(), j4 = new Date(Date.UTC(fy, 0, 4));
+  return { y: fy, w: 1 + Math.round(((dt - j4) / 86400000 - 3 + ((j4.getUTCDay() + 6) % 7)) / 7) };
+}
+function weekStartISO(iso){ const [y, m, d] = iso.split("-").map(Number); return addDaysISO(iso, -((new Date(y, m - 1, d).getDay() + 6) % 7)); }
+function gasTs(g){ return tsFrom(g.datum, g.tijd || "12:00"); }
+function gasSorted(){ return (state.gasStanden || []).filter(g => validISODate(g.datum) && typeof g.stand === "number" && isFinite(g.stand)).sort((a, b) => gasTs(a) - gasTs(b)); }
+function fmtNum(v, dec){ if(v === null || v === undefined || !isFinite(v)) return "—"; return v.toLocaleString(state.lang === "en" ? "en-GB" : "nl-NL", { minimumFractionDigits: dec, maximumFractionDigits: dec }); }
+function fmtM3(v, dec){ return fmtNum(v, dec ?? (Math.abs(v) < 10 ? 2 : Math.abs(v) < 100 ? 1 : 0)) + " m³"; }
+function fmtEur(v){ return v === null || !isFinite(v) ? "" : "€ " + fmtNum(v, 2); }
+function gasEta(){ const e = Number(state.settings.gasRendement); return isFinite(e) && e >= 50 && e <= 110 ? e : 90; }
+function gasPrijs(){ const p = Number(state.settings.gasPrijs); return isFinite(p) && p > 0 ? p : null; }
+/* Periodes tussen twee opeenvolgende standen. */
+function gasIntervals(L){
+  const out = [], room = (ruimteList()[0] || ROOM_DEFAULT).toLowerCase();
+  for(let i = 1; i < L.length; i++){
+    const a = L[i-1], b = L[i], ta = gasTs(a), tb = gasTs(b), days = (tb - ta) / DAY, gas = b.stand - a.stand;
+    const iv = { a, b, ta, tb, days, gas, perDay: days > 0 ? gas / days : null, gd: 0, gdU: 0, dtd: 0, tout: null, tin: null, ok: false };
+    if(days <= 0){ iv.err = "order"; out.push(iv); continue; }
+    if(gas < 0){ iv.err = "neg"; out.push(iv); continue; }
+    const inR = state.metingen.filter(m => { const ts = tsOf(m); return ts >= ta && ts <= tb; });
+    const same = inR.filter(m => (m.ruimte || ROOM_DEFAULT).toLowerCase() === room);
+    iv.tin = same.length ? avg(same.map(m => m.binnen)) : inR.length ? avg(inR.map(m => m.binnen)) : null;
+    const tin = iv.tin === null ? comfortT() : iv.tin;
+    let covered = 0, tsum = 0;
+    for(let d = tsToISO(ta); tsFrom(d, "00:00") < tb; d = addDaysISO(d, 1)){
+      const s = Math.max(ta, tsFrom(d, "00:00")), e = Math.min(tb, tsFrom(addDaysISO(d, 1), "00:00")), f = (e - s) / DAY;
+      if(f <= 0) continue;
+      const T = dayMeanOut(d); if(T === null) continue;
+      covered += f; tsum += f * T;
+      iv.gd += f * Math.max(0, 18 - T) * gdWeight(d);
+      iv.gdU += f * Math.max(0, 18 - T);
+      iv.dtd += f * Math.max(0, tin - T);
+    }
+    if(covered > 0){ iv.tout = tsum / covered; const sc = days / covered; iv.gd *= sc; iv.gdU *= sc; iv.dtd *= sc; }
+    iv.covered = covered;
+    iv.ok = days >= 2 && days <= 35 && covered >= 0.8 * days;
+    out.push(iv);
+  }
+  return out;
+}
+/* Gewogen lijn y = a + b·x (gewicht = lengte van de periode). Met a < 0 opnieuw door de oorsprong. */
+function gasReg(pts){
+  const W = pts.reduce((s, p) => s + p.w, 0); if(pts.length < 2 || !(W > 0)) return null;
+  const mx = pts.reduce((s, p) => s + p.w * p.x, 0) / W, my = pts.reduce((s, p) => s + p.w * p.y, 0) / W;
+  let sxx = 0, sxy = 0, syy = 0; pts.forEach(p => { sxx += p.w * (p.x - mx) ** 2; sxy += p.w * (p.x - mx) * (p.y - my); syy += p.w * (p.y - my) ** 2; });
+  if(sxx < 1e-9) return null;
+  let b = sxy / sxx, a = my - b * mx, forced = false;
+  if(a < 0){ const sx2 = pts.reduce((s, p) => s + p.w * p.x * p.x, 0), sxy0 = pts.reduce((s, p) => s + p.w * p.x * p.y, 0); if(sx2 > 0){ b = sxy0 / sx2; a = 0; forced = true; } }
+  const sse = pts.reduce((s, p) => s + p.w * (p.y - a - b * p.x) ** 2, 0);
+  return { a, b, forced, r2: syy > 0 ? Math.max(0, 1 - sse / syy) : null, n: pts.length, minX: Math.min(...pts.map(p => p.x)), maxX: Math.max(...pts.map(p => p.x)) };
+}
+function gasMeterAt(L, ts){
+  if(L.length < 2 || ts < gasTs(L[0]) || ts > gasTs(L[L.length - 1])) return null;
+  for(let i = 1; i < L.length; i++){ const ta = gasTs(L[i-1]), tb = gasTs(L[i]); if(ts <= tb){ if(L[i].stand < L[i-1].stand || tb <= ta) return null; return L[i-1].stand + (L[i].stand - L[i-1].stand) * (ts - ta) / (tb - ta); } }
+  return null;
+}
+function gasAnalysis(){
+  const L = gasSorted(), ivs = gasIntervals(L), use = ivs.filter(iv => iv.ok);
+  const A = { L, ivs, use, status: "need" };
+  // Weken (ma–zo) vanaf de week van de eerste stand t/m deze week.
+  A.weeks = [];
+  if(L.length){
+    const cur = weekStartISO(todayISO());
+    for(let w = weekStartISO(L[0].datum); w <= cur; w = addDaysISO(w, 7)){
+      const s = tsFrom(w, "00:00"), e = tsFrom(addDaysISO(w, 7), "00:00"), ms = gasMeterAt(L, s), me = gasMeterAt(L, e);
+      let gd = 0, gdMiss = 0; for(let k = 0; k < 7; k++){ const v = graaddag(addDaysISO(w, k)); if(v === null) gdMiss++; else gd += v; }
+      A.weeks.push({ w, s, e, wk: isoWeek(w).w, m3: ms !== null && me !== null ? me - ms : null, gd: gdMiss ? null : gd, has: L.some(g => weekStartISO(g.datum) === w), current: w === cur });
+    }
+  }
+  A.missing = A.weeks.filter(x => !x.current && !x.has);
+  A.neg = ivs.filter(iv => iv.err === "neg").length;
+  if(use.length >= 4){
+    const r = gasReg(use.map(iv => ({ x: iv.gd / iv.days, y: iv.gas / iv.days, w: iv.days })));
+    if(r && r.maxX - r.minX < 3) A.status = "spread";
+    else if(r && r.b > 0.02){
+      A.status = "ok"; A.fit = r;
+      // Warmteverlies (W/K) = m³ per (ongewogen) graaddag · 9,77 kWh/m³ · rendement, per graad·dag → per graad·uur (/24).
+      const rU = gasReg(use.map(iv => ({ x: iv.gdU / iv.days, y: iv.gas / iv.days, w: iv.days })));
+      A.htc = (rU && rU.b > 0 ? rU.b : r.b) * GAS_KWH * gasEta() / 100 / 24 * 1000;
+      A.weeks.forEach(x => { if(x.gd !== null) x.exp = r.a * 7 + r.b * x.gd; });
+      // Periodes (tussen twee standen) die meer dan 30% (en > 3 m³) afwijken van wat het weer doet verwachten.
+      use.forEach(iv => { iv.exp = r.a * iv.days + r.b * iv.gd; });
+      A.odd = use.filter(iv => Math.abs(iv.gas - iv.exp) > Math.max(3, 0.3 * iv.exp));
+      // Komende 7 dagen
+      let gd = 0, miss = 0; for(let k = 1; k <= 7; k++){ const v = graaddag(addDaysISO(todayISO(), k)); if(v === null) miss++; else gd += v; }
+      if(!miss) A.next = { gd, m3: r.a * 7 + r.b * gd };
+    } else if(r) A.status = "slope";
+  } else if(use.length) A.status = "few";
+  const full = A.weeks.filter(x => x.m3 !== null);
+  A.lastWeek = full.length ? full[full.length - 1] : null;
+  A.avg4 = full.length ? avg(full.slice(-4).map(x => x.m3)) : null;
+  return A;
+}
+function gasWeekLabel(x){ return t("gas").missWeek(x.wk, fmtDate(x.w), fmtDate(addDaysISO(x.w, 6))); }
+/* Lichte versie voor herinneringen (geen weerdata nodig). */
+function gasReminderInfo(){
+  const L = gasSorted(), cur = weekStartISO(todayISO()), out = { empty: !L.length, missing: [], current: null };
+  if(!L.length) return out;
+  for(let w = weekStartISO(L[0].datum); w < cur; w = addDaysISO(w, 7)) if(!L.some(g => weekStartISO(g.datum) === w)) out.missing.push({ w, wk: isoWeek(w).w });
+  if(!L.some(g => weekStartISO(g.datum) === cur)){
+    const dayIdx = (new Date().getDay() + 6) % 7, setIdx = ((Number(state.settings.remGasDag) || 0) + 6) % 7;
+    if(dayIdx >= setIdx) out.current = { w: cur, wk: isoWeek(cur).w };
+  }
+  return out;
+}
+
+let lastGasMsg = null;
+function gasRedraw(){ if((state.activeView || {}).type === "gas"){ drawGasCharts(); renderSummary(); } }
+function renderGasView(main){
+  const G = t("gas"), L = gasSorted();
+  if(L.length) ensureDailyMeans(addDaysISO(L[0].datum, -1), addDaysISO(todayISO(), 8), gasRedraw);
+  const info = gasReminderInfo();
+  const miss = info.missing.concat(info.current ? [info.current] : []);
+  const missHTML = miss.length ? `<div class="gas-miss"><div class="gas-miss-h">${escapeHtml(G.missTitle)}</div>${miss.slice(-8).map(x => `<div class="gas-miss-row"><span>${escapeHtml(x === info.current ? G.thisWeek(x.wk) : G.missWeek(x.wk, fmtDate(x.w), fmtDate(addDaysISO(x.w, 6))))}</span><button type="button" class="btn small" data-gasweek="${x.w}">${escapeHtml(G.missFill)}</button></div>`).join("")}</div>` : "";
+  const form = `
+    <p class="card-note" style="margin-bottom:12px;">${escapeHtml(G.how)}</p>
+    ${missHTML}
+    <div class="entry-grid" data-submit-block>
+      <label>${t("fDatum")}<input type="date" min="2000-01-01" max="2100-12-31" id="gDatum" value="${todayISO()}" /></label>
+      <label>${t("fTijd")}<input type="time" id="gTijd" value="${nowHM()}" /></label>
+      <label>${escapeHtml(G.stand)}<input type="text" inputmode="decimal" id="gStand" placeholder="${state.lang === "en" ? "4521.368" : "4521,368"}" /></label>
+      <label class="wide">${t("fNotitie")}<input type="text" id="gNotitie" maxlength="200" /></label>
+    </div>
+    <div class="entry-actions" data-submit-block>
+      <button class="btn primary" id="gasSaveBtn">${escapeHtml(G.save)}</button>
+      <span class="form-msg ${lastGasMsg ? lastGasMsg.cls : ""}" id="gasMsg">${lastGasMsg ? escapeHtml(lastGasMsg.text) : ""}</span>
+    </div>`;
+  let html = cardHTML(ICONS.flame, G.title, form);
+  html += cardHTML(ICONS.therm, G.chartWeek, `<div id="gasWeekChart"></div><div id="gasCon" class="chart-con"></div>`);
+  html += cardHTML(ICONS.scatter, G.chartFit, `<div id="gasFitChart"></div><p class="card-note" style="margin-top:6px;">${escapeHtml(G.pGdDef)}</p>`);
+  html += cardHTML(ICONS.list, G.table, gasTableHTML(), String(L.length));
+  main.innerHTML = html;
+  lastGasMsg = null;
+  wireEnterSubmit(main);
+  main.querySelectorAll("[data-gasweek]").forEach(b => b.onclick = () => {
+    const w = b.dataset.gasweek, sun = addDaysISO(w, 6), d = sun > todayISO() ? todayISO() : sun;
+    const el = document.getElementById("gDatum"); el.value = d; document.getElementById("gStand").focus();
+  });
+  document.getElementById("gasSaveBtn").onclick = () => {
+    const msg = document.getElementById("gasMsg"), datum = document.getElementById("gDatum").value, tijd = document.getElementById("gTijd").value || "";
+    const stand = parseNum(document.getElementById("gStand").value), notitie = document.getElementById("gNotitie").value.trim();
+    const err = s => { msg.textContent = s; msg.className = "form-msg err"; };
+    if(!validISODate(datum)) return err(G.errDate);
+    if(stand === null || stand < 0) return err(G.errStand);
+    const g = { id: newId(), datum, tijd, stand, notitie }, ts = gasTs(g), Ls = gasSorted();
+    const prev = Ls.filter(x => gasTs(x) <= ts).pop(), next = Ls.find(x => gasTs(x) > ts);
+    const newMeter = /nieuwe meter|new meter/i.test(notitie);
+    if(prev && stand < prev.stand && !newMeter) return err(G.errLower(fmtNum(prev.stand, 3)));
+    if(next && stand > next.stand && !newMeter) return err(G.errHigher(fmtNum(next.stand, 3)));
+    state.gasStanden.push(g);
+    lastGasMsg = { cls: "ok", text: G.saved };
+    scheduleAutoSave(); renderAll();
+  };
+  wireGasTable();
+  drawGasCharts();
+}
+function gasTableHTML(){
+  const G = t("gas"), L = gasSorted(), ivs = gasIntervals(L);
+  if(!L.length) return `<p class="card-note">${escapeHtml(G.noRows)}</p>`;
+  const num = v => String(v).replace(".", state.lang === "en" ? "." : ",");
+  const rows = L.map((g, i) => ({ g, iv: i ? ivs[i - 1] : null })).reverse().map(({ g, iv }) => `<tr data-id="${escapeHtml(g.id)}">
+      <td class="stack"><input class="t-date" type="date" min="2000-01-01" max="2100-12-31" data-f="datum" value="${escapeHtml(g.datum)}" /><input class="t-time" type="time" data-f="tijd" value="${escapeHtml(g.tijd || "")}" /></td>
+      <td class="num"><span class="mono">${escapeHtml(G.week(isoWeek(g.datum).w))}</span></td>
+      <td class="num"><input class="t-num" style="width:96px" type="text" inputmode="decimal" data-f="stand" value="${escapeHtml(num(g.stand))}" /></td>
+      <td class="num"><span class="mono">${iv ? (iv.err ? "!" : fmtNum(iv.gas, 1)) : "—"}</span></td>
+      <td class="num"><span class="mono">${iv && !iv.err ? fmtNum(iv.perDay, 2) : "—"}</span></td>
+      <td class="num"><span class="mono">${iv && !iv.err && iv.covered ? fmtNum(iv.gd, 0) : "—"}</span></td>
+      <td class="num"><span class="mono">${iv && !iv.err && iv.gd >= 1 ? fmtNum(iv.gas / iv.gd, 2) : "—"}</span></td>
+      <td><input type="text" data-f="notitie" value="${escapeHtml(g.notitie || "")}" /></td>
+      <td><button class="row-del" aria-label="delete">${ICONS.trash}</button></td>
+    </tr>`).join("");
+  return `<div class="table-scroll"><table class="gtable"><thead><tr>
+    <th>${t("thDatum")}</th><th class="num">${state.lang === "en" ? "Week" : "Week"}</th><th class="num">${escapeHtml(G.thStand)}</th><th class="num">${escapeHtml(G.thUse)}</th><th class="num">${escapeHtml(G.thPerDay)}</th><th class="num">${escapeHtml(G.thGd)}</th><th class="num">${escapeHtml(G.thPerGd)}</th><th>${t("thNotitie")}</th><th></th>
+  </tr></thead><tbody>${rows}</tbody></table></div>`;
+}
+function wireGasTable(){
+  document.querySelectorAll(".gtable tbody tr").forEach(tr => {
+    const g = (state.gasStanden || []).find(x => x.id === tr.dataset.id); if(!g) return;
+    tr.querySelectorAll("[data-f]").forEach(inp => {
+      const f = inp.dataset.f;
+      if(f === "datum") inp.addEventListener("blur", () => { if(!validISODate(inp.value)) inp.value = g.datum; });
+      inp.addEventListener("change", () => {
+        if(f === "datum"){ if(!validISODate(inp.value)) return; g.datum = inp.value; }
+        else if(f === "stand"){ const n = parseNum(inp.value); if(n === null || n < 0){ inp.value = String(g.stand).replace(".", state.lang === "en" ? "." : ","); return; } g.stand = n; }
+        else g[f] = inp.value.trim ? inp.value.trim() : inp.value;
+        scheduleAutoSave(); renderAll();
+      });
+    });
+    tr.querySelector(".row-del").onclick = () => { if(!confirm(t("deleteConfirm"))) return; state.gasStanden = state.gasStanden.filter(x => x.id !== g.id); scheduleAutoSave(); renderAll(); };
+  });
+}
+function drawGasCharts(){
+  const A = gasAnalysis();
+  const ce = document.getElementById("gasCon"); if(ce) ce.innerHTML = gasConclusionHTML(A);
+  drawGasWeekChart(document.getElementById("gasWeekChart"), A);
+  drawGasFitChart(document.getElementById("gasFitChart"), A);
+}
+function gasConclusionHTML(A){
+  const G = t("gas"), paras = [], facts = [];
+  const tot = A.L.length >= 2 ? A.L[A.L.length - 1].stand - A.L[0].stand : null, totDays = A.L.length >= 2 ? (gasTs(A.L[A.L.length - 1]) - gasTs(A.L[0])) / DAY : 0;
+  const noLoc = !state.settings.locatie, price = gasPrijs();
+  if(A.status !== "ok"){
+    const noOut = A.L.length >= 2 && !A.use.length && A.ivs.some(iv => !iv.err && iv.days >= 2 && iv.covered < 0.8 * iv.days);
+    const p = A.status === "spread" ? G.needSpread(A.use.length) : A.status === "slope" ? G.needSlope : noOut ? G.needOut : G.need;
+    if(tot !== null && tot >= 0) paras.push(G.pTot(fmtNum(tot, 1), Math.round(totDays)));
+    if(A.avg4 !== null) facts.push([G.fWeek, G.perWeek(fmtNum(A.avg4, 1))]);
+    if(A.neg) paras.push(G.pNeg(A.neg));
+    if(noLoc && A.L.length) paras.push(G.pNoLoc);
+    return conBox("insufficient", t("conInsufficient"), [p].concat(paras), facts);
+  }
+  const r = A.fit, kTxt = fmtNum(r.b, 2), baseW = r.a * 7;
+  paras.push(G.pGd(kTxt, fmtNum(baseW, 1)));
+  if(r.forced) paras.push(G.pBase0);
+  if(A.htc){
+    paras.push(G.pHtc(fmtNum(A.htc, 0), Math.round(gasEta())));
+    paras.push(G.pBench);
+    const taus = sortedCool().map(a => ({ a, c: coolCalc(a) })).filter(p => p.c.tau && coolClean(p)).map(p => p.c.tau);
+    if(taus.length){ const tau = median(taus), cap = tau * A.htc / 1000; paras.push(G.pCap(fmtNum(cap, 1), hoursTxt(tau))); }
+  }
+  if(A.next) paras.push(G.pNext(fmtNum(A.next.gd, 0), fmtNum(A.next.m3, 1), price ? fmtEur(A.next.m3 * price) : ""));
+  if(A.odd && A.odd.length) paras.push(G.pOdd(A.odd.slice(-3).map(iv => `${fmtDate(iv.a.datum)} → ${fmtDate(iv.b.datum)}: ${fmtM3(iv.gas, 1)} (${G.ttExp.toLowerCase()} ${fmtM3(iv.exp, 1)})`).join("; ")));
+  if(tot !== null && tot >= 0) paras.push(G.pTot(fmtNum(tot, 1), Math.round(totDays)));
+  if(A.neg) paras.push(G.pNeg(A.neg));
+  if(noLoc) paras.push(G.pNoLoc);
+  facts.push([G.fGd, fmtNum(r.b, 2) + " m³"], [G.fBase, G.perWeek(fmtNum(baseW, 1))]);
+  if(A.htc) facts.push([G.fHtc, fmtNum(A.htc, 0) + " W/K"]);
+  if(A.next) facts.push([G.fNext, fmtM3(A.next.m3, 1) + (price ? " · " + fmtEur(A.next.m3 * price) : "")]);
+  const lvl = A.use.length >= 10 && r.maxX - r.minX >= 6 ? "high" : A.use.length >= 6 ? "medium" : "low";
+  return conBox("info", A.htc ? G.head(fmtNum(A.htc, 0)) : G.headGd(kTxt), paras, facts, { level: lvl });
+}
+function drawGasWeekChart(el, A){
+  if(!el) return;
+  const G = t("gas");
+  const weeks = A.weeks.filter(x => !x.current).slice(-16);
+  if(!weeks.some(x => x.m3 !== null)){ el.innerHTML = `<div class="chart-empty">${escapeHtml(G.need)}</div>`; return; }
+  const bars = weeks.concat(A.next ? [{ next: true, wk: isoWeek(addDaysISO(todayISO(), 1)).w, w: addDaysISO(todayISO(), 1), m3: A.next.m3, gd: A.next.gd }] : []);
+  const W = chartWidth(el), H = Math.round(Math.min(300, Math.max(220, W * 0.4))), narrow = W < 520;
+  const m = { l: 42, r: 38, t: 14, b: 30 }, iw = W - m.l - m.r, ih = H - m.t - m.b;
+  const yMax = Math.max(1, ...bars.map(x => Math.max(x.m3 || 0, x.exp || 0)));
+  const yt = niceTicks(0, yMax * 1.1, 5), Y = v => m.t + ih - (v - yt.lo) / (yt.hi - yt.lo) * ih;
+  const gMax = Math.max(1, ...bars.map(x => x.gd || 0)), gt = niceTicks(0, gMax * 1.1, 5), YG = v => m.t + ih - (v - gt.lo) / (gt.hi - gt.lo) * ih;
+  const bw = iw / bars.length, X = i => m.l + bw * (i + 0.5);
+  const col = "var(--accent)", cGd = "var(--c-binnen)";
+  let svg = yt.ticks.map(v => `<line x1="${m.l}" x2="${m.l + iw}" y1="${Y(v)}" y2="${Y(v)}" stroke="var(--grid)"/><text x="${m.l - 6}" y="${Y(v) + 4}" text-anchor="end">${fmtNum(v, 0)}</text>`).join("");
+  svg += gt.ticks.map(v => `<text x="${m.l + iw + 6}" y="${YG(v) + 4}" text-anchor="start" style="fill:${cGd}">${fmtNum(v, 0)}</text>`).join("");
+  const every = Math.max(1, Math.ceil(bars.length / Math.max(2, Math.floor(iw / (narrow ? 34 : 44)))));
+  bars.forEach((x, i) => {
+    const bwI = Math.max(4, bw * 0.62), x0 = X(i) - bwI / 2;
+    if(x.m3 !== null && x.m3 !== undefined) svg += x.next
+      ? `<rect x="${x0}" y="${Y(x.m3)}" width="${bwI}" height="${Math.max(0, Y(0) - Y(x.m3))}" fill="none" stroke="${col}" stroke-width="1.5" stroke-dasharray="4 3" rx="2"/>`
+      : `<rect x="${x0}" y="${Y(x.m3)}" width="${bwI}" height="${Math.max(0, Y(0) - Y(x.m3))}" fill="${col}" opacity=".85" rx="2"/>`;
+    if(x.exp) svg += `<line x1="${x0 - 2}" x2="${x0 + bwI + 2}" y1="${Y(x.exp)}" y2="${Y(x.exp)}" stroke="var(--text)" stroke-width="2" opacity=".55"/>`;
+    if(!(i % every)) svg += `<text x="${X(i)}" y="${H - 10}" text-anchor="middle" ${x.next ? 'style="font-style:italic"' : ""}>${escapeHtml(x.next ? "+7 d" : narrow ? String(x.wk) : G.week(x.wk))}</text>`;
+  });
+  const gPts = bars.map((x, i) => x.gd !== null && x.gd !== undefined ? { x: X(i), y: YG(x.gd) } : null);
+  let d = "", pen = false; gPts.forEach(p => { if(!p){ pen = false; return; } d += `${pen ? "L" : "M"}${p.x.toFixed(1)},${p.y.toFixed(1)}`; pen = true; });
+  if(d) svg += `<path d="${d}" fill="none" stroke="${cGd}" stroke-width="2" stroke-linejoin="round"/>` + gPts.filter(Boolean).map(p => `<circle cx="${p.x}" cy="${p.y}" r="3" fill="${cGd}" stroke="var(--paper)" stroke-width="1.5"/>`).join("");
+  const legend = `<span class="key"><i class="sw" style="background:${col}"></i>${escapeHtml(G.lBar)}</span>` + (A.fit ? `<span class="key"><i class="sw" style="background:var(--text); opacity:.55"></i>${escapeHtml(G.lExp)}</span>` : "") + `<span class="key"><i class="sw" style="background:${cGd}"></i>${escapeHtml(G.lGd)}</span>` + (A.next ? `<span class="key"><i class="sw dashc" style="border-color:${col}"></i>${escapeHtml(G.lNext)}</span>` : "");
+  el.innerHTML = `<div class="chart-legend">${legend}</div><div class="chart-wrap"><svg viewBox="0 0 ${W} ${H}" role="img" aria-label="${escapeHtml(G.chartWeek)}">${svg}<rect class="hit" x="${m.l}" y="${m.t}" width="${iw}" height="${ih}" fill="transparent"/></svg></div>`;
+  const wrap = el.querySelector(".chart-wrap"), svgEl = wrap.querySelector("svg"), tip = attachTooltip(wrap), price = gasPrijs();
+  const show = clientX => {
+    const rc = svgEl.getBoundingClientRect(), sc = W / rc.width, px = (clientX - rc.left) * sc, i = Math.floor((px - m.l) / bw);
+    const x = bars[i]; if(!x){ tip.hide(); return; }
+    const head = x.next ? G.lNext : G.ttWeek(x.wk, fmtDate(x.w), fmtDate(addDaysISO(x.w, 6)));
+    tip.show(`<div class="tt-head">${escapeHtml(head)}</div>${ttRow(col, x.next ? G.ttExp : G.ttM3, x.m3 !== null && x.m3 !== undefined ? fmtM3(x.m3, 1) : "—")}${!x.next && x.exp ? ttRow("var(--text)", G.ttExp, fmtM3(x.exp, 1)) : ""}${ttRow(cGd, G.ttGd, x.gd !== null && x.gd !== undefined ? fmtNum(x.gd, 0) : "—")}${price && x.m3 ? ttRow(col, G.ttCost, fmtEur(x.m3 * price)) : ""}`, X(i) / sc, Y(Math.max(x.m3 || 0, x.exp || 0)) / sc);
+  };
+  const hit = svgEl.querySelector(".hit");
+  hit.addEventListener("pointermove", ev => show(ev.clientX)); hit.addEventListener("pointerup", ev => show(ev.clientX)); hit.addEventListener("pointerleave", () => tip.hide());
+}
+function drawGasFitChart(el, A){
+  if(!el) return;
+  const G = t("gas"), pts = A.use.map(iv => ({ iv, x: iv.gd / iv.days, y: iv.gas / iv.days }));
+  if(pts.length < 2){ el.innerHTML = `<div class="chart-empty">${escapeHtml(G.need)}</div>`; return; }
+  const W = chartWidth(el), H = Math.round(Math.min(300, Math.max(220, W * 0.4)));
+  const m = { l: 44, r: 16, t: 14, b: 36 }, iw = W - m.l - m.r, ih = H - m.t - m.b;
+  const xt = niceTicks(0, Math.max(...pts.map(p => p.x), 4) * 1.1, 5), yt = niceTicks(0, Math.max(...pts.map(p => p.y), 1) * 1.15, 5);
+  const X = v => m.l + (v - xt.lo) / (xt.hi - xt.lo) * iw, Y = v => m.t + ih - (v - yt.lo) / (yt.hi - yt.lo) * ih, col = "var(--accent)";
+  let svg = yt.ticks.map(v => `<line x1="${m.l}" x2="${m.l + iw}" y1="${Y(v)}" y2="${Y(v)}" stroke="var(--grid)"/><text x="${m.l - 6}" y="${Y(v) + 4}" text-anchor="end">${fmtNum(v, v < 10 ? 1 : 0)}</text>`).join("");
+  svg += xt.ticks.map(v => `<line x1="${X(v)}" x2="${X(v)}" y1="${m.t}" y2="${m.t + ih}" stroke="var(--grid)"/><text x="${X(v)}" y="${m.t + ih + 16}" text-anchor="middle">${fmtNum(v, 0)}</text>`).join("");
+  svg += `<text x="${m.l + iw}" y="${H - 4}" text-anchor="end">${escapeHtml(G.xGd)}</text><text x="${m.l + 4}" y="${m.t + 10}" text-anchor="start">${escapeHtml(G.yM3)}</text>`;
+  if(A.fit){ const r = A.fit; svg += `<line x1="${X(xt.lo)}" x2="${X(xt.hi)}" y1="${Y(r.a + r.b * xt.lo)}" y2="${Y(r.a + r.b * xt.hi)}" stroke="var(--text-soft)" stroke-width="1.8" stroke-dasharray="6 4"/>`; }
+  svg += pts.map(p => `<circle cx="${X(p.x)}" cy="${Y(p.y)}" r="${Math.max(4, Math.min(8, 3 + p.iv.days / 3))}" fill="${col}" opacity=".85" stroke="var(--paper)" stroke-width="1.5"/>`).join("");
+  el.innerHTML = `<div class="chart-legend"><span class="key"><i class="sw dot" style="background:${col}"></i>${escapeHtml(G.lDot)}</span>${A.fit ? `<span class="key"><i class="sw dash"></i>${escapeHtml(G.lLine)}</span>` : ""}</div><div class="chart-wrap"><svg viewBox="0 0 ${W} ${H}" role="img" aria-label="${escapeHtml(G.chartFit)}">${svg}</svg></div>`;
+  const wrap = el.querySelector(".chart-wrap"), svgEl = wrap.querySelector("svg"), tip = attachTooltip(wrap);
+  svgEl.addEventListener("pointermove", ev => {
+    const rc = svgEl.getBoundingClientRect(), sc = W / rc.width, px = (ev.clientX - rc.left) * sc, py = (ev.clientY - rc.top) * sc;
+    let best = null, bd = 24; pts.forEach(p => { const dd = Math.hypot(X(p.x) - px, Y(p.y) - py); if(dd < bd){ bd = dd; best = p; } });
+    if(!best){ tip.hide(); return; }
+    const iv = best.iv;
+    tip.show(`<div class="tt-head">${escapeHtml(fmtDate(iv.a.datum) + " → " + fmtDate(iv.b.datum))}</div>${ttRow(col, G.ttM3, fmtM3(iv.gas, 1) + " · " + fmtM3(best.y, 2) + "/d")}${ttRow(col, G.ttGd, fmtNum(iv.gd, 0))}${iv.tout !== null ? ttRow("var(--c-buiten)", G.ttTout, fmtT(iv.tout)) : ""}${iv.tin !== null ? ttRow("var(--c-binnen)", G.ttTin, fmtT(iv.tin)) : ""}`, X(best.x) / sc, Y(best.y) / sc);
+  });
+  svgEl.addEventListener("pointerleave", () => tip.hide());
+}
+function renderGasSummary(el){
+  const G = t("gas"), A = gasAnalysis(), last = A.L[A.L.length - 1];
+  let html = `<h2>${escapeHtml(G.sumTitle)}</h2>
+    <div class="stamp"><div class="stamp-label">${escapeHtml(A.fit ? G.fGd : G.sumAvg4)}</div><div class="stamp-value">${A.fit ? fmtNum(A.fit.b, 2) + " m³" : A.avg4 !== null ? fmtNum(A.avg4, 1) + " m³" : "—"}</div><div class="stamp-sub">${escapeHtml(A.fit ? G.fBase + ": " + G.perWeek(fmtNum(A.fit.a * 7, 1)) : G.lBar)}</div></div>`;
+  if(last) html += `<div class="summary-line"><span class="l">${escapeHtml(G.sumLast)}</span><span class="v">${escapeHtml(fmtDate(last.datum, true))} · ${fmtNum(last.stand, 3)}</span></div>`;
+  if(A.lastWeek) html += `<div class="summary-line"><span class="l">${escapeHtml(G.sumWeek)}</span><span class="v">${escapeHtml(G.week(A.lastWeek.wk))} · ${fmtM3(A.lastWeek.m3, 1)}</span></div>`;
+  if(A.avg4 !== null) html += `<div class="summary-line"><span class="l">${escapeHtml(G.sumAvg4)}</span><span class="v">${fmtM3(A.avg4, 1)}</span></div>`;
+  if(A.htc) html += `<div class="summary-line"><span class="l">${escapeHtml(G.fHtc)}</span><span class="v">${fmtNum(A.htc, 0)} W/K</span></div>`;
+  if(A.next) html += `<div class="summary-line"><span class="l">${escapeHtml(G.fNext)}</span><span class="v">${fmtM3(A.next.m3, 1)}${gasPrijs() ? " · " + fmtEur(A.next.m3 * gasPrijs()) : ""}</span></div>`;
+  html += actionsHTML();
+  el.innerHTML = html;
+  wireActions();
+}
+function gasExportRows(){
+  const en = state.lang === "en", L = gasSorted(), ivs = gasIntervals(L);
+  return L.map((g, i) => { const iv = i ? ivs[i - 1] : null; return {
+    [en ? "Date" : "Datum"]: g.datum, [en ? "Time" : "Tijd"]: g.tijd || "", [en ? "Week" : "Week"]: isoWeek(g.datum).w, [en ? "Meter reading (m³)" : "Meterstand (m³)"]: g.stand,
+    [en ? "Use since previous (m³)" : "Verbruik sinds vorige (m³)"]: iv && !iv.err ? Math.round(iv.gas * 1000) / 1000 : "",
+    [en ? "Per day (m³)" : "Per dag (m³)"]: iv && !iv.err ? Math.round(iv.perDay * 100) / 100 : "",
+    [en ? "Degree days" : "Graaddagen"]: iv && !iv.err && iv.covered ? Math.round(iv.gd * 10) / 10 : "",
+    [en ? "Note" : "Notitie"]: g.notitie || "" }; });
+}
+
+/* ================= SLIM LUCHTEN & HERINNERINGEN (v30) =================
+   Absolute luchtvochtigheid (g/m³) = 6,112 · e^(17,67·T/(T+243,5)) · RV · 2,1674 / (273,15 + T).
+   Luchten voert per m³ verse lucht (binnen − buiten) g vocht af; het kost warmte naar rato van het
+   verschil binnen − buiten. Beste moment = blok van 2 uur (07–23 u, komende 36 uur) met de meeste
+   vochtafvoer per graad verschil. Binnen: laatste meting (≤ 2 dagen) en gemeten luchtvochtigheid
+   (≤ 3 dagen), anders je comfortgrens en 55%. */
+function absHum(T, rv){ return 6.112 * Math.exp(17.67 * T / (T + 243.5)) * rv * 2.1674 / (273.15 + T); }
+const wxWait = new Set();
+function wxFresh(loc, d, onReady){
+  const key = wxKey(loc, d);
+  if((weatherResolved[key] === undefined || Date.now() - (weatherFetchedAt[key] || 0) > 3 * HOUR) && !wxWait.has(key)){
+    wxWait.add(key);
+    fetchHourly(loc, d).then(() => { if(onReady) onReady(); }).catch(() => { if(weatherResolved[key] === undefined) weatherResolved[key] = {}; }).finally(() => wxWait.delete(key));
+  }
+}
+function hourlyForecast(t0, t1, onReady){
+  const loc = state.settings.locatie; if(!loc) return null;
+  const H = {}; let loading = false;
+  const d0 = tsToISO(t0), d1 = tsToISO(t1);
+  // Elke opgehaalde dag bevat ook de volgende dag; de dag ervoor dus ook gebruiken als die er al is.
+  for(let d = addDaysISO(d0, -1); d <= d1; d = addDaysISO(d, 1)){
+    if(d >= d0) wxFresh(loc, d, onReady);
+    const key = wxKey(loc, d), map = weatherResolved[key], ex = weatherExtra[key] || {};
+    if(!map){ if(d >= d0) loading = true; continue; }
+    Object.keys(map).forEach(k => { const ts = keyToTs(k); if(ts >= t0 && ts <= t1 && H[ts] === undefined){ const e = ex[k] || {}; H[ts] = { ts, T: map[k], rv: numOrNull(e.rv), wind: numOrNull(e.wind), regen: numOrNull(e.regen) }; } });
+  }
+  const list = Object.values(H).sort((a, b) => a.ts - b.ts);
+  return { list, loading: loading && list.length < 6 };
+}
+function indoorNow(){
+  const now = Date.now(), L = sortedMetingen(state.metingen).filter(m => tsOf(m) <= now + HOUR);
+  const room = (ruimteList()[0] || ROOM_DEFAULT).toLowerCase(), same = L.filter(m => (m.ruimte || ROOM_DEFAULT).toLowerCase() === room);
+  const pick = (same.length ? same : L);
+  const last = pick[pick.length - 1], tin = last && now - tsOf(last) <= 2 * DAY ? last.binnen : comfortT();
+  const withRv = L.filter(m => typeof m.rv === "number"), lr = withRv[withRv.length - 1];
+  const rv = lr && now - tsOf(lr) <= 3 * DAY ? lr.rv : null;
+  return { tin, rv, rvLast: lr ? lr.rv : null };
+}
+function whenTxt(ts, span){
+  const L = t("lucht"), d = tsToISO(ts), today = todayISO(), h = new Date(ts).getHours();
+  const day = d === today ? L.today : d === addDaysISO(today, 1) ? L.tomorrow : fmtDate(d);
+  return span ? `${day} ${pad2(h)}:00–${pad2((h + span) % 24)}:00` : `${day} ${pad2(h)}:00`;
+}
+function airingAdvice(onReady){
+  const loc = state.settings.locatie, I = indoorNow();
+  const res = { loc: !!loc, tin: I.tin, rvIn: I.rv ?? 55, rvSrc: I.rv !== null ? "measured" : "assumed", rvLast: I.rvLast };
+  if(!loc) return res;
+  const now = Date.now(), F = hourlyForecast(Math.ceil(now / HOUR) * HOUR, now + 36 * HOUR, onReady);
+  if(!F || F.loading){ res.loading = true; return res; }
+  const ahIn = absHum(I.tin, res.rvIn); res.ahIn = ahIn;
+  const hrs = F.list.filter(h => h.rv !== null).map(h => ({ ...h, ah: absHum(h.T, h.rv), dT: I.tin - h.T }));
+  if(hrs.length < 6){ res.loading = F.list.length < 6; res.noData = !res.loading; return res; }
+  hrs.forEach(h => { h.dry = ahIn - h.ah; h.awake = (() => { const hh = new Date(h.ts).getHours(); return hh >= 7 && hh <= 22; })(); });
+  const blocks = [];
+  for(let i = 0; i + 1 < hrs.length; i++){ const a = hrs[i], b = hrs[i + 1]; if(b.ts - a.ts !== HOUR || !a.awake || !b.awake) continue; const dry = (a.dry + b.dry) / 2, dT = (a.dT + b.dT) / 2; blocks.push({ ts: a.ts, T: (a.T + b.T) / 2, rv: (a.rv + b.rv) / 2, ah: (a.ah + b.ah) / 2, dry, dT, wind: a.wind !== null && b.wind !== null ? (a.wind + b.wind) / 2 : null, score: dry / Math.max(1, dT) }); }
+  if(!blocks.length){ res.noData = true; return res; }
+  // Warm binnen (zomer): luchten om te koelen, ook 's avonds en vroeg in de ochtend.
+  if(I.tin >= 24){ const c = hrs.filter(h => h.T <= I.tin - 3).sort((a, b) => a.T - b.T)[0]; if(c) res.coolH = c; }
+  const good = blocks.filter(b => b.dry >= 1);
+  if(good.length) res.best = good.sort((a, b) => b.score - a.score)[0];
+  else res.noDry = blocks.slice().sort((a, b) => b.dry - a.dry)[0];
+  const cold = blocks.filter(b => b.dT > 0).sort((a, b) => (b.dT * (1 + (b.wind || 0) / 30)) - (a.dT * (1 + (a.wind || 0) / 30)))[0];
+  if(cold && res.best && cold.ts !== res.best.ts && cold.dT >= res.best.dT + 3) res.worst = cold;
+  return res;
+}
+function luchtHTML(adv){
+  const L = t("lucht"), own = (() => { const f = houseFit(state.metingen, scatterBasis()); const c = f && f.ventCmp && f.ventCmp.find(x => x.d <= -0.3); return c ? L.pOwn(c.lbl, `${fmtT(Math.abs(c.d))} ${state.lang === "en" ? "colder" : "kouder"}`) : null; })();
+  const tips = [L.pHow, L.pRv];
+  const needs = [];
+  if(adv.rvSrc === "assumed") needs.push(L.needRv);
+  const rvHigh = adv.rvLast !== null && adv.rvLast >= 65 ? L.rvHigh(Math.round(adv.rvLast)) : null;
+  if(!adv.loc) return conBox("info", L.title, [rvHigh, L.needLoc].concat(tips, own ? [own] : []));
+  if(adv.loading) return conBox("insufficient", L.loading, tips);
+  if(adv.noData) return conBox("info", L.title, tips.concat(own ? [own] : []));
+  const src = adv.rvSrc === "measured" ? L.measured : L.assumed, paras = [], facts = [];
+  let status = "info", head;
+  if(adv.coolH){ head = L.cool(whenTxt(adv.coolH.ts)); paras.push(L.pCool(fmtT(adv.tin), fmtT(adv.coolH.T))); }
+  if(adv.best){
+    const b = adv.best;
+    if(!head){ head = L.best(whenTxt(b.ts, 2)); status = "good"; }
+    paras.push(L.pBest(fmtT(b.T), Math.round(b.rv), fmtNum(b.ah, 1), fmtT(adv.tin), Math.round(adv.rvIn), src, fmtNum(adv.ahIn, 1), fmtNum(b.dry, 1), fmtT(Math.max(0, b.dT))));
+    facts.push([L.fOut, `${fmtT(b.T)} · ${Math.round(b.rv)}%`], [L.fAh, `${fmtNum(b.ah, 1)} / ${fmtNum(adv.ahIn, 1)} g/m³`], [L.fDry, `${fmtNum(b.dry, 1)} g`]);
+  } else if(adv.noDry){
+    if(!head){ head = L.noDry; status = "neutral"; }
+    paras.push(L.pNoDry(fmtNum(adv.noDry.ah, 1), fmtNum(adv.ahIn, 1)));
+  }
+  if(rvHigh) paras.push(rvHigh);
+  if(adv.worst) paras.push(L.pWorst(whenTxt(adv.worst.ts), fmtT(adv.worst.T), adv.worst.wind !== null ? Math.round(adv.worst.wind) + " km/h" : ""));
+  const box = conBox(status, head, paras, facts);
+  return attachMore(box, moreHTML("lucht", [secHTML(state.lang === "en" ? "How and why" : "Hoe en waarom", tips.concat(own ? [own] : []))], needs));
+}
+/* Afkoeltest-tip: vannacht of morgennacht ≥ 10 °C verschil binnen–buiten en weinig wind. */
+function coolTonight(onReady){
+  const loc = state.settings.locatie; if(!loc) return null;
+  const now = Date.now(), today = todayISO();
+  const st = sortedCool().filter(a => a.startBinnen !== null && typeof a.startBinnen === "number").map(a => a.startBinnen);
+  const tin = st.length ? median(st.slice(-5)) : indoorNow().tin;
+  for(const d of [today, addDaysISO(today, 1)]){
+    const t0 = tsFrom(d, "22:00"), t1 = tsFrom(addDaysISO(d, 1), "07:00");
+    if(t0 < now - HOUR) continue;
+    if(state.afkoeltests.some(a => validISODate(a.startDatum) && a.startTijd && Math.abs(coolStartTs(a) - t0) < 8 * HOUR)) continue;
+    const F = hourlyForecast(t0, t1, onReady); if(!F || F.list.length < 6) continue;
+    const T = avg(F.list.map(h => h.T)), ws = F.list.map(h => h.wind).filter(v => v !== null), wind = ws.length ? avg(ws) : null;
+    if(tin - T >= 10 && (wind === null || wind < 15)) return { d, t0, tOut: T, wind, dT: tin - T, tonight: d === today };
+  }
+  return null;
+}
+/* Agenda-bestand (.ics): werkt met iPhone/macOS Agenda, Google Agenda (importeren) en Outlook. */
+function icsEsc(s){ return String(s).replace(/[\\;,]/g, m => "\\" + m).replace(/\n/g, "\\n"); }
+function icsDT(ts){ const d = new Date(ts); return `${d.getFullYear()}${pad2(d.getMonth() + 1)}${pad2(d.getDate())}T${pad2(d.getHours())}${pad2(d.getMinutes())}00`; }
+function downloadIcs(filename, ev){
+  const lines = ["BEGIN:VCALENDAR", "VERSION:2.0", "PRODID:-//Tembo//NL", "CALSCALE:GREGORIAN", "BEGIN:VEVENT",
+    `UID:${newId()}@tembo`, `DTSTAMP:${new Date().toISOString().replace(/[-:]/g, "").replace(/\.\d+Z$/, "Z")}`,
+    `DTSTART:${icsDT(ev.start)}`, `DTEND:${icsDT(ev.start + (ev.mins || 10) * 60000)}`, `SUMMARY:${icsEsc(ev.title)}`, `DESCRIPTION:${icsEsc(ev.desc || "")}`]
+    .concat(ev.rrule ? [`RRULE:${ev.rrule}`] : [], ["BEGIN:VALARM", "ACTION:DISPLAY", `DESCRIPTION:${icsEsc(ev.title)}`, "TRIGGER:-PT0M", "END:VALARM", "END:VEVENT", "END:VCALENDAR"]);
+  downloadBlob(new Blob([lines.join("\r\n") + "\r\n"], { type: "text/calendar" }), filename);
+}
+function nextAt(dayOfWeek, hm){
+  const [h, mi] = (hm || "10:00").split(":").map(Number), d = new Date(); d.setHours(h || 0, mi || 0, 0, 0);
+  if(dayOfWeek === null){ if(d.getTime() <= Date.now()) d.setDate(d.getDate() + 1); return d.getTime(); }
+  let add = (dayOfWeek - d.getDay() + 7) % 7; if(add === 0 && d.getTime() <= Date.now()) add = 7;
+  d.setDate(d.getDate() + add); return d.getTime();
+}
+function icsGas(){ const R = t("rem"), dag = Number(state.settings.remGasDag) || 0; downloadIcs("tembo_gasmeter.ics", { start: nextAt(dag, state.settings.remGasTijd), title: R.icsGasTitle, desc: R.icsGasDesc, rrule: `FREQ=WEEKLY;BYDAY=${["SU","MO","TU","WE","TH","FR","SA"][dag]}` }); }
+function icsMeet(){ const R = t("rem"), n = Math.max(1, Math.round(Number(state.settings.remMeetDagen) || 1)); downloadIcs("tembo_meten.ics", { start: nextAt(null, state.settings.remMeetTijd), title: R.icsMeetTitle, desc: R.icsMeetDesc, rrule: `FREQ=DAILY;INTERVAL=${n}` }); }
+const remHidden = new Set();
+function remindersHTML(){
+  const R = t("rem"), G = t("gas"), items = [], today = todayISO();
+  const gi = gasReminderInfo();
+  if(gi.empty) items.push({ k: "gas0", txt: R.gasFirst, btn: [["go-gas", R.go]] });
+  else {
+    if(gi.missing.length) items.push({ k: "gasm" + gi.missing.length, txt: R.gasMiss(gi.missing.slice(-4).map(x => G.missWeek(x.wk, fmtDate(x.w), fmtDate(addDaysISO(x.w, 6)))).join(", ") + (gi.missing.length > 4 ? " …" : "")), btn: [["go-gas", R.go]] });
+    if(gi.current) items.push({ k: "gasc" + gi.current.w, txt: R.gasNow(gi.current.wk), btn: [["go-gas", R.go]] });
+  }
+  const nDays = Math.round(Number(state.settings.remMeetDagen));
+  if(nDays > 0){
+    const L = sortedMetingen(state.metingen), last = L[L.length - 1];
+    if(!last) items.push({ k: "meet0", txt: R.meetNone, btn: [] });
+    else { const ago = daysBetween(last.datum, today); if(ago >= nDays) items.push({ k: "meet" + today, txt: R.meet(ago, fmtDate(last.datum)), btn: [["go-meet", R.goMeet]] }); }
+  }
+  const c = coolTonight(refreshOverviewExtras);
+  if(c){ const L = t("lucht"); items.push({ k: "cool" + c.d, txt: R.cool(c.tonight ? (state.lang === "en" ? "Tonight" : "Vannacht") : (state.lang === "en" ? "Tomorrow night" : "Morgennacht"), fmtT(c.tOut), c.wind !== null ? Math.round(c.wind) + " km/h" : "", fmtT(c.dT)), btn: [["ics-cool:" + c.t0, R.ics], ["go-cool", R.goCool]] }); }
+  const vis = items.filter(x => !remHidden.has(x.k));
+  if(!vis.length) return "";
+  return `<section class="card rem-card"><div class="card-head"><div class="htitle">${ICONS.bell}<h2>${escapeHtml(R.title)}</h2></div></div><div class="card-body"><ul class="rem-list">${vis.map(x => `<li><span class="rem-txt">${escapeHtml(x.txt)}</span><span class="rem-btns">${x.btn.map(([a, l]) => `<button type="button" class="btn small" data-rem="${escapeHtml(a)}">${escapeHtml(l)}</button>`).join("")}<button type="button" class="rem-x" data-remx="${escapeHtml(x.k)}" aria-label="${escapeHtml(R.hide)}" title="${escapeHtml(R.hide)}">×</button></span></li>`).join("")}</ul></div></section>`;
+}
+function refreshOverviewExtras(){
+  if((state.activeView || {}).type !== "overview") return;
+  const rb = document.getElementById("remBox"); if(rb){ rb.innerHTML = remindersHTML(); wireReminders(rb); }
+  const lb = document.getElementById("luchtBox"); if(lb) lb.innerHTML = luchtHTML(airingAdvice(refreshOverviewExtras));
+}
+function wireReminders(root){
+  root.querySelectorAll("[data-remx]").forEach(b => b.onclick = () => { remHidden.add(b.dataset.remx); refreshOverviewExtras(); });
+  root.querySelectorAll("[data-rem]").forEach(b => b.onclick = () => {
+    const a = b.dataset.rem, R = t("rem");
+    if(a === "go-gas") goTo({ type: "gas" });
+    else if(a === "go-cool") goTo({ type: "afkoel" });
+    else if(a === "go-meet"){ const f = document.getElementById("fBinnen"); if(f){ f.scrollIntoView({ block: "center" }); f.focus(); } }
+    else if(a.startsWith("ics-cool:")) downloadIcs("tembo_afkoeltest.ics", { start: Number(a.split(":")[1]) - 15 * 60000, mins: 15, title: R.icsCoolTitle, desc: R.icsCoolDesc });
+  });
+}
 
 /* ================= KLIMAAT & COMFORT =================
    Blijft nuttig als vóór/na er niet meer toe doet. Drie invalshoeken:
@@ -4965,6 +5677,7 @@ function exportRows(){
     [(state.lang==="en" ? "Rain 3 h" : "Regen 3 u") + " (mm)"]: wxOf(m) && numOrNull(m.weer.regen) !== null ? m.weer.regen : "",
     [state.lang==="en" ? "Weather source" : "Bron weer"]: wxOf(m) ? m.weer.src : "",
     [t("vent").title]: m.vent ? ventLabel(m.vent) : "",
+    [t("fRv")]: typeof m.rv === "number" ? m.rv : "",
     [t("kCv")]: m.cv || "", [t("kCv") + " °C"]: m.cvTemp ?? "", [t("kAirco")]: m.airco || "", [t("kAirco") + " °C"]: m.aircoTemp ?? "",
     [t("thKlimaat")]: t("kStatus_" + klimaatOf(m).mode), [state.lang==="en" ? "Thermostat" : "Thermostaat"]: klimaatOf(m).reg ? t("kReg_" + klimaatOf(m).reg) : "",
     [t("fNotitie")]: m.notitie,
@@ -4985,6 +5698,8 @@ function exportXlsx(){
       [en?"Date":"Datum"]: k.a.datum, [en?"From":"Van"]: k.a.tijd, [en?"To":"Tot"]: k.b.tijd, [en?"Indoor start (°C)":"Binnen start (°C)"]: k.a.binnen, [en?"Indoor end (°C)":"Binnen eind (°C)"]: k.b.binnen,
       [en?"Duration (h)":"Duur (u)"]: Math.round(k.dtH*10)/10, [en?"Cooling rate (°C/h)":"Koelsnelheid (°C/u)"]: Math.round(k.rate*10)/10, [en?"Outdoor avg. (°C)":"Buiten gem. (°C)"]: Math.round(k.out*10)/10,
       [en?"AC set to (°C)":"Airco ingesteld (°C)"]: k.sp ?? "", [en?"Reached":"Gehaald"]: k.reached === null ? "" : (k.reached ? (en?"yes":"ja") : (en?"no":"nee")), [en?"Room":"Ruimte"]: k.a.ruimte || "" }))), en ? "AC cooling tests" : "Koeltests"); }
+    const gasR = gasExportRows();
+    if(gasR.length) XLSX.utils.book_append_sheet(wb, XLSX.utils.json_to_sheet(gasR), state.lang==="en" ? "Gas meter" : "Gasmeter");
     XLSX.writeFile(wb, `Tembo_metingen_${todayISO()}.xlsx`);
   } else {
     const keys = rows.length ? Object.keys(rows[0]) : [];
@@ -5097,7 +5812,7 @@ async function fetchHourlyUncached(loc, datum){
   const base = ago > 60 ? "https://archive-api.open-meteo.com/v1/archive" : "https://api.open-meteo.com/v1/forecast";
   // Afgerond op 2 decimalen (~1 km): ruim nauwkeurig voor een weermodel met ~2 km-raster, en je
   // exacte adres gaat zo nooit naar Open-Meteo.
-  const url = `${base}?latitude=${loc.lat.toFixed(2)}&longitude=${loc.lon.toFixed(2)}&hourly=temperature_2m,shortwave_radiation,cloud_cover,wind_speed_10m,precipitation&timezone=auto&start_date=${datum}&end_date=${addDaysISO(datum, 1)}`;
+  const url = `${base}?latitude=${loc.lat.toFixed(2)}&longitude=${loc.lon.toFixed(2)}&hourly=temperature_2m,relative_humidity_2m,shortwave_radiation,cloud_cover,wind_speed_10m,precipitation&timezone=auto&start_date=${datum}&end_date=${addDaysISO(datum, 1)}`;
   const res = await fetch(url, typeof AbortSignal !== "undefined" && AbortSignal.timeout ? { signal: AbortSignal.timeout(15000) } : undefined);
   if(!res.ok) throw new Error("HTTP " + res.status);
   const data = await res.json();
@@ -5107,7 +5822,7 @@ async function fetchHourlyUncached(loc, datum){
   // Zon (W/m², gemiddelde van het voorgaande uur), bewolking (%), wind (km/h, 10 m) en neerslag (mm
   // in het voorgaande uur) — apart bewaard, zodat alles wat alleen temperatuur kent ongewijzigd blijft.
   const H = data.hourly, ex = {};
-  H.time.forEach((tm, i) => { ex[tm] = { zon: H.shortwave_radiation ? H.shortwave_radiation[i] : null, wolk: H.cloud_cover ? H.cloud_cover[i] : null, wind: H.wind_speed_10m ? H.wind_speed_10m[i] : null, regen: H.precipitation ? H.precipitation[i] : null }; });
+  H.time.forEach((tm, i) => { ex[tm] = { zon: H.shortwave_radiation ? H.shortwave_radiation[i] : null, wolk: H.cloud_cover ? H.cloud_cover[i] : null, wind: H.wind_speed_10m ? H.wind_speed_10m[i] : null, regen: H.precipitation ? H.precipitation[i] : null, rv: H.relative_humidity_2m ? H.relative_humidity_2m[i] : null }; });
   weatherExtra[wxKey(loc, datum)] = ex;
   return map;
 }
@@ -5831,6 +6546,19 @@ function renderProfilePanel(){
         <label class="profile-field">${t("setRef")}<input type="number" step="1" id="setRef" value="${escapeHtml(state.settings.refBuiten)}" /></label>
         <p class="profile-hint">${escapeHtml(t("setRefHint"))}</p>
       </div>
+      <hr class="profile-divider">
+      <div class="profile-section-title">${escapeHtml(t("rem").setTitle)}</div>
+      <label class="profile-field">${escapeHtml(t("rem").setMeet)}<input type="number" min="0" max="14" step="1" id="setRemMeet" value="${escapeHtml(String(state.settings.remMeetDagen ?? 2))}" /></label>
+      <label class="profile-field">${escapeHtml(t("rem").setMeetTijd)}<input type="time" id="setRemMeetTijd" value="${escapeHtml(state.settings.remMeetTijd || "20:00")}" /></label>
+      <label class="profile-field">${escapeHtml(t("rem").setGasDag)}<select id="setRemGasDag">${[1,2,3,4,5,6,0].map(d => `<option value="${d}" ${Number(state.settings.remGasDag) === d ? "selected" : ""}>${escapeHtml(new Date(2026, 0, 4 + d).toLocaleDateString(state.lang === "en" ? "en-GB" : "nl-NL", { weekday: "long" }))}</option>`).join("")}</select></label>
+      <label class="profile-field">${escapeHtml(t("rem").setGasTijd)}<input type="time" id="setRemGasTijd" value="${escapeHtml(state.settings.remGasTijd || "10:00")}" /></label>
+      <div class="loc-btn-row"><button id="icsGasBtn">${escapeHtml(t("rem").icsGas)}</button><button id="icsMeetBtn">${escapeHtml(t("rem").icsMeet)}</button></div>
+      <p class="profile-hint">${escapeHtml(t("rem").setHint)}</p>
+      <div class="profile-section-title">${escapeHtml(t("rem").setGas)}</div>
+      <label class="profile-field">${escapeHtml(t("rem").setEta)}<input type="number" min="50" max="110" step="1" id="setGasEta" value="${escapeHtml(String(gasEta()))}" /></label>
+      <p class="profile-hint">${escapeHtml(t("rem").setEtaHint)}</p>
+      <label class="profile-field">${escapeHtml(t("rem").setPrijs)}<input type="text" inputmode="decimal" id="setGasPrijs" value="${gasPrijs() ? escapeHtml(String(gasPrijs()).replace(".", state.lang === "en" ? "." : ",")) : ""}" placeholder="1,35" /></label>
+      <hr class="profile-divider">
       <div id="roomSection" data-submit-block>
         <div class="profile-section-title">${t("setRooms")}</div>
         <ul class="room-list" id="roomList"></ul>
@@ -5850,6 +6578,14 @@ function renderProfilePanel(){
       </div>`;
     wireLocationSettings();
     document.getElementById("setComfort").onchange = e => { const n = parseNum(e.target.value); if(n !== null && n >= 10 && n <= 30){ state.settings.comfortTemp = n; scheduleAutoSave(); renderAll({ skipProfile: true }); } else e.target.value = String(comfortT()); };
+    document.getElementById("setRemMeet").onchange = e => { const n = Math.round(Number(e.target.value)); if(isFinite(n) && n >= 0 && n <= 14){ state.settings.remMeetDagen = n; scheduleAutoSave(); renderAll({ skipProfile: true }); } else e.target.value = String(state.settings.remMeetDagen ?? 2); };
+    document.getElementById("setRemMeetTijd").onchange = e => { if(/^\d{2}:\d{2}$/.test(e.target.value)){ state.settings.remMeetTijd = e.target.value; scheduleAutoSave(); } };
+    document.getElementById("setRemGasDag").onchange = e => { state.settings.remGasDag = Number(e.target.value); scheduleAutoSave(); renderAll({ skipProfile: true }); };
+    document.getElementById("setRemGasTijd").onchange = e => { if(/^\d{2}:\d{2}$/.test(e.target.value)){ state.settings.remGasTijd = e.target.value; scheduleAutoSave(); } };
+    document.getElementById("icsGasBtn").onclick = icsGas;
+    document.getElementById("icsMeetBtn").onclick = icsMeet;
+    document.getElementById("setGasEta").onchange = e => { const n = Number(e.target.value); if(isFinite(n) && n >= 50 && n <= 110){ state.settings.gasRendement = n; scheduleAutoSave(); renderAll({ skipProfile: true }); } else e.target.value = String(gasEta()); };
+    document.getElementById("setGasPrijs").onchange = e => { const raw = e.target.value.trim(), n = raw ? parseNum(raw) : null; if(raw && !(n > 0 && n < 20)){ e.target.value = gasPrijs() ? String(gasPrijs()) : ""; return; } state.settings.gasPrijs = n; scheduleAutoSave(); renderAll({ skipProfile: true }); };
     document.getElementById("setKiep").onchange = e => { state.settings.kiepDicht = e.target.checked; scheduleAutoSave(); renderAll({ skipProfile: true }); };
     document.getElementById("setRef").onchange = e => { const n = parseNum(e.target.value); if(n !== null){ state.settings.refBuiten = n; scheduleAutoSave(); renderAll(); } };
     renderRoomSection();
